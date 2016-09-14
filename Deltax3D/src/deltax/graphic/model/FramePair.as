@@ -1,27 +1,46 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.model {
-
-    public final class FramePair {
-
+﻿package deltax.graphic.model 
+{
+	/**
+	 * 帧配套
+	 * @author lees
+	 * @date 2016/03/02
+	 */	
+    public final class FramePair 
+	{
         public static const INFINITE_FRAME:uint = 4294967295;
-
         public static var TEMP_FRAME_PAIR:FramePair = new FramePair();
-;
-
+		
+		/**开始帧*/
         public var startFrame:uint;
+		/**结束帧*/
         public var endFrame:uint = 4294967295;
 
-        public function FramePair(_arg1:uint=0, _arg2:uint=4294967295){
-            this.startFrame = _arg1;
-            this.endFrame = _arg2;
+        public function FramePair(s:uint=0, e:uint=4294967295)
+		{
+            this.startFrame = s;
+            this.endFrame = e;
         }
-        public function get range():uint{
-            return ((this.endFrame - this.startFrame));
+		
+		/**
+		 * 帧时间长度
+		 * @return 
+		 */		
+        public function get range():uint
+		{
+            return (this.endFrame - this.startFrame);
         }
-        public function copyFrom(_arg1:FramePair):void{
-            this.startFrame = _arg1.startFrame;
-            this.endFrame = _arg1.endFrame;
+		
+		/**
+		 * 复制
+		 * @param va
+		 */		
+        public function copyFrom(va:FramePair):void
+		{
+            this.startFrame = va.startFrame;
+            this.endFrame = va.endFrame;
         }
 
+		
+		
     }
-}//package deltax.graphic.model 
+} 

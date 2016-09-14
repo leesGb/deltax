@@ -66,7 +66,7 @@
 		/***/
         function getNodeCurAniPlayType(idx:uint):uint;
 		/***/
-        function setNodeAni(aniName:String, idx:uint, fp:FramePair, type:uint=0, time:uint=200, idxs:Vector.<uint>=null, arg:uint=0):void;
+        function setNodeAni(aniName:String, idx:uint, fp:FramePair, type:uint=0, time:uint=200, idxs:Vector.<uint>=null, va:uint=0):void;
 
     }
 } 

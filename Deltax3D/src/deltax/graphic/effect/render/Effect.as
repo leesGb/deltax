@@ -211,16 +211,6 @@
             }
         }
 		
-        public function get unitCount():uint
-		{
-            return this.m_effectUnits.length;
-        }
-		
-		public function get valid():Boolean
-		{
-			return !this.m_disposed;
-		}
-		
         public function getEffectUnitIndex(eU:EffectUnit):int
 		{
             return this.m_effectUnits.indexOf(eU);
@@ -250,6 +240,75 @@
 			
             return null;
         }
+		
+		public function isEffectUnitDisabled(idx:int):Boolean
+		{
+			return this.m_effectUnits[idx].renderDisabled;
+		}
+		
+		public function disableEffectUnit(idx:int, va:Boolean):void
+		{
+			this.m_effectUnits[idx].renderDisabled = va;
+		}
+		
+		public function sendMsgToUnits(v1:uint, v2:*, v3:*=null):void
+		{
+			var idx:uint;
+			while (idx < this.m_effectUnits.length) 
+			{
+				this.m_effectUnits[idx].sendMsg(v1, v2, v3);
+				idx++;
+			}
+		}
+		
+		public function setEffectUnitHandler(idx:uint, handler:EffectUnitHandler):void
+		{
+			if (idx >= this.m_effectUnits.length)
+			{
+				return;
+			}
+			this.m_effectUnits[idx].effectUnitHandler = handler;
+		}
+		
+		public function setEffectUnitHandlerByName(eName:String, handler:EffectUnitHandler):void
+		{
+			var idx:uint;
+			if (!eName)
+			{
+				idx = 0;
+				while (idx < this.m_effectUnits.length) 
+				{
+					this.m_effectUnits[idx].effectUnitHandler = handler;
+					idx++;
+				}
+			} else 
+			{
+				idx = 0;
+				while (idx < this.m_effectUnits.length) 
+				{
+					if (eName == this.m_effectUnits[idx].effectUnitData.customName)
+					{
+						this.m_effectUnits[idx].effectUnitHandler = handler;
+						return;
+					}
+					idx++;
+				}
+			}
+		}
+		
+		public function setDirFromVector2D(va:Vector2D):void
+		{
+			rotationY = 90 - (Math.atan2(va.y, va.x) * 180) / Math.PI;
+		}
+		
+		private function updateAlpha(time:int):void
+		{
+			if (this.m_parentRenderObject as IAlphaChangeable)
+			{
+				return;
+			}
+			this.m_alphaController.updateAlpha(time);
+		}
 		
 		//=========================================================================================================================
 		//=========================================================================================================================
@@ -284,6 +343,16 @@
 		{
             return new EffectEntityNode(this);
         }
+		
+		override public function get movable():Boolean
+		{
+			if (m_movable)
+			{
+				return true;
+			}
+			
+			return (_parent is Entity) ? Entity(_parent).movable : m_movable;
+		}
 		
 		//=========================================================================================================================
 		//=========================================================================================================================
@@ -363,69 +432,186 @@
 			return false;
 		}
 		
-		public function onLinkedToParent(_arg1:LinkableRenderable, _arg2:String, _arg3:uint, _arg4:Boolean):void
+		public function onLinkedToParent(va:LinkableRenderable, linkName:String, linkType:uint, frameSync:Boolean):void
 		{
-			var _local5:uint;
-			var _local6:EffectUnit;
-			var _local7:EffectUnitData;
-			var _local8:int;
-			var _local9:Array;
-			var _local10:FramePair;
+			var eU:EffectUnit;
+			var eUData:EffectUnitData;
+			var pTrack:int;
 			m_tempUsedSkeletalIDs.length = 0;
-			_local5 = 0;
-			while (_local5 < this.m_effectUnits.length) 
+			var idx:uint = 0;
+			while (idx < this.m_effectUnits.length) 
 			{
-				_local6 = this.m_effectUnits[_local5];
-				_local7 = _local6.effectUnitData;
-				_local8 = _local7.parentTrack;
-				_local6.linkedToParentUnit = (((_local8 >= 0)) && (!((this.m_effectUnits[_local8].presentRenderObject == null))));
-				if (_local6.linkedToParentUnit)
+				eU = this.m_effectUnits[idx];
+				eUData = eU.effectUnitData;
+				pTrack = eUData.parentTrack;
+				eU.linkedToParentUnit = (pTrack >= 0 && this.m_effectUnits[pTrack].presentRenderObject != null);
+				if (eU.linkedToParentUnit)
 				{
-					_local6.onLinkedToParent(this.m_effectUnits[_local8].presentRenderObject);
+					eU.onLinkedToParent(this.m_effectUnits[pTrack].presentRenderObject);
 				} else 
 				{
-					_local6.onLinkedToParent(_arg1);
+					eU.onLinkedToParent(va);
 				}
 				
-				if ((((_local8 < 0)) && ((_local6.nodeID >= 0))))
+				if (pTrack < 0 && eU.nodeID >= 0)
 				{
 					if (m_tempUsedSkeletalIDs.length >= 0x0400)
 					{
-						throw (new Error("you are crazy to add so many node in a effect!!!!"));
+						throw new Error("you are crazy to add so many node in a effect!!!!");
 					}
-					m_tempUsedSkeletalIDs.push(_local6.nodeID);
+					m_tempUsedSkeletalIDs.push(eU.nodeID);
 				}
-				_local5++;
+				idx++;
 			}
 			
-			if ((((m_tempUsedSkeletalIDs.length > 0)) && ((_arg1 is RenderObject))))
-			{
-				//
-			}
-			
-			this.m_parentRenderObject = _arg1;
-			this.m_frameSync = _arg4;
+			this.m_parentRenderObject = va;
+			this.m_frameSync = frameSync;
 			this.m_linkNodeID = 0;
 			this.m_linkSocketID = -1;
-			if (_arg3 != RenderObjLinkType.CENTER)
+			
+			if (linkType != RenderObjLinkType.CENTER)
 			{
-				_local9 = _arg1.getLinkIDsByAttachName(_arg2);
-				this.m_linkNodeID = _local9[0];
-				this.m_linkSocketID = _local9[1];
+				var nodeArr:Array = va.getLinkIDsByAttachName(linkName);
+				if(nodeArr)
+				{
+					this.m_linkNodeID = nodeArr[0];
+					this.m_linkSocketID = nodeArr[1];	
+				}
 			}
 			
 			this.m_resetAfterLink = false;
 			if (this.m_frameSync)
 			{
-				_local10 = new FramePair();
-				this.m_parentRenderObject.getNodeCurFramePair(this.m_linkNodeID, _local10);
-				this.setNodeAni("", this.m_linkNodeID, _local10, this.m_parentRenderObject.getNodeCurAniPlayType(this.m_linkNodeID), 0);
+				var fp:FramePair = new FramePair();
+				this.m_parentRenderObject.getNodeCurFramePair(this.m_linkNodeID, fp);
+				this.setNodeAni("", this.m_linkNodeID, fp, this.m_parentRenderObject.getNodeCurAniPlayType(this.m_linkNodeID), 0);
 			}
 			
-			if ((this.m_parentRenderObject is Entity))
+			if (this.m_parentRenderObject is Entity)
 			{
 				m_movable = (this.m_parentRenderObject as Entity).movable;
 			}
+		}
+		
+		public function onUnLinkedFromParent(va:LinkableRenderable):void
+		{
+			var idx:uint;
+			while (idx < this.m_effectUnits.length) 
+			{
+				this.m_effectUnits[idx].onUnLinkedFromParent(va);
+				idx++;
+			}
+			
+			if (this.m_effectHandler)
+			{
+				this.m_effectHandler.onUnlinkedFromParent(this);
+			}
+			
+			this.m_parentRenderObject = null;
+		}
+		
+		public function getNodeMatrix(mat:Matrix3D, idx:uint, subIdx:uint):Boolean
+		{
+			if (idx == 0)
+			{
+				mat.copyFrom(this.worldMatrix);
+				return true;
+			}
+			
+			idx--;
+			
+			if (idx < this.m_effectUnits.length)
+			{
+				this.m_effectUnits[idx].getNodeMatrix(mat, subIdx, 0);
+			}
+			
+			return (idx < this.m_effectUnits.length);
+		}
+		
+		public function onParentUpdate(time:uint):void
+		{
+			var idx:uint;//如果是循环播放，重设状态
+			if (this.m_aniEnd && this.m_aniPlayType != AniPlayType.ONCE)
+			{
+				idx = 0;
+				while (idx < this.m_effectUnits.length) 
+				{
+					this.m_effectUnits[idx].unitState = EffectUnitState.CALC_START;
+					idx++;
+				}
+				this.m_curFrame = 0;
+			}
+			
+			this.m_aniEnd = false;
+			var fp:FramePair = FramePair.TEMP_FRAME_PAIR;
+			fp.startFrame = 0;
+			fp.endFrame = FramePair.INFINITE_FRAME;
+			
+			var frames:Vector.<Number>;
+			var idxs:Vector.<uint>;
+			var ends:Vector.<Boolean>;
+			
+			if (this.m_frameSync && this.parentLinkObject)
+			{
+				this.parentLinkObject.getNodeCurFramePair(this.m_linkNodeID, fp);
+				if (fp.endFrame != FramePair.INFINITE_FRAME)
+				{
+					this.m_curFrame = 0;
+					frames = new Vector.<Number>(1);
+					idxs = new Vector.<uint>(1);
+					ends = new Vector.<Boolean>(1);
+					idxs[0] = MathUtl.max(this.m_linkNodeID, 0);
+					this.parentLinkObject.getNodeCurFrames(frames, ends, idxs);
+					this.m_frameInterval = this.parentLinkObject.frameInterval;
+					this.m_aniEnd = ends[0];
+					this.m_curFrame = frames[0];
+				}
+			}
+			
+			if (fp.endFrame == FramePair.INFINITE_FRAME)
+			{
+				this.m_curFrame = this.m_curTime ? (this.m_curFrame + ((time - this.m_curTime) / this.m_frameInterval)) : 0;
+				this.m_aniEnd = (this.m_curFrame > int((this.effectData?this.effectData.timeRange:1000) / this.m_frameInterval));				
+			}
+			
+			var eU:EffectUnit;
+			var tFrame:Number;
+			idx = 0;
+			while (idx < this.m_effectUnits.length) 
+			{
+				eU = this.m_effectUnits[idx];
+				eU.frameInterval = this.m_frameInterval;
+				tFrame = this.m_curFrame;
+				if (this.parentLinkObject && this.m_frameSync)
+				{
+					frames = new Vector.<Number>(1);
+					idxs = new Vector.<uint>(1);
+					idxs[0] = eU.nodeID;
+					this.m_parentRenderObject.getNodeCurFrames(frames, null, idxs);
+					tFrame = frames[0];
+				}
+				
+				eU.checkTrackAniStart(time, tFrame);
+				
+				if (eU.linkedToParentUnit)
+				{
+					//
+				} else 
+				{
+					eU.onParentUpdate(time);
+				}
+				idx++;
+			}
+		}
+		
+		public function onParentRenderBegin(time:uint):void
+		{
+			//
+		}
+		
+		public function onParentRenderEnd(time:uint):void
+		{
+			//
 		}
 		
 		
@@ -630,449 +816,264 @@
             return (true);
         }
 		
+		public function getLinkIDsByAttachName(attachName:String):Array
+		{
+			var nodeID:int = -1;
+			if (!attachName || attachName.length == 0)
+			{
+				nodeID = 0;
+			}
+			
+			var nodeArr:Array = new Array(nodeID, -1);
+			var idx:uint;
+			while (idx < this.m_effectUnits.length && nodeID < 0) 
+			{
+				if (this.m_effectUnits[idx].effectUnitData.customName == attachName)
+				{
+					nodeID = idx + 1;
+				}
+				idx++;
+			}
+			
+			nodeArr[0] = nodeID;
+			
+			return nodeArr;
+		}
+		
+		public function getNodeCurFrames(frames:Vector.<Number>, ends:Vector.<Boolean>, idxs:Vector.<uint>):void
+		{
+			var eU:EffectUnit;
+			var offsetFrame:Number;
+			var idx:uint;
+			while (idx < frames.length) 
+			{
+				if (this.m_frameSync && this.m_parentRenderObject && this.m_effectUnits.length && idxs)
+				{
+					if (idxs[idx] < this.m_effectUnits.length)
+					{
+						eU = this.m_effectUnits[idxs[idx]];
+						offsetFrame = eU.unitStartFrame - eU.effectUnitData.startFrame;
+						frames[idx] = this.m_curFrame - offsetFrame;
+						if (ends)
+						{
+							ends[idx] = (frames[idx] > eU.effectUnitData.endFrame);
+						}
+					}
+				} else 
+				{
+					frames[idx] = this.m_curFrame;
+					if (ends)
+					{
+						ends[idx] = this.m_aniEnd;
+					}
+				}
+				idx++;
+			}
+		}
+		
+		public function getNodeCurFramePair(idx:uint, fp:FramePair=null):FramePair
+		{
+			if (!fp)
+			{
+				fp = new FramePair();
+			}
+			
+			fp.startFrame = 0;
+			fp.endFrame = this.timeRange;
+			
+			return fp;
+		}
+		
+		public function getNodeCurAniName(idx:uint):String
+		{
+			return "";
+		}
+		
+		public function getNodeCurAniIndex(idx:uint):int
+		{
+			return 0;
+		}
+		
+		public function getNodeCurAniPlayType(idx:uint):uint
+		{
+			return (this.m_parentRenderObject && this.m_frameSync) ? AniPlayType.PARENT_SYNC : AniPlayType.LOOP;
+		}
+		
+		public function setNodeAni(aniName:String, idx:uint, fp:FramePair, type:uint=0, time:uint=200, idxs:Vector.<uint>=null, va:uint=0):void
+		{
+			this.m_aniPlayType = type;
+			
+			var boo:Boolean;
+			var preIdx:uint;
+			var pTrack:int;
+			
+			var index:uint;
+			while (index < this.m_effectUnits.length) 
+			{
+				boo = true;
+				if (idx)
+				{
+					preIdx = idx - 1;
+					boo = (index == preIdx);
+					if (!boo && this.checkNodeParent(index, preIdx))
+					{
+						boo = true;
+					}
+					pTrack = this.m_effectUnits[index].effectUnitData.parentTrack;
+					if (!boo && pTrack >= 0 && this.m_effectUnits[pTrack].unitState != EffectUnitState.CALC_START)
+					{
+						boo = true;
+					}
+				}
+				
+				if (idxs)
+				{
+					var ix:uint = 0;
+					while (boo && ix < idxs.length) 
+					{
+						boo = (idxs[ix] && this.checkNodeParent(index, (idxs[ix] - 1)) == false);
+						ix++;
+					}
+				}
+				
+				if (boo)
+				{
+					this.m_effectUnits[index].setTrackAni(time, fp);
+				}
+				index++;
+			}
+		}
+		
+		//=========================================================================================================================
+		//=========================================================================================================================
+		//
+		public function set alpha(va:Number):void
+		{
+			this.m_alphaController.alpha = va;
+		}
+		public function get alpha():Number
+		{
+			return (this.m_parentRenderObject as IAlphaChangeable) ? IAlphaChangeable(this.m_parentRenderObject).alpha : this.m_alphaController.alpha;
+		}
+		
+		public function set destAlpha(va:Number):void
+		{
+			this.m_alphaController.destAlpha = va;
+		}
+		
+		public function set fadeDuration(va:Number):void
+		{
+			this.m_alphaController.fadeDuration = va;
+		}
+		public function get fadeDuration():Number
+		{
+			return this.m_alphaController.fadeDuration;
+		}
+		
+		//=========================================================================================================================
+		//=========================================================================================================================
+		//
+		public function get unitCount():uint
+		{
+			return this.m_effectUnits.length;
+		}
+		
+		public function get valid():Boolean
+		{
+			return !this.m_disposed;
+		}
+		
         public function get effectData():EffectData
 		{
-            return (this.m_effectData);
+            return this.m_effectData;
         }
-		public function set effectData(value:EffectData):void
+		public function set effectData(va:EffectData):void
 		{
-			this.m_effectData = value;
+			this.m_effectData = va;
 		}
 		
         public function get curTime():uint
 		{
-            return (this.m_curTime);
+            return this.m_curTime;
         }
 		
         public function get curFrame():Number
 		{
-            return (this.m_curFrame);
+            return this.m_curFrame;
         }
-		public function set curFrame(value:Number):void
+		public function set curFrame(va:Number):void
 		{
-			this.m_curFrame = value;
+			this.m_curFrame = va;
 		}
-		
-        
 		
         public function get frameRatio():Number
 		{
-            return ((this.frameInterval / Animation.DEFAULT_FRAME_INTERVAL));
+            return this.frameInterval / Animation.DEFAULT_FRAME_INTERVAL;
         }
 		
         public function get frameSync():Boolean
 		{
-            return (this.m_frameSync);
+            return this.m_frameSync;
         }
 		
         public function get effectHandler():EffectHandler
 		{
-            return (this.m_effectHandler);
+            return this.m_effectHandler;
         }
-        public function set effectHandler(_arg1:EffectHandler):void
+        public function set effectHandler(va:EffectHandler):void
 		{
-            this.m_effectHandler = _arg1;
-        }
-		
-        public function isEffectUnitDisabled(_arg1:int):Boolean
-		{
-            return (this.m_effectUnits[_arg1].renderDisabled);
-        }
-		
-        public function disableEffectUnit(_arg1:int, _arg2:Boolean):void
-		{
-            this.m_effectUnits[_arg1].renderDisabled = _arg2;
+            this.m_effectHandler = va;
         }
 		
         public function get fileName():String
 		{
-            return (this.m_effectData.effectGroup.name);
+            return this.m_effectData.effectGroup.name;
         }
 		
         public function get effectName():String
 		{
-            return (this.m_effectData.name);
+            return this.m_effectData.name;
         }
 		
         public function get effectFullName():String
 		{
-            return (this.m_effectData.fullName);
+            return this.m_effectData.fullName;
         }
 		
         public function get center():Vector3D
 		{
-            return (this.m_effectData.center);
+            return this.m_effectData.center;
         }
 		
         public function get extent():Vector3D
 		{
-            return (this.m_effectData.extent);
+            return this.m_effectData.extent;
         }
 		
         public function get timeRange():uint
 		{
-            return (this.m_effectData.timeRange);
-        }
-		
-        public function onParentUpdate(_arg1:uint):void
-		{
-            var _local2:uint;
-            var _local4:EffectUnit;
-            var _local6:Vector.<Number>;
-            var _local7:Vector.<uint>;
-            var _local8:Vector.<Boolean>;
-            if (((this.m_aniEnd) && (!((this.m_aniPlayType == AniPlayType.ONCE)))))
-			{
-                _local2 = 0;
-                while (_local2 < this.m_effectUnits.length) 
-				{
-                    this.m_effectUnits[_local2].unitState = EffectUnitState.CALC_START;
-                    _local2++;
-                }
-                this.m_curFrame = 0;
-            }
-			
-            this.m_aniEnd = false;
-            var _local3:FramePair = FramePair.TEMP_FRAME_PAIR;
-            _local3.startFrame = 0;
-            _local3.endFrame = FramePair.INFINITE_FRAME;
-            if (((this.m_frameSync) && (this.parentLinkObject)))
-			{
-                this.parentLinkObject.getNodeCurFramePair(this.m_linkNodeID, _local3);
-                if (_local3.endFrame != FramePair.INFINITE_FRAME)
-				{
-                    this.m_curFrame = 0;
-                    _local6 = new Vector.<Number>(1);
-                    _local7 = new Vector.<uint>(1);
-                    _local8 = new Vector.<Boolean>(1);
-                    _local7[0] = MathUtl.max(this.m_linkNodeID, 0);
-                    this.parentLinkObject.getNodeCurFrames(_local6, _local8, _local7);
-                    this.m_frameInterval = this.parentLinkObject.frameInterval;
-                    this.m_aniEnd = _local8[0];
-                    this.m_curFrame = _local6[0];
-                }
-            }
-			
-            if (_local3.endFrame == FramePair.INFINITE_FRAME)
-			{
-                this.m_curFrame = (this.m_curTime) ? (this.m_curFrame + ((_arg1 - this.m_curTime) / this.m_frameInterval)) : 0;
-                this.m_aniEnd = (this.m_curFrame > int((((this.effectData)?this.effectData.timeRange:1000) / this.m_frameInterval)));				
-            }
-			
-            var _local5:Number = this.m_curFrame;
-            _local2 = 0;
-            while (_local2 < this.m_effectUnits.length) 
-			{
-                _local4 = this.m_effectUnits[_local2];
-                _local4.frameInterval = this.m_frameInterval;
-                _local5 = this.m_curFrame;
-                if (((this.parentLinkObject) && (this.m_frameSync)))
-				{
-                    _local6 = new Vector.<Number>(1);
-                    _local7 = new Vector.<uint>(1);
-                    _local7[0] = _local4.nodeID;
-                    this.m_parentRenderObject.getNodeCurFrames(_local6, null, _local7);
-                    _local5 = _local6[0];
-                }
-                _local4.checkTrackAniStart(_arg1, _local5);
-                if (_local4.linkedToParentUnit)
-				{
-					//
-                } else 
-				{
-                    _local4.onParentUpdate(_arg1);
-                }
-                _local2++;
-            }
-        }
-		
-        public function sendMsgToUnits(_arg1:uint, _arg2, _arg3=null):void
-		{
-            var _local4:uint;
-            while (_local4 < this.m_effectUnits.length) 
-			{
-                this.m_effectUnits[_local4].sendMsg(_arg1, _arg2, _arg3);
-                _local4++;
-            }
-        }
-		
-        public function setEffectUnitHandler(_arg1:uint, _arg2:EffectUnitHandler):void
-		{
-            if (_arg1 >= this.m_effectUnits.length)
-			{
-                return;
-            }
-            this.m_effectUnits[_arg1].effectUnitHandler = _arg2;
-        }
-		
-        public function setEffectUnitHandlerByName(_arg1:String, _arg2:EffectUnitHandler):void
-		{
-            var _local3:uint;
-            if (!_arg1)
-			{
-                _local3 = 0;
-                while (_local3 < this.m_effectUnits.length) 
-				{
-                    this.m_effectUnits[_local3].effectUnitHandler = _arg2;
-                    _local3++;
-                }
-            } else 
-			{
-                _local3 = 0;
-                while (_local3 < this.m_effectUnits.length) 
-				{
-                    if (_arg1 == this.m_effectUnits[_local3].effectUnitData.customName)
-					{
-                        this.m_effectUnits[_local3].effectUnitHandler = _arg2;
-                        return;
-                    }
-                    _local3++;
-                }
-            }
-        }
-		
-        
-		
-        
-		
-        public function onUnLinkedFromParent(_arg1:LinkableRenderable):void
-		{
-            var _local2:uint;
-            while (_local2 < this.m_effectUnits.length) 
-			{
-                this.m_effectUnits[_local2].onUnLinkedFromParent(_arg1);
-                _local2++;
-            }
-			
-            if (this.m_effectHandler)
-			{
-                this.m_effectHandler.onUnlinkedFromParent(this);
-            }
-            this.m_parentRenderObject = null;
-        }
-		
-        public function getNodeMatrix(_arg1:Matrix3D, _arg2:uint, _arg3:uint):Boolean
-		{
-            if (_arg2 == 0)
-			{
-                _arg1.copyFrom(this.worldMatrix);
-                return (true);
-            }
-			
-            _arg2--;
-			
-            if (_arg2 < this.m_effectUnits.length)
-			{
-                this.m_effectUnits[_arg2].getNodeMatrix(_arg1, _arg3, 0);
-            }
-            return ((_arg2 < this.m_effectUnits.length));
-        }
-		
-        public function onParentRenderBegin(_arg1:uint):void
-		{
-			//
-        }
-		
-        public function onParentRenderEnd(_arg1:uint):void
-		{
-			//
-        }
-		
-        public function getLinkIDsByAttachName(_arg1:String):Array
-		{
-            var _local2 = -1;
-            if (((!(_arg1)) || ((_arg1.length == 0))))
-			{
-                _local2 = 0;
-            }
-			
-            var _local3:Array = new Array(_local2, -1);
-            var _local4:uint;
-            while ((((_local4 < this.m_effectUnits.length)) && ((_local2 < 0)))) 
-			{
-                if (this.m_effectUnits[_local4].effectUnitData.customName == _arg1)
-				{
-                    _local2 = (_local4 + 1);
-                }
-                _local4++;
-            }
-			
-            _local3[0] = _local2;
-            return (_local3);
-        }
-		
-		
-        
-		
-        
-		
-        public function getNodeCurFrames(_arg1:Vector.<Number>, _arg2:Vector.<Boolean>, _arg3:Vector.<uint>):void
-		{
-            var _local4:EffectUnit;
-            var _local5:Number;
-            var _local6:uint;
-            while (_local6 < _arg1.length) 
-			{
-                if (((((((this.m_frameSync) && (this.m_parentRenderObject))) && (this.m_effectUnits.length))) && (_arg3)))
-				{
-                    if (_arg3[_local6] < this.m_effectUnits.length)
-					{
-                        _local4 = this.m_effectUnits[_arg3[_local6]];
-                        _local5 = (_local4.unitStartFrame - _local4.effectUnitData.startFrame);
-                        _arg1[_local6] = (this.m_curFrame - _local5);
-                        if (_arg2)
-						{
-                            _arg2[_local6] = (_arg1[_local6] > _local4.effectUnitData.endFrame);
-                        }
-                    }
-                } else 
-				{
-                    _arg1[_local6] = this.m_curFrame;
-                    if (_arg2)
-					{
-                        _arg2[_local6] = this.m_aniEnd;
-                    }
-                }
-                _local6++;
-            }
-        }
-		
-        public function getNodeCurFramePair(_arg1:uint, _arg2:FramePair=null):FramePair
-		{
-            if (!_arg2)
-			{
-                _arg2 = new FramePair();
-            }
-            _arg2.startFrame = 0;
-            _arg2.endFrame = this.timeRange;
-            return (_arg2);
-        }
-		
-        public function getNodeCurAniName(_arg1:uint):String
-		{
-            return ("");
-        }
-		
-        public function getNodeCurAniIndex(_arg1:uint):int
-		{
-            return (0);
-        }
-		
-        public function getNodeCurAniPlayType(_arg1:uint):uint
-		{
-            return ((((this.m_parentRenderObject) && (this.m_frameSync))) ? AniPlayType.PARENT_SYNC : AniPlayType.LOOP);
-        }
-		
-        
-		
-        public function setNodeAni(_arg1:String, _arg2:uint, _arg3:FramePair, _arg4:uint=0, _arg5:uint=200, _arg6:Vector.<uint>=null, _arg7:uint=0):void
-		{
-            var _local9:Boolean;
-            var _local10:uint;
-            var _local11:int;
-            var _local12:uint;
-            this.m_aniPlayType = _arg4;
-            var _local8:uint;
-            while (_local8 < this.m_effectUnits.length) 
-			{
-                _local9 = true;
-                if (_arg2)
-				{
-                    _local10 = (_arg2 - 1);
-                    _local9 = (_local8 == _local10);
-                    if (((!(_local9)) && (this.checkNodeParent(_local8, _local10))))
-					{
-                        _local9 = true;
-                    }
-                    _local11 = this.m_effectUnits[_local8].effectUnitData.parentTrack;
-                    if (((((!(_local9)) && ((_local11 >= 0)))) && (!((this.m_effectUnits[_local11].unitState == EffectUnitState.CALC_START)))))
-					{
-                        _local9 = true;
-                    }
-                }
-				
-                if (_arg6)
-				{
-                    _local12 = 0;
-                    while (((_local9) && ((_local12 < _arg6.length)))) 
-					{
-                        _local9 = ((_arg6[_local12]) && ((this.checkNodeParent(_local8, (_arg6[_local12] - 1)) == false)));
-                        _local12++;
-                    }
-                }
-				
-                if (_local9)
-				{
-                    this.m_effectUnits[_local8].setTrackAni(_arg5, _arg3);
-                }
-                _local8++;
-            }
+            return this.m_effectData.timeRange;
         }
 		
         public function get direction():uint
 		{
-            var _local1:int = ((90 - rotationY) / MathUtl.DEGREE_PER_DIRUNIT);
-            return (((_local1 < 0)) ? (0x0100 - _local1) : _local1);
+            var r:int = (90 - rotationY) / MathUtl.DEGREE_PER_DIRUNIT;
+            return r < 0 ? (0x0100 - r) : r;
         }
-        public function set direction(_arg1:uint):void
+        public function set direction(va:uint):void
 		{
-            var _local2:Vector2D = MathUtl.TEMP_VECTOR2D;
-            MathUtl.dirIndexToVector(_arg1, _local2);
-            rotationY = (90 - ((Math.atan2(_local2.y, _local2.x) * 180) / Math.PI));
-        }
-		
-        public function setDirFromVector2D(_arg1:Vector2D):void
-		{
-            rotationY = (90 - ((Math.atan2(_arg1.y, _arg1.x) * 180) / Math.PI));
-        }
-		
-        override public function get movable():Boolean
-		{
-            if (m_movable)
-			{
-                return (true);
-            };
-            return (((_parent is Entity)) ? Entity(_parent).movable : m_movable);
-        }
-		
-        private function updateAlpha(_arg1:int):void
-		{
-            if ((this.m_parentRenderObject as IAlphaChangeable))
-			{
-                return;
-            }
-            this.m_alphaController.updateAlpha(_arg1);
-        }
-		
-        public function set alpha(_arg1:Number):void
-		{
-            this.m_alphaController.alpha = _arg1;
-        }
-        public function get alpha():Number
-		{
-            return (((this.m_parentRenderObject as IAlphaChangeable)) ? IAlphaChangeable(this.m_parentRenderObject).alpha : this.m_alphaController.alpha);
-        }
-		
-        public function set destAlpha(_arg1:Number):void
-		{
-            this.m_alphaController.destAlpha = _arg1;
-        }
-        public function set fadeDuration(_arg1:Number):void
-		{
-            this.m_alphaController.fadeDuration = _arg1;
-        }
-        public function get fadeDuration():Number
-		{
-            return (this.m_alphaController.fadeDuration);
+            var v2:Vector2D = MathUtl.TEMP_VECTOR2D;
+            MathUtl.dirIndexToVector(va, v2);
+            rotationY = 90 - (Math.atan2(v2.y, v2.x) * 180) / Math.PI;
         }
 		
         public function get disableCameraShake():Boolean
 		{
-            return (this.m_disableCameraShake);
+            return this.m_disableCameraShake;
         }
-        public function set disableCameraShake(_arg1:Boolean):void
+        public function set disableCameraShake(va:Boolean):void
 		{
-            this.m_disableCameraShake = _arg1;
+            this.m_disableCameraShake = va;
         }
 
 		
