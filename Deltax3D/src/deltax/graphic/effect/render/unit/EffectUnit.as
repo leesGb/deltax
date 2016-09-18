@@ -365,7 +365,7 @@
 		}
 		
 		/**
-		 * 
+		 * 设置动作跟踪
 		 * @param time
 		 * @param fp
 		 */		
@@ -376,6 +376,9 @@
 			this.m_trackFramePair.copyFrom(fp);
 		}
 		
+		/**
+		 * 数据销毁
+		 */		
         public function destroy():void
 		{
             if (this.m_effectUnitHandler)
@@ -391,6 +394,9 @@
             this.m_textureProxy = null;
         }
 		
+		/**
+		 * 资源释放
+		 */		
         public function release():void
 		{
             this.destroy();
