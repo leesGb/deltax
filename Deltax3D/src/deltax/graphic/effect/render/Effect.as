@@ -211,16 +211,31 @@
             }
         }
 		
+		/**
+		 * 获取特效单元所在的索引
+		 * @param eU
+		 * @return 
+		 */		
         public function getEffectUnitIndex(eU:EffectUnit):int
 		{
             return this.m_effectUnits.indexOf(eU);
         }
 		
+		/**
+		 * 获取指定索引处的特效单元
+		 * @param idx
+		 * @return 
+		 */		
         public function getEffectUnit(idx:uint):EffectUnit
 		{
             return this.m_effectUnits[idx];
         }
 		
+		/**
+		 * 获取指定名字的特效单元
+		 * @param eName
+		 * @return 
+		 */		
         public function getEffectUnitByName(eName:String):EffectUnit
 		{
             if (!eName || eName.length == 0)
@@ -241,16 +256,32 @@
             return null;
         }
 		
+		/**
+		 * 特效单元能否渲染
+		 * @param idx
+		 * @return 
+		 */		
 		public function isEffectUnitDisabled(idx:int):Boolean
 		{
 			return this.m_effectUnits[idx].renderDisabled;
 		}
 		
+		/**
+		 * 设置指定索引处的特效单元能否进行渲染
+		 * @param idx
+		 * @param va
+		 */		
 		public function disableEffectUnit(idx:int, va:Boolean):void
 		{
 			this.m_effectUnits[idx].renderDisabled = va;
 		}
 		
+		/**
+		 * 发送消息到特效单元
+		 * @param v1
+		 * @param v2
+		 * @param v3
+		 */		
 		public function sendMsgToUnits(v1:uint, v2:*, v3:*=null):void
 		{
 			var idx:uint;
@@ -261,6 +292,11 @@
 			}
 		}
 		
+		/**
+		 * 设置指定特效单元的处理方法
+		 * @param idx
+		 * @param handler
+		 */		
 		public function setEffectUnitHandler(idx:uint, handler:EffectUnitHandler):void
 		{
 			if (idx >= this.m_effectUnits.length)
@@ -270,6 +306,11 @@
 			this.m_effectUnits[idx].effectUnitHandler = handler;
 		}
 		
+		/**
+		 * 设置指定名字的特效单元的处理方法
+		 * @param eName
+		 * @param handler
+		 */		
 		public function setEffectUnitHandlerByName(eName:String, handler:EffectUnitHandler):void
 		{
 			var idx:uint;
@@ -296,11 +337,19 @@
 			}
 		}
 		
+		/**
+		 * 设置方向
+		 * @param va
+		 */		
 		public function setDirFromVector2D(va:Vector2D):void
 		{
 			rotationY = 90 - (Math.atan2(va.y, va.x) * 180) / Math.PI;
 		}
 		
+		/**
+		 * 更新透明度
+		 * @param time
+		 */		
 		private function updateAlpha(time:int):void
 		{
 			if (this.m_parentRenderObject as IAlphaChangeable)
@@ -614,206 +663,205 @@
 			//
 		}
 		
-		
-        public function update(_arg1:uint, _arg2:Camera3D, _arg3:Matrix3D):Boolean
+        public function update(time:uint, camera:Camera3D, mat:Matrix3D):Boolean
 		{
-            var _local6:EffectUnit;
-            var _local8:uint;
-            var _local9:int;
-            var _local10:EffectUnitData;
-            var _local11:uint;
             if (!this.valid)
 			{
-                return (false);
+                return false;
             }
 			
-            if (((parent) && (!(parent.effectVisible))))
+            if (parent && !parent.effectVisible)
 			{
-                return (false);
+                return false;
             }
 			
-            var _local4:EffectManager = EffectManager.instance;
-            if (!_local4.renderEnable)
+            var eMgr:EffectManager = EffectManager.instance;
+            if (!eMgr.renderEnable)
 			{
-                return (false);
+                return false;
             }
 			
-            if (!_arg3)
+            if (!mat)
 			{
-                _arg3 = this.sceneTransform;
+				mat = this.sceneTransform;
             }
 			
-            if (((this.m_effectHandler) && (!(this.m_effectHandler.beforeUpdate(this, _arg1, _arg3)))))
+            if (this.m_effectHandler && !this.m_effectHandler.beforeUpdate(this, time, mat))
 			{
-                return (false);
+                return false;
             }
 			
-			if(_local4.renderState==EffectManager.PAUSE)//beuady,控制暂停
+			if(eMgr.renderState==EffectManager.PAUSE)//beuady,控制暂停
 			{
-				_arg1 = _local4.lastTimer+10;				
-			}else if(_local4.renderState==EffectManager.GOTO)
+				time = eMgr.lastTimer+10;				
+			}else if(eMgr.renderState==EffectManager.GOTO)
 			{
 				if(aimFrame == uint(curFrame))
 				{
-					_arg1 = _local4.lastTimer+10;
-					_local4.renderState=EffectManager.PAUSE;
+					time = eMgr.lastTimer+10;
+					eMgr.renderState=EffectManager.PAUSE;
 				}else
 				{
-					_local4.lastTimer = _arg1;
+					eMgr.lastTimer = time;
 				}
-				//_arg1 = _local4.lastTimer+(timeRange/frameInterval-curFrame)+int(aimTime)*frameInterval;				
 			}else
 			{
-				_local4.lastTimer = _arg1;
+				eMgr.lastTimer = time;
 			}
 			
             if (this.m_curTime == 0)
 			{
-                this.m_curTime = _arg1;
+                this.m_curTime = time;
             }	
 					
-            if (((!((_arg1 == this.m_curTime))) && (!(this.parentLinkObject))))
+            if (time != this.m_curTime && !this.parentLinkObject)
 			{				
-                this.onParentUpdate(_arg1);
+                this.onParentUpdate(time);
             }
 			
-            var _local5:uint;
-            while (_local5 < this.unitCount) 
+			var eU:EffectUnit;
+            var idx:uint;
+            while (idx < this.unitCount) 
 			{
-                _local6 = this.getEffectUnit(_local5);
-                if (!_local6.linkedToParentUnit)
+				eU = this.getEffectUnit(idx);
+                if (eU.linkedToParentUnit)
 				{
-					//
-                } else 
-				{
-                    _local6.onParentUpdate(_arg1);
+					eU.onParentUpdate(time);
                 }
-                _local5++;
+				idx++;
             }
 			
             if (this.m_alphaController.fading)
 			{
-                this.updateAlpha((_arg1 - this.m_curTime));
+                this.updateAlpha(time - this.m_curTime);
             }
 			
-            var _local7:Matrix3D = m_effectUnitMatrixForCalc;
-            var _local12:Vector3D = MathUtl.TEMP_VECTOR3D;
-            var _local13:Vector3D = MathUtl.TEMP_VECTOR3D2;
-            var _local14:Vector3D = MathUtl.TEMP_VECTOR3D3;
-            var _local15:Vector3D = MathUtl.TEMP_VECTOR3D4;
-            _local13.w = (_local14.w = (_local15.w = 0));
-            var _local16:Matrix3D = MathUtl.TEMP_MATRIX3D2;
-            _local5 = 0;
-            while (_local5 < this.m_effectUnits.length) 
+			var canotCameraShake:Boolean;
+			var canotRender:Boolean;
+			var isHide:Boolean;
+			var eUData:EffectUnitData;
+			var uPos:uint;
+			var tPos:uint;
+			var pTrack:int;
+			
+            var calcMat:Matrix3D = m_effectUnitMatrixForCalc;
+			var roteMat:Matrix3D = MathUtl.TEMP_MATRIX3D2;
+            var translatePos:Vector3D = MathUtl.TEMP_VECTOR3D;
+            var right:Vector3D = MathUtl.TEMP_VECTOR3D2;
+            var up:Vector3D = MathUtl.TEMP_VECTOR3D3;
+            var dir:Vector3D = MathUtl.TEMP_VECTOR3D4;
+			
+			right.w = 0;
+			up.w = 0;
+			dir.w = 0;
+			idx = 0;
+            while (idx < this.m_effectUnits.length) 
 			{
-                _local6 = this.m_effectUnits[_local5];
-                _local10 = _local6.effectUnitData;
-                if (((this.m_disableCameraShake) && ((_local6 is CameraShake))))
+				eU = this.m_effectUnits[idx];
+				eUData = eU.effectUnitData;
+				canotCameraShake = (this.m_disableCameraShake && (eU is CameraShake));
+                if (!canotCameraShake)
 				{
-					//
-                } else
-				{
-                    if (((_local6.renderDisabled) || (!((_local6.unitState == EffectUnitState.RENDER)))))
+					canotRender = (eU.renderDisabled || eU.unitState != EffectUnitState.RENDER);
+					if(!canotRender)
 					{
-						//
-                    } else 
-					{
-                        if ((((_local6.nodeID < 0)) && (Util.hasFlag(_local6.effectUnitData.trackFlag, EffectUnitFlag.HIDE_WHEN_UPDATE_POS_NOT_EXIST))))
+						isHide = (eU.nodeID < 0 && Util.hasFlag(eU.effectUnitData.trackFlag, EffectUnitFlag.HIDE_WHEN_UPDATE_POS_NOT_EXIST));
+						if(!isHide)
 						{
-							//
-                        } else 
-						{
-                            _local7.copyFrom(_arg3);
-                            _local8 = _local10.updatePos;
-                            _local9 = _local10.parentTrack;
-                            if ((((_local9 >= 0)) || (((this.m_parentRenderObject) && ((_local6.nodeID > 0))))))
+							calcMat.copyFrom(mat);
+							uPos = eUData.updatePos;
+							pTrack = eUData.parentTrack;
+							if (pTrack >= 0 || (this.m_parentRenderObject && eU.nodeID > 0))
 							{
-                                if (_local9 >= 0)
+								if (pTrack >= 0)
 								{
-                                    this.m_effectUnits[_local9].getNodeMatrix(_local7, _local6.nodeID, _local6.socketID);
-                                } else 
+									this.m_effectUnits[pTrack].getNodeMatrix(calcMat, eU.nodeID, eU.socketID);
+								} else 
 								{
-                                    this.m_parentRenderObject.getNodeMatrix(_local7, _local6.nodeID, _local6.socketID);
-                                }
-                                if ((((_local9 < 0)) || (this.m_effectUnits[_local9].presentRenderObject)))
+									this.m_parentRenderObject.getNodeMatrix(calcMat, eU.nodeID, eU.socketID);
+								}
+								
+								if (pTrack < 0 || this.m_effectUnits[pTrack].presentRenderObject)
 								{
-                                    _local11 = ((_local8 >= EffectUnitUpdatePosType.FIXED_IGNORE_SCALE)) ? (_local8 - EffectUnitUpdatePosType.FIXED_IGNORE_SCALE) : _local8;
-                                    if ((((((((_local11 == EffectUnitUpdatePosType.SOCKET_IGNORE_ROTATE)) || 
-										((_local11 == EffectUnitUpdatePosType.SKELETAL_IGNORE_ROTATE)))) || 
-										((_local11 == EffectUnitUpdatePosType.SOCKET_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE)))) || 
-										((_local11 == EffectUnitUpdatePosType.SKELETAL_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE))))
+									tPos = uPos >= EffectUnitUpdatePosType.FIXED_IGNORE_SCALE ? uPos - EffectUnitUpdatePosType.FIXED_IGNORE_SCALE : uPos;
+									if (tPos == EffectUnitUpdatePosType.SOCKET_IGNORE_ROTATE || 
+										tPos == EffectUnitUpdatePosType.SKELETAL_IGNORE_ROTATE || 
+										tPos == EffectUnitUpdatePosType.SOCKET_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE || 
+										tPos == EffectUnitUpdatePosType.SKELETAL_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE)
 									{
-                                        _local7.copyColumnTo(3, _local12);
-                                        _local7.identity();
-                                        if (_local8 < EffectUnitUpdatePosType.FIXED_IGNORE_SCALE)
+										calcMat.copyColumnTo(3, translatePos);
+										calcMat.identity();
+										if (uPos < EffectUnitUpdatePosType.FIXED_IGNORE_SCALE)
 										{
-                                            _local7.copyColumnTo(0, _local13);
-                                            _local7.copyColumnTo(1, _local14);
-                                            _local7.copyColumnTo(2, _local15);
-                                            _local7.appendScale(_local13.length, _local14.length, _local15.length);
-                                        }
+											calcMat.copyColumnTo(0, right);
+											calcMat.copyColumnTo(1, up);
+											calcMat.copyColumnTo(2, dir);
+											calcMat.appendScale(right.length, up.length, dir.length);
+										}
 										
-                                        if ((((_local11 == EffectUnitUpdatePosType.SOCKET_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE)) 
-											|| ((_local11 == EffectUnitUpdatePosType.SKELETAL_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE))))
+										if (tPos == EffectUnitUpdatePosType.SOCKET_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE 
+											|| tPos == EffectUnitUpdatePosType.SKELETAL_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE)
 										{
-                                            if (_local9 >= 0)
+											if (pTrack >= 0)
 											{
-                                                this.m_effectUnits[_local9].getNodeMatrix(_local16, 0, uint.MAX_VALUE);
-                                            } else
+												this.m_effectUnits[pTrack].getNodeMatrix(roteMat, 0, uint.MAX_VALUE);
+											} else
 											{
-                                                this.m_parentRenderObject.getNodeMatrix(_local16, 0, uint.MAX_VALUE);
-                                            }
+												this.m_parentRenderObject.getNodeMatrix(roteMat, 0, uint.MAX_VALUE);
+											}
 											
-                                            _local16.copyColumnTo(0, _local13);
-                                            _local16.copyColumnTo(1, _local14);
-                                            _local16.copyColumnTo(2, _local15);
-                                            _local13.normalize();
-                                            _local14.normalize();
-                                            _local15.normalize();
-                                            _local16.copyColumnFrom(0, _local13);
-                                            _local16.copyColumnFrom(1, _local14);
-                                            _local16.copyColumnFrom(2, _local15);
-                                            _local16.copyColumnFrom(3, MathUtl.EMPTY_VECTOR3D_WITH_W);
-                                            _local7.append(_local16);
-                                        }
-                                        _local7.position = _local12;
-                                    }
-                                }
-                            }
+											roteMat.copyColumnTo(0, right);
+											roteMat.copyColumnTo(1, up);
+											roteMat.copyColumnTo(2, dir);
+											right.normalize();
+											up.normalize();
+											dir.normalize();
+											roteMat.copyColumnFrom(0, right);
+											roteMat.copyColumnFrom(1, up);
+											roteMat.copyColumnFrom(2, dir);
+											roteMat.copyColumnFrom(3, MathUtl.EMPTY_VECTOR3D_WITH_W);
+											calcMat.append(roteMat);
+										}
+										calcMat.position = translatePos;
+									}
+								}
+							}
 							
-                            if ((((((_local8 == EffectUnitUpdatePosType.FIXED_IGNORE_SCALE)) || 
-								((_local8 == EffectUnitUpdatePosType.SOCKET_IGNORE_SCALE)))) || 
-								((_local8 == EffectUnitUpdatePosType.SKELETAL_IGNORE_SCALE))))
+							if (uPos == EffectUnitUpdatePosType.FIXED_IGNORE_SCALE || 
+								uPos == EffectUnitUpdatePosType.SOCKET_IGNORE_SCALE || 
+								uPos == EffectUnitUpdatePosType.SKELETAL_IGNORE_SCALE)
 							{
-                                _local7.copyColumnTo(0, _local13);
-                                _local7.copyColumnTo(1, _local14);
-                                _local7.copyColumnTo(2, _local15);
-                                _local13.normalize();
-                                _local14.normalize();
-                                _local15.normalize();
-                                _local7.copyColumnFrom(0, _local13);
-                                _local7.copyColumnFrom(1, _local14);
-                                _local7.copyColumnFrom(2, _local15);
-                            }
+								calcMat.copyColumnTo(0, right);
+								calcMat.copyColumnTo(1, up);
+								calcMat.copyColumnTo(2, dir);
+								right.normalize();
+								up.normalize();
+								dir.normalize();
+								calcMat.copyColumnFrom(0, right);
+								calcMat.copyColumnFrom(1, up);
+								calcMat.copyColumnFrom(2, dir);
+							}
 							
-                            _local6.curAlpha = this.alpha;
-                            if (_local6.effectUnitHandler)
+							eU.curAlpha = this.alpha;
+							if (eU.effectUnitHandler)
 							{
-                                //
-                            } else 
+								//
+							} else 
 							{				
-                                if (_local6.update(_arg1, _arg2, _local7))
+								if (eU.update(time, camera, calcMat))
 								{
-                                    _local4.addRenderingEffectUnit(_local6);
-                                }
-                            }
-                        }
-                    }
-                }
-                _local5++;
+									eMgr.addRenderingEffectUnit(eU);
+								}
+							}
+						}
+					}
+                } 
+				idx++;
             }
-            this.m_curTime = _arg1;						
-            return (true);
+			
+            this.m_curTime = time;		
+			
+            return true;
         }
 		
 		public function getLinkIDsByAttachName(attachName:String):Array
