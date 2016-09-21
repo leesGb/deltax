@@ -1,25 +1,8 @@
 ﻿//Created by Action Script Viewer - http://www.buraks.com/asv
 package deltax.graphic.model {
-	import __AS3__.vec.Vector;
-	
 	import com.hmh.loaders.parsers.BJAnimationParser;
 	import com.hmh.loaders.parsers.MD5AnimParser;
-	import com.hmh.loaders.parsers.Skeleton;
-	import com.hmh.loaders.parsers.SkeletonJoint;
 	import com.hmh.loaders.parsers.SkeletonPose;
-	
-	import deltax.common.DictionaryUtil;
-	import deltax.common.error.Exception;
-	import deltax.common.math.MathUtl;
-	import deltax.common.math.Quaternion;
-	import deltax.common.resource.CommonFileHeader;
-	import deltax.delta;
-	import deltax.graphic.animation.skeleton.JointPose;
-	import deltax.graphic.manager.IResource;
-	import deltax.graphic.manager.ResourceManager;
-	import deltax.graphic.manager.ResourceType;
-	import deltax.graphic.manager.StepTimeManager;
-	import deltax.graphic.util.CompressionUtl;
 	
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
@@ -27,14 +10,27 @@ package deltax.graphic.model {
 	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
 	
-	import mx.filters.BaseFilter;
+	import __AS3__.vec.Vector;
+	
+	import deltax.delta;
+	import deltax.common.error.Exception;
+	import deltax.common.math.MathUtl;
+	import deltax.common.math.Quaternion;
+	import deltax.common.resource.CommonFileHeader;
+	import deltax.graphic.animation.skeleton.JointPose;
+	import deltax.graphic.manager.IResource;
+	import deltax.graphic.manager.ResourceManager;
+	import deltax.graphic.manager.ResourceType;
+	import deltax.graphic.manager.StepTimeManager;
+	import deltax.graphic.util.CompressionUtl;
 
-    public class Animation extends CommonFileHeader implements IResource {
-
+    public class Animation extends CommonFileHeader implements IResource 
+	{
         public static const DEFAULT_FRAME_RATE:uint = 30;
         public static const DEFAULT_FRAME_INTERVAL:uint = 33;
         public static const DEFAULT_ANI_PLAY_DELAY:uint = 200;
         public static const SIZE_OF_SKELETON_FRAME:uint = 4;
+		public static const INV_DEFAULT_FRAME_INTERVAL:Number = 0.0303030303030303;
 		
 		private var animParser:MD5AnimParser;
 		private var animBJParser:BJAnimationParser;
@@ -572,7 +568,7 @@ package deltax.graphic.model {
     }
 }
 
-import __AS3__.vec.*;
+import __AS3__.vec.Vector;
 
 class StepLoadInfo {
 
