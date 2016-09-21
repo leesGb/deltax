@@ -483,7 +483,7 @@
 		
         public function get frameRatio():Number
 		{
-            return this.m_frameInterval / Animation.DEFAULT_FRAME_INTERVAL;
+            return this.m_frameInterval*Animation.INV_DEFAULT_FRAME_INTERVAL;
         }
 		
         public function get preFrameTime():uint

@@ -20,268 +20,297 @@
     import deltax.graphic.shader.DeltaXProgram3D;
     import deltax.graphic.texture.DeltaXTexture;
 
+	/**
+	 * 多边形轨迹类
+	 * @author lees
+	 * @date 2016/03/22
+	 */	
+	
     public class PolygonTrail extends EffectUnit 
 	{
         private static var m_coordMatrix:Vector.<Matrix3D> = new Vector.<Matrix3D>();
-
+		
+		/**头节点*/
         private var m_headTrail:TrailUnitNode;
+		/**尾节点*/
         private var m_tailTrail:TrailUnitNode;
+		/**父类颜色*/
         private var m_parentColor:uint;
+		/**三角链数量*/
         private var m_trailCount:uint;
 
-        public function PolygonTrail(_arg1:Effect, _arg2:EffectUnitData){
-            super(_arg1, _arg2);
+        public function PolygonTrail(eft:Effect, eUData:EffectUnitData)
+		{
+            super(eft, eUData);
         }
-        override public function release():void{
+		
+        override public function release():void
+		{
             EffectManager.instance.addLeavingEffectUnit(this, MathUtl.IDENTITY_MATRIX3D);
             m_effect = null;
         }
-        override public function update(_arg1:uint, _arg2:Camera3D, _arg3:Matrix3D):Boolean{
-            var _local12:TrailUnitNode;
-            var _local13:Vector3D;
-            var _local14:Vector3D;
-            var _local4:PolygonTrailData = PolygonTrailData(m_effectUnitData);
-            var _local5:Matrix3D = MathUtl.TEMP_MATRIX3D;
-            var _local6:Number = calcCurFrame(_arg1);
-            var _local7:Vector3D = MathUtl.TEMP_VECTOR3D;
-            var _local8:Number = ((_local6 - _local4.startFrame) / _local4.frameRange);
-            _local5.copyFrom(_arg3);
-            if (effect){
-                _local4.getOffsetByPos(_local8, _local7);
-                VectorUtil.transformByMatrixFast(_local7, _local5, _local7);
-                m_matWorld.copyFrom(_local5);
-                m_matWorld.position = _local7;
-            };
-            var _local9:EffectManager = EffectManager.instance;
-            if ((((_local4.m_blendMode == BlendMode.DISTURB_SCREEN)) && (!(_local9.screenDisturbEnable)))){
-                return (false);
-            };
-            var _local10:DeltaXTexture = getTexture(_local8);
-            if (!_local10){
-                return (false);
-            };
-            m_textureProxy = _local10;
-            var _local11:uint = uint((_local4.m_unitLifeTime * frameRatio));
-            while (((this.m_headTrail) && ((this.m_headTrail.startTime > 0)))) {
-                if (int((_arg1 - this.m_headTrail.startTime)) < _local11){
+		
+        override public function update(time:uint, camera:Camera3D, mat:Matrix3D):Boolean
+		{
+            var ptData:PolygonTrailData = PolygonTrailData(m_effectUnitData);
+            var curFrame:Number = calcCurFrame(time);
+            var pos:Vector3D = MathUtl.TEMP_VECTOR3D;
+            var percent:Number = (curFrame - ptData.startFrame) / ptData.frameRange;
+            if (effect)
+			{
+				ptData.getOffsetByPos(percent, pos);
+                VectorUtil.transformByMatrixFast(pos, mat, pos);
+                m_matWorld.copyFrom(mat);
+                m_matWorld.position = pos;
+            }
+			
+            if (ptData.m_blendMode == BlendMode.DISTURB_SCREEN && !EffectManager.instance.screenDisturbEnable)
+			{
+                return false;
+            }
+			
+            var texture:DeltaXTexture = getTexture(percent);
+            if (!texture)
+			{
+                return false;
+            }
+            m_textureProxy = texture;
+			
+			var node:TrailUnitNode;
+            var lifeTime:uint = uint(ptData.m_unitLifeTime * frameRatio);
+            while (this.m_headTrail && this.m_headTrail.startTime > 0) 
+			{
+                if (int(time - this.m_headTrail.startTime) < lifeTime)
+				{
                     break;
-                };
-                _local12 = this.m_headTrail;
+                }
+				node = this.m_headTrail;
                 this.m_headTrail = this.m_headTrail.nextNode;
-                TrailUnitNode.free(_local12);
+                TrailUnitNode.free(node);
                 this.m_trailCount--;
-            };
-            if (this.m_headTrail == null){
+            }
+			
+            if (this.m_headTrail == null)
+			{
                 this.m_tailTrail = null;
-            };
-            if (((((effect) && ((int((_arg1 - m_preFrameTime)) > 0)))) && ((m_preFrame < _local4.endFrame)))){
-                _local13 = MathUtl.TEMP_VECTOR3D;
-                _local14 = MathUtl.TEMP_VECTOR3D2;
-                m_matWorld.copyColumnTo(3, _local13);
-                _local14.copyFrom(_local4.m_rotate);
-                VectorUtil.rotateByMatrix(_local14, m_matWorld, _local14);
-                if (((((((((((((this.m_tailTrail) && ((this.m_tailTrail.position1_x == _local13.x)))) && ((this.m_tailTrail.position1_y == _local13.y)))) && ((this.m_tailTrail.position1_z == _local13.z)))) && ((this.m_tailTrail.position2_x == _local14.x)))) && ((this.m_tailTrail.position2_y == _local14.y)))) && ((this.m_tailTrail.position2_z == _local14.z)))){
-                    this.m_tailTrail.startTime = _arg1;
-                } else {
-                    _local12 = TrailUnitNode.alloc();
-                    if (_local12){
+            }
+			
+            if (effect && (int(time - m_preFrameTime) > 0)) && (m_preFrame < ptData.endFrame))
+			{
+				var offset:Vector3D = MathUtl.TEMP_VECTOR3D;
+				var rotate:Vector3D = MathUtl.TEMP_VECTOR3D2;
+                m_matWorld.copyColumnTo(3, offset);
+				rotate.copyFrom(ptData.m_rotate);
+                VectorUtil.rotateByMatrix(rotate, m_matWorld, rotate);
+                if (this.m_tailTrail &&
+					this.m_tailTrail.position1_x == offset.x && 
+					this.m_tailTrail.position1_y == offset.y && 
+					this.m_tailTrail.position1_z == offset.z &&
+					this.m_tailTrail.position2_x == rotate.x && 
+					this.m_tailTrail.position2_y == rotate.y && 
+					this.m_tailTrail.position2_z == rotate.z)
+				{
+                    this.m_tailTrail.startTime = time;
+                } else 
+				{
+					node = TrailUnitNode.alloc();
+                    if (node)
+					{
                         this.m_trailCount++;
-                        _local12.position1_x = _local13.x;
-                        _local12.position1_y = _local13.y;
-                        _local12.position1_z = _local13.z;
-                        _local12.position2_x = _local14.x;
-                        _local12.position2_y = _local14.y;
-                        _local12.position2_z = _local14.z;
-                        _local12.startTime = _arg1;
-                        _local12.nextNode = null;
-                        if (this.m_tailTrail){
-                            this.m_tailTrail.nextNode = _local12;
-                            this.m_tailTrail = _local12;
-                        } else {
-                            this.m_headTrail = _local12;
-                            this.m_tailTrail = _local12;
-                        };
-                    };
-                };
-            };
-            m_preFrameTime = _arg1;
-            m_preFrame = _local6;
-            return (!((this.m_tailTrail == this.m_headTrail)));
+						node.position1_x = offset.x;
+						node.position1_y = offset.y;
+						node.position1_z = offset.z;
+						node.position2_x = rotate.x;
+						node.position2_y = rotate.y;
+						node.position2_z = rotate.z;
+						node.startTime = time;
+						node.nextNode = null;
+                        if (this.m_tailTrail)
+						{
+                            this.m_tailTrail.nextNode = node;
+                            this.m_tailTrail = node;
+                        } else 
+						{
+                            this.m_headTrail = node;
+                            this.m_tailTrail = node;
+                        }
+                    }
+                }
+            }
+			
+            m_preFrameTime = time;
+            m_preFrame = curFrame;
+            return this.m_tailTrail != this.m_headTrail;
         }
-        override public function render(_arg1:Context3D, _arg2:Camera3D):void{
-			if(shaderType != ShaderManager.instance.getShaderTypeByProgram3D(m_shaderProgram)){
+		
+        override public function render(context:Context3D, camera:Camera3D):void
+		{
+			if(shaderType != ShaderManager.instance.getShaderTypeByProgram3D(m_shaderProgram))
+			{
 				this.m_shaderProgram = ShaderManager.instance.getProgram3D(this.shaderType);
 			}			
+            
+            if (m_textureProxy == null)
+			{
+                return;
+            }
 			
-            var _local6:TrailUnitNode;
-            var _local7:TrailUnitNode;
-            var _local19:uint;
-            var _local20:uint;
-            var _local21:uint;
-            var _local31:Number;
-            if (m_textureProxy == null){
+            var colorTexture:Texture = getColorTexture(context);
+            if (colorTexture == null || this.m_headTrail == null)
+			{
                 return;
-            };
-            var _local3:Texture = getColorTexture(_arg1);
-            if ((((_local3 == null)) || ((this.m_headTrail == null)))){
-                return;
-            };
-            activatePass(_arg1, _arg2);
-            setDisturbState(_arg1);
-            var _local4:Number = (m_textureProxy.width / Number(m_textureProxy.height));
-            var _local5:TrailUnitNode = this.m_headTrail;
-            var _local8:PolygonTrailData = PolygonTrailData(m_effectUnitData);
-            var _local9:uint = ((_local8.m_strip == PolyTrailType.BLOCK)) ? 1 : 4;
-            var _local10:Number = (1 / _local9);
-            var _local11:uint = (_local8.textureCircle * _local9);
-            var _local12:Number = (1 / _local11);
-            var _local13:Vector.<Number> = _local8.getScaleBuffer(50);
-            var _local14:Vector.<Number> = m_shaderProgram.getVertexParamCache();
-            var _local15:uint = (m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.AMBIENTCOLOR) * 4);
-            var _local16:uint = (m_shaderProgram.getVertexParamRegisterCount(DeltaXProgram3D.AMBIENTCOLOR) * 4);
-            var _local17:uint = (_local15 + _local16);
-            var _local18:uint = _local15;
-            if (_local8.m_strip == PolyTrailType.STRETCH){
-                _local10 = (_local10 / (this.m_trailCount * _local8.textureCircle));
-            };
-            _local20 = 0;
-            _local21 = 7;
-            while (_local20 < 50) {
-                _local14[_local21] = _local13[_local20];
-                _local20++;
-                _local21 = (_local21 + 8);
-            };
-            var _local22:uint;
-            if (_local8.m_widthAsTextureU){
-                _local22 = (_local22 + 4);
-            };
-            if (_local8.m_invertTexV){
-                _local22 = (_local22 + 2);
-            };
-            if (_local8.m_invertTexU){
-                _local22 = (_local22 + 1);
-            };
-            if (_local8.m_strip == PolyTrailType.BLOCK){
-                _local22 = (7 - _local22);
-            };
-            var _local23:uint = (DeltaXSubGeometryManager.Instance.rectCountInVertexBuffer - _local11);
-            var _local24:uint;
-            var _local25:uint;
-            var _local26:Number = _local8.m_minTrailWidth;
-            var _local27:Number = _local8.m_maxTrailWidth;
-            var _local28:Number = (_local8.m_unitLifeTime * frameRatio);
-            var _local29:Number = (((_local8.m_singleSide) && (!((_local8.m_strip == PolyTrailType.BLOCK))))) ? 0 : 1;
-            var _local30:Number = ((_local8.m_simulateType == PolyTrailSimulateType.CURVE)) ? 1 : 0;
-            m_shaderProgram.setSampleTexture(0, m_textureProxy.getTextureForContext(_arg1));
-            m_shaderProgram.setSampleTexture(1, _local3);
-            m_shaderProgram.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, _local29, (_local29 + 1), _local12, m_curAlpha);
-            m_shaderProgram.setParamValue(DeltaXProgram3D.EMISSIVEMATERIAL, _local26, (_local27 - _local26), (1 / _local28), m_preFrameTime);
-            m_shaderProgram.setParamValue(DeltaXProgram3D.SPECULARMATERIAL, 0, _local10, _local4, _local30);
-            m_shaderProgram.setParamMatrix(DeltaXProgram3D.WORLD, m_coordMatrix[_local22]);
-            _local14[_local18] = _local5.position1_x;
-            _local18++;
-            _local14[_local18] = _local5.position1_y;
-            _local18++;
-            _local14[_local18] = _local5.position1_z;
-            _local18++;
-            _local14[_local18] = _local5.startTime;
-            _local18++;
-            _local14[_local18] = _local5.position2_x;
-            _local18++;
-            _local14[_local18] = _local5.position2_y;
-            _local18++;
-            _local14[_local18] = _local5.position2_z;
-            _local18 = (_local18 + 2);
-            while (_local5) {
-                _local14[_local18] = _local5.position1_x;
-                _local18++;
-                _local14[_local18] = _local5.position1_y;
-                _local18++;
-                _local14[_local18] = _local5.position1_z;
-                _local18++;
-                _local14[_local18] = _local5.startTime;
-                _local18++;
-                _local14[_local18] = _local5.position2_x;
-                _local18++;
-                _local14[_local18] = _local5.position2_y;
-                _local18++;
-                _local14[_local18] = _local5.position2_z;
-                _local18 = (_local18 + 2);
-                if ((((_local18 >= (_local17 - 8))) || ((_local24 > _local23)))){
-                    _local6 = (_local5.nextNode) ? _local5.nextNode : _local5;
-                    _local14[_local18] = _local6.position1_x;
-                    _local18++;
-                    _local14[_local18] = _local6.position1_y;
-                    _local18++;
-                    _local14[_local18] = _local6.position1_z;
-                    _local18++;
-                    _local14[_local18] = _local6.startTime;
-                    _local18++;
-                    _local14[_local18] = _local6.position2_x;
-                    _local18++;
-                    _local14[_local18] = _local6.position2_y;
-                    _local18++;
-                    _local14[_local18] = _local6.position2_z;
-                    _local18 = (_local18 + 2);
-                    _local25 = (_local25 + _local24);
-                    m_shaderProgram.update(_arg1);
-                    DeltaXSubGeometryManager.Instance.drawPackRect(_arg1, _local24);
-                    _local18 = _local15;
-                    _local24 = 0;
-                    if (_local8.m_strip == PolyTrailType.STRETCH){
-                        _local31 = (_local10 * _local25);
-                        m_shaderProgram.setParamValue(DeltaXProgram3D.SPECULARMATERIAL, _local31, _local10, _local4, _local30);
-                    };
-                    _local14[_local18] = _local7.position1_x;
-                    _local18++;
-                    _local14[_local18] = _local7.position1_y;
-                    _local18++;
-                    _local14[_local18] = _local7.position1_z;
-                    _local18++;
-                    _local14[_local18] = _local7.startTime;
-                    _local18++;
-                    _local14[_local18] = _local7.position2_x;
-                    _local18++;
-                    _local14[_local18] = _local7.position2_y;
-                    _local18++;
-                    _local14[_local18] = _local7.position2_z;
-                    _local18 = (_local18 + 2);
-                } else {
-                    _local7 = _local5;
-                    _local5 = _local5.nextNode;
-                    _local24 = (_local24 + _local11);
-                };
-            };
-            _local14[_local18] = _local7.position1_x;
-            _local18++;
-            _local14[_local18] = _local7.position1_y;
-            _local18++;
-            _local14[_local18] = _local7.position1_z;
-            _local18++;
-            _local14[_local18] = _local7.startTime;
-            _local18++;
-            _local14[_local18] = _local7.position2_x;
-            _local18++;
-            _local14[_local18] = _local7.position2_y;
-            _local18++;
-            _local14[_local18] = _local7.position2_z;
-            _local18 = (_local18 + 2);
-            _local24 = (_local24 - _local11);
-            _local25 = (_local25 + _local24);
-            m_shaderProgram.update(_arg1);
-            DeltaXSubGeometryManager.Instance.drawPackRect(_arg1, _local24);
-            deactivatePass(_arg1);
-            EffectManager.instance.addTotalPolyTrailCount(_local25);
-			renderCoordinate(_arg1);
+            }
+			
+            activatePass(context, camera);
+            setDisturbState(context);
+			
+            var ratio:Number = m_textureProxy.width / m_textureProxy.height;
+            
+            var ptData:PolygonTrailData = PolygonTrailData(m_effectUnitData);
+            var type:uint = ptData.m_strip == PolyTrailType.BLOCK ? 1 : 4;
+            var typeRatio:Number = 1 / type;
+            var textureCount:uint = ptData.textureCircle * type;
+            var textureRatio:Number = 1 / textureCount;
+            var bufferList:Vector.<Number> = ptData.getScaleBuffer(50);
+            var vertexParams:Vector.<Number> = m_shaderProgram.getVertexParamCache();
+            var vertexIndex:uint = m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.AMBIENTCOLOR) * 4;
+            var vertexCount:uint = m_shaderProgram.getVertexParamRegisterCount(DeltaXProgram3D.AMBIENTCOLOR) * 4;
+            var maxIndex:uint = vertexIndex + vertexCount;
+            if (ptData.m_strip == PolyTrailType.STRETCH)
+			{
+				typeRatio /= this.m_trailCount * ptData.textureCircle;
+            }
+			var bIdx:uint = 0;
+			var vIdx:uint = 7;
+            while (bIdx < 50) 
+			{
+				vertexParams[vIdx] = bufferList[bIdx];
+				bIdx++;
+				vIdx += 8;
+            }
+			
+            var cMatIndex:uint;
+            if (ptData.m_widthAsTextureU)
+			{
+				cMatIndex += 4;
+            }
+            if (ptData.m_invertTexV)
+			{
+				cMatIndex += 2;
+            }
+            if (ptData.m_invertTexU)
+			{
+				cMatIndex += 1;
+            }
+            if (ptData.m_strip == PolyTrailType.BLOCK)
+			{
+				cMatIndex = 7 - cMatIndex;
+            }
+			
+            var minWidth:Number = ptData.m_minTrailWidth;
+            var maxWidth:Number = ptData.m_maxTrailWidth;
+            var lifeTime:Number = ptData.m_unitLifeTime * frameRatio;
+            var tType:Number = (ptData.m_singleSide && ptData.m_strip != PolyTrailType.BLOCK) ? 0 : 1;
+            var isCurve:Number = (ptData.m_simulateType == PolyTrailSimulateType.CURVE) ? 1 : 0;
+			
+            m_shaderProgram.setSampleTexture(0, m_textureProxy.getTextureForContext(context));
+            m_shaderProgram.setSampleTexture(1, colorTexture);
+            m_shaderProgram.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, tType, tType + 1, textureRatio, m_curAlpha);
+            m_shaderProgram.setParamValue(DeltaXProgram3D.EMISSIVEMATERIAL, minWidth, maxWidth - minWidth, 1 / lifeTime, m_preFrameTime);
+            m_shaderProgram.setParamValue(DeltaXProgram3D.SPECULARMATERIAL, 0, typeRatio, ratio, isCurve);
+            m_shaderProgram.setParamMatrix(DeltaXProgram3D.WORLD, m_coordMatrix[cMatIndex]);
+			
+			var node_h:TrailUnitNode = this.m_headTrail;
+			var nextNode:TrailUnitNode;
+			var tNode:TrailUnitNode;
+			var idx:uint = vertexIndex;
+			var count:uint = DeltaXSubGeometryManager.Instance.rectCountInVertexBuffer - textureCount;
+			var tIdx:uint;
+			var tCount:uint;
+			vertexParams[idx++] = node_h.position1_x;
+			vertexParams[idx++] = node_h.position1_y;
+			vertexParams[idx++] = node_h.position1_z;
+			vertexParams[idx++] = node_h.startTime;
+			vertexParams[idx++] = node_h.position2_x;
+			vertexParams[idx++] = node_h.position2_y;
+			vertexParams[idx] = node_h.position2_z;
+			idx += 2;
+            while (node_h) 
+			{
+				vertexParams[idx++] = node_h.position1_x;
+				vertexParams[idx++] = node_h.position1_y;
+				vertexParams[idx++] = node_h.position1_z;
+				vertexParams[idx++] = node_h.startTime;
+				vertexParams[idx++] = node_h.position2_x;
+				vertexParams[idx++] = node_h.position2_y;
+				vertexParams[idx] = node_h.position2_z;
+				idx += 2;
+                if ((idx >= (maxIndex - 8)) || (tIdx > count))
+				{
+					nextNode = node_h.nextNode ? node_h.nextNode : node_h;
+					vertexParams[idx++] = nextNode.position1_x;
+					vertexParams[idx++] = nextNode.position1_y;
+					vertexParams[idx++] = nextNode.position1_z;
+					vertexParams[idx++] = nextNode.startTime;
+					vertexParams[idx++] = nextNode.position2_x;
+					vertexParams[idx++] = nextNode.position2_y;
+					vertexParams[idx] = nextNode.position2_z;
+					idx += 2;
+					
+					tCount += tIdx;
+                    m_shaderProgram.update(context);
+                    DeltaXSubGeometryManager.Instance.drawPackRect(context, tIdx);
+					idx = vertexIndex;
+					tIdx = 0;
+                    if (ptData.m_strip == PolyTrailType.STRETCH)
+					{
+                        m_shaderProgram.setParamValue(DeltaXProgram3D.SPECULARMATERIAL, typeRatio * tCount, typeRatio, ratio, isCurve);
+                    }
+					vertexParams[idx++] = tNode.position1_x;
+					vertexParams[idx++] = tNode.position1_y;
+					vertexParams[idx++] = tNode.position1_z;
+					vertexParams[idx++] = tNode.startTime;
+					vertexParams[idx++] = tNode.position2_x;
+					vertexParams[idx++] = tNode.position2_y;
+					vertexParams[idx] = tNode.position2_z;
+					idx += 2;
+                } else 
+				{
+					tNode = node_h;
+					node_h = node_h.nextNode;
+					tIdx += textureCount;
+                }
+            }
+			vertexParams[idx++] = tNode.position1_x;
+			vertexParams[idx++] = tNode.position1_y;
+			vertexParams[idx++] = tNode.position1_z;
+			vertexParams[idx++] = tNode.startTime;
+			vertexParams[idx++] = tNode.position2_x;
+			vertexParams[idx++] = tNode.position2_y;
+			vertexParams[idx] = tNode.position2_z;
+			idx += 2;
+			
+			tIdx -= textureCount;
+			tCount += tIdx;
+            m_shaderProgram.update(context);
+            DeltaXSubGeometryManager.Instance.drawPackRect(context, tIdx);
+            deactivatePass(context);
+            EffectManager.instance.addTotalPolyTrailCount(tCount);
+			renderCoordinate(context);
         }
-        override protected function get worldMatrixForRender():Matrix3D{
-            return (MathUtl.IDENTITY_MATRIX3D);
+		
+        override protected function get worldMatrixForRender():Matrix3D
+		{
+            return MathUtl.IDENTITY_MATRIX3D;
         }
-        override protected function get shaderType():uint{
-            if (PolygonTrailData(m_effectUnitData).m_strip == PolyTrailType.BLOCK){
-                return (ShaderManager.SHADER_POLYTRAIL_BLOCK);
-            };
-            return (ShaderManager.SHADER_POLYTRAIL_NORMAL);
+		
+        override protected function get shaderType():uint
+		{
+            if (PolygonTrailData(m_effectUnitData).m_strip == PolyTrailType.BLOCK)
+			{
+                return ShaderManager.SHADER_POLYTRAIL_BLOCK;
+            }
+            return ShaderManager.SHADER_POLYTRAIL_NORMAL;
         }
 
         m_coordMatrix[0] = new Matrix3D(Vector.<Number>([-1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]));
@@ -295,41 +324,59 @@
     }
 }
 
-class TrailUnitNode {
+class TrailUnitNode 
+{
 
     public static var nodePool:TrailUnitNode = create(2000);
 
+	/***/
     public var startTime:Number;
+	/***/
     public var position1_x:Number;
+	/***/
     public var position1_y:Number;
+	/***/
     public var position1_z:Number;
+	/***/
     public var position2_x:Number;
+	/***/
     public var position2_y:Number;
+	/***/
     public var position2_z:Number;
+	/***/
     public var nextNode:TrailUnitNode;
 
-    public function TrailUnitNode(){
+    public function TrailUnitNode()
+	{
+		//
     }
-    private static function create(_arg1:uint):TrailUnitNode{
-        var _local4:TrailUnitNode;
-        var _local2:TrailUnitNode;
-        var _local3:uint;
-        while (_local3 < 2000) {
-            _local4 = new TrailUnitNode();
-            _local4.nextNode = _local2;
-            _local2 = _local4;
-            _local3++;
-        };
-        return (_local2);
+	
+    private static function create(count:uint):TrailUnitNode
+	{
+        var node1:TrailUnitNode;
+        var node2:TrailUnitNode;
+        var idx:uint;
+        while (idx < count) 
+		{
+			node1 = new TrailUnitNode();
+			node1.nextNode = node2;
+			node2 = node1;
+			idx++;
+        }
+        return node2;
     }
-    public static function alloc():TrailUnitNode{
-        var _local1:TrailUnitNode = nodePool;
+	
+    public static function alloc():TrailUnitNode
+	{
+        var node:TrailUnitNode = nodePool;
         nodePool = (nodePool) ? nodePool.nextNode : null;
-        return (_local1);
+        return node;
     }
-    public static function free(_arg1:TrailUnitNode):void{
-        _arg1.nextNode = nodePool;
-        nodePool = _arg1;
+	
+    public static function free(node:TrailUnitNode):void
+	{
+		node.nextNode = nodePool;
+        nodePool = node;
     }
 
 }
