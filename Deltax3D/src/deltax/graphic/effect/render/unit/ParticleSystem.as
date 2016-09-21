@@ -1,35 +1,41 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.render.unit {
-    import __AS3__.vec.*;
+﻿package deltax.graphic.effect.render.unit 
+{
+    import flash.display3D.Context3D;
+    import flash.display3D.textures.Texture;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    import flash.utils.Dictionary;
     
-    import deltax.common.*;
-    import deltax.common.math.*;
-    import deltax.graphic.camera.*;
-    import deltax.graphic.effect.*;
-    import deltax.graphic.effect.data.unit.*;
-    import deltax.graphic.effect.data.unit.particle.*;
-    import deltax.graphic.effect.render.*;
-    import deltax.graphic.effect.util.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.model.*;
-    import deltax.graphic.shader.*;
-    import deltax.graphic.texture.*;
-    import deltax.graphic.util.RenderBox;
-    
-    import flash.display3D.*;
-    import flash.display3D.textures.*;
-    import flash.geom.*;
-    import flash.utils.*;
+    import deltax.common.DictionaryUtil;
+    import deltax.common.Util;
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.Matrix3DUtils;
+    import deltax.common.math.VectorUtil;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.effect.EffectManager;
+    import deltax.graphic.effect.data.unit.EffectUnitData;
+    import deltax.graphic.effect.data.unit.ParticleSystemData;
+    import deltax.graphic.effect.data.unit.particle.AccelerateCoordSpace;
+    import deltax.graphic.effect.data.unit.particle.ParticleFaceType;
+    import deltax.graphic.effect.data.unit.particle.ParticleParentParam;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.effect.util.BlendMode;
+    import deltax.graphic.manager.DeltaXSubGeometryManager;
+    import deltax.graphic.manager.ShaderManager;
+    import deltax.graphic.model.Animation;
+    import deltax.graphic.shader.DeltaXProgram3D;
+    import deltax.graphic.texture.BitmapDataResourceBase;
+    import deltax.graphic.texture.DeltaXTexture;
 
     public class ParticleSystem extends EffectUnit 
 	{
-
         private var m_remainTime:uint;
         private var m_velocityOffset:Vector3D;
         private var m_totalParticleCount:uint;
         private var m_preFrameWorldMatrix:Matrix3D;
         private var m_particleGroupByTexture:Dictionary;
 		private var tmpScale:Number=0;
+		
 		public static function get totalParticleCount():uint
 		{
 			return Particle.ParticleCount;
@@ -418,16 +424,21 @@ package deltax.graphic.effect.render.unit {
         }
 
     }
-}//package deltax.graphic.effect.render.unit 
+}
 
-import deltax.common.*;
-import deltax.common.math.*;
-import deltax.graphic.effect.data.unit.*;
-import deltax.graphic.effect.data.unit.particle.*;
-import deltax.graphic.effect.render.*;
-import deltax.graphic.effect.render.unit.*;
+import flash.geom.Matrix3D;
+import flash.geom.Vector3D;
 
-import flash.geom.*;
+import deltax.common.Util;
+import deltax.common.math.MathUtl;
+import deltax.common.math.VectorUtil;
+import deltax.graphic.effect.data.unit.ParticleSystemData;
+import deltax.graphic.effect.data.unit.particle.EmissiveType;
+import deltax.graphic.effect.data.unit.particle.ParticleMoveCoordSpace;
+import deltax.graphic.effect.data.unit.particle.ParticleParentParam;
+import deltax.graphic.effect.data.unit.particle.VelocityDirType;
+import deltax.graphic.effect.render.Effect;
+import deltax.graphic.effect.render.unit.EffectUnit;
 class Particle {
 
     private static const MAX_PARTICLE_COUNT:Number = 2000;

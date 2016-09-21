@@ -1,16 +1,21 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.render.unit {
-    import deltax.graphic.camera.*;
-    import flash.display3D.*;
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import deltax.graphic.effect.render.*;
-    import deltax.graphic.model.*;
-    import deltax.common.math.*;
-    import deltax.graphic.effect.data.unit.*;
+﻿package deltax.graphic.effect.render.unit 
+{
+    import flash.display3D.Context3D;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    
+    import deltax.common.math.MathConsts;
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.Matrix3DUtils;
+    import deltax.common.math.VectorUtil;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.effect.data.unit.EffectUnitData;
+    import deltax.graphic.effect.data.unit.NullEffectData;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.model.Animation;
 
-    public class NullEffect extends EffectUnit {
-
+    public class NullEffect extends EffectUnit 
+	{
         private var m_curAngle:Number = 0;
 
         public function NullEffect(_arg1:Effect, _arg2:EffectUnitData){
@@ -106,4 +111,4 @@ package deltax.graphic.effect.render.unit {
         }
 
     }
-}//package deltax.graphic.effect.render.unit 
+}

@@ -1,24 +1,28 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.render.unit {
-    import deltax.graphic.camera.*;
-    import flash.display3D.*;
-    import deltax.graphic.manager.*;
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import deltax.graphic.effect.render.*;
-    import deltax.graphic.texture.*;
-    import deltax.common.math.*;
-    import flash.display3D.textures.*;
-    import deltax.graphic.shader.*;
-    import deltax.graphic.effect.*;
-    import deltax.graphic.effect.data.unit.*;
-    import deltax.graphic.effect.util.*;
-    import deltax.graphic.effect.data.unit.polytrail.*;
+﻿package deltax.graphic.effect.render.unit 
+{
+    import flash.display3D.Context3D;
+    import flash.display3D.textures.Texture;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.VectorUtil;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.effect.EffectManager;
+    import deltax.graphic.effect.data.unit.EffectUnitData;
+    import deltax.graphic.effect.data.unit.PolygonTrailData;
+    import deltax.graphic.effect.data.unit.polytrail.PolyTrailSimulateType;
+    import deltax.graphic.effect.data.unit.polytrail.PolyTrailType;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.effect.util.BlendMode;
+    import deltax.graphic.manager.DeltaXSubGeometryManager;
+    import deltax.graphic.manager.ShaderManager;
+    import deltax.graphic.shader.DeltaXProgram3D;
+    import deltax.graphic.texture.DeltaXTexture;
 
-    public class PolygonTrail extends EffectUnit {
-
+    public class PolygonTrail extends EffectUnit 
+	{
         private static var m_coordMatrix:Vector.<Matrix3D> = new Vector.<Matrix3D>();
-;
 
         private var m_headTrail:TrailUnitNode;
         private var m_tailTrail:TrailUnitNode;
@@ -289,7 +293,7 @@ package deltax.graphic.effect.render.unit {
         m_coordMatrix[6] = new Matrix3D(Vector.<Number>([0, 1, 0, 0, -1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]));
         m_coordMatrix[7] = new Matrix3D(Vector.<Number>([0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]));
     }
-}//package deltax.graphic.effect.render.unit 
+}
 
 class TrailUnitNode {
 

@@ -93,7 +93,7 @@
 				faceType == FaceType.ATTACH_TO_WATER_NO_ROTATE);
         }
 		
-		private function defaultGetHeightFun(_arg1:uint, _arg2:uint):Number
+		private function defaultGetHeightFun(gx:uint, gz:uint):Number
 		{
 			return 0;
 		}
@@ -130,20 +130,6 @@
 		
         override public function update(time:uint, camera:Camera3D, mat:Matrix3D):Boolean
 		{
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-			
             if (m_preFrame > billBoardData.endFrame)
 			{
                 return false;
@@ -367,128 +353,112 @@
             return (billBoardData.m_minSize != 0 || billBoardData.m_maxSize != 0);
         }
 		
-        override public function render(_arg1:Context3D, _arg2:Camera3D):void
+        override public function render(context:Context3D, camera:Camera3D):void
 		{
 			if(shaderType != ShaderManager.instance.getShaderTypeByProgram3D(m_shaderProgram))
 			{
 				this.m_shaderProgram = ShaderManager.instance.getProgram3D(this.shaderType);
 			}
 			
-            var _local9:EffectSystemListener;
-            var _local10:Vector3D;
-            var _local11:Vector3D;
-            var _local12:int;
-            var _local13:int;
-            var _local14:int;
-            var _local15:int;
-            var _local16:int;
-            var _local17:int;
-            var _local18:uint;
-            var _local19:Function;
-            var _local20:Vector.<Number>;
-            var _local21:uint;
-            var _local22:int;
-            var _local23:Vector.<uint>;
-            var _local24:Number;
-            var _local25:int;
-            var _local26:int;
-            var _local27:uint;
-            var _local28:uint;
             if (!m_textureProxy)
 			{
                 return;
-            };
-            var _local3:Texture = getColorTexture(_arg1);
-            if (_local3 == null)
+            }
+			
+            var colorTexture:Texture = getColorTexture(context);
+            if (colorTexture == null)
 			{
                 return;
-            };
-            var _local4:BillboardData = BillboardData(m_effectUnitData);
-            var _local5:EffectManager = EffectManager.instance;
-            var _local6:uint = _local4.m_faceType;
-            var _local7:Boolean = (((_local6 == FaceType.ATTACH_TO_TERRAIN)) || ((_local6 == FaceType.ATTACH_TO_TERRAIN_NO_ROTATE)));
-            var _local8:Boolean = (((_local6 == FaceType.ATTACH_TO_WATER)) || ((_local6 == FaceType.ATTACH_TO_WATER_NO_ROTATE)));
-            if (((_local8) || (_local7)))
+            }
+			
+            var eMgr:EffectManager = EffectManager.instance;
+            var faceType:uint = billBoardData.m_faceType;
+            var attachTerrain:Boolean = (faceType == FaceType.ATTACH_TO_TERRAIN || faceType == FaceType.ATTACH_TO_TERRAIN_NO_ROTATE);
+            var attachWarter:Boolean = (faceType == FaceType.ATTACH_TO_WATER || faceType == FaceType.ATTACH_TO_WATER_NO_ROTATE);
+            if (attachWarter || attachTerrain)
 			{
-                _local9 = _local5.listener;
-                _local10 = MathUtl.TEMP_VECTOR3D;
-                _local4.getOffsetByPos(this.m_percent, _local10);
-                _local11 = MathUtl.TEMP_VECTOR3D2;
-                VectorUtil.transformByMatrix(_local10, m_matWorld, _local11);	
-				_local11.y = 0;
-				m_matWorld.position = _local11;
+				var listener:EffectSystemListener = eMgr.listener;
+				var pos:Vector3D = MathUtl.TEMP_VECTOR3D;
+				billBoardData.getOffsetByPos(this.m_percent, pos);
+                VectorUtil.transformByMatrix(pos, m_matWorld, pos);	
+				pos.y = 0;
+				m_matWorld.position = pos;
 				
-                _local12 = int(Math.floor(((_local11.x - this.m_halfWidth) * GRID_UNIT_SIZE_INV)));
-                _local13 = (int(Math.floor(((_local11.x + this.m_halfWidth) * GRID_UNIT_SIZE_INV))) + 1);
-                _local14 = (int(Math.floor(((_local11.z + this.m_halfWidth) * GRID_UNIT_SIZE_INV))) + 1);
-                _local15 = int(Math.floor(((_local11.z - this.m_halfWidth) * GRID_UNIT_SIZE_INV)));
-                _local16 = (_local13 - _local12);
-                _local17 = (_local14 - _local15);
-                if ((((_local16 == 0)) || ((_local17 == 0))))
+				var minX:int = int(Math.floor((pos.x - this.m_halfWidth) * GRID_UNIT_SIZE_INV));
+				var maxX:int = int(Math.floor((pos.x + this.m_halfWidth) * GRID_UNIT_SIZE_INV)) + 1;
+				var minZ:int = int(Math.floor((pos.z + this.m_halfWidth) * GRID_UNIT_SIZE_INV)) + 1;
+				var maxZ:int = int(Math.floor((pos.z - this.m_halfWidth) * GRID_UNIT_SIZE_INV));
+				var offsetX:int = maxX - minX;
+				var offsetZ:int = minZ - maxZ;
+                if (offsetX == 0 || offsetZ == 0)
 				{
                     return;
-                };
-                _local18 = ((_local16 > _local17)) ? _local16 : _local17;
-                if (_local18 > 20)
+                }
+				var max:uint = offsetX > offsetZ ? offsetX : offsetZ;
+                if (max > 20)
 				{
-                    _local28 = ((_local18 - 20) >> 1);
-                    _local12 = (_local12 + _local28);
-                    _local15 = (_local15 + _local28);
-                    _local18 = 20;
-                };
+					var offset:uint = (max - 20) >> 1;
+					minX += offset;
+					maxZ += offset;
+					max = 20;
+                }
 				
-                if (!_local9)
+				var fun:Function;
+                if (!listener)
 				{
-                    _local19 = this.defaultGetHeightFun;
+					fun = this.defaultGetHeightFun;
                 } else 
 				{
-                    if (_local8)
+                    if (attachWarter)
 					{
-                        _local19 = _local9.getWaterHeightByGridFun();
+						fun = listener.getWaterHeightByGridFun();
                     } else 
 					{
-                        _local19 = _local9.getTerrainLogicHeightByGridFun();
-                    };
-                };
-                _local19 = ((_local19) || (this.defaultGetHeightFun));
-                _local20 = m_shaderProgram.getVertexParamCache();
-                _local21 = (m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.TEXTUREMATRIX) * 4);
-                _local22 = ((_local18 + 1) * (_local18 + 1));
-                _local23 = DeltaXSubGeometryManager.Instance.index2Pos;
-                _local24 = ((((_local6 == FaceType.ATTACH_TO_TERRAIN)) || ((_local6 == FaceType.ATTACH_TO_WATER)))) ? 1 : 0;
-                _local27 = 0;
-                while (_local27 < _local22) 
+						fun = listener.getTerrainLogicHeightByGridFun();
+                    }
+                }
+				fun = (fun || this.defaultGetHeightFun);
+				var vertexParams:Vector.<Number> = m_shaderProgram.getVertexParamCache();
+				var pIndex:uint = m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.TEXTUREMATRIX) * 4;
+				var s:uint = max + 1;
+				var length:int = s * s;
+				var indexPoses:Vector.<uint> = DeltaXSubGeometryManager.Instance.index2Pos;
+				var attachNum:Number = (faceType == FaceType.ATTACH_TO_TERRAIN || faceType == FaceType.ATTACH_TO_WATER) ? 1 : 0;
+				var idx:uint = 0;
+				var gx:int;
+				var gz:int;
+                while (idx < length) 
 				{
-                    _local25 = ((_local23[_local27] & 0xFF) + _local12);
-                    _local26 = ((_local23[_local27] >> 8) + _local15);
-                    _local20[_local21] = _local19(_local25, _local26);
-                    _local27++;
-                    _local21++;
-                };
-                activatePass(_arg1, _arg2);
-                setDisturbState(_arg1);
+					gx = (indexPoses[idx] & 0xFF) + minX;
+					gz = (indexPoses[idx] >> 8) + maxZ;
+					vertexParams[pIndex] = fun(gx, gz);
+					idx++;
+					pIndex++;
+                }
+                activatePass(context, camera);
+                setDisturbState(context);
                 m_shaderProgram.setParamMatrix(DeltaXProgram3D.WORLD, m_matWorld, true);
-                m_shaderProgram.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, _local12, _local15, this.m_halfWidth, m_curAlpha);
-                m_shaderProgram.setParamValue(DeltaXProgram3D.EMISSIVEMATERIAL, _local24, this.m_curAngle, this.m_percent, 0);
-                m_shaderProgram.setSampleTexture(0, m_textureProxy.getTextureForContext(_arg1));
-                m_shaderProgram.setSampleTexture(1, _local3);
-                m_shaderProgram.update(_arg1);
-                DeltaXSubGeometryManager.Instance.drawPackRect2(_arg1, (_local18 * _local18));
-                deactivatePass(_arg1);
+                m_shaderProgram.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, minX, maxZ, this.m_halfWidth, m_curAlpha);
+                m_shaderProgram.setParamValue(DeltaXProgram3D.EMISSIVEMATERIAL, attachNum, this.m_curAngle, this.m_percent, 0);
+                m_shaderProgram.setSampleTexture(0, m_textureProxy.getTextureForContext(context));
+                m_shaderProgram.setSampleTexture(1, colorTexture);
+                m_shaderProgram.update(context);
+                DeltaXSubGeometryManager.Instance.drawPackRect2(context, (max * max));
+                deactivatePass(context);
             } else 
 			{
-                activatePass(_arg1, _arg2);
-                setDisturbState(_arg1);
+                activatePass(context, camera);
+                setDisturbState(context);
                 m_shaderProgram.setParamMatrix(DeltaXProgram3D.WORLD, m_matWorld, true);
                 m_shaderProgram.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, this.m_percent, this.m_halfWidth, this.m_widthRatio, m_curAlpha);
-                m_shaderProgram.setSampleTexture(0, m_textureProxy.getTextureForContext(_arg1));
-                m_shaderProgram.setSampleTexture(1, _local3);
-                m_shaderProgram.update(_arg1);
-                DeltaXSubGeometryManager.Instance.drawPackRect2(_arg1, 1);
-                deactivatePass(_arg1);
-            };
+                m_shaderProgram.setSampleTexture(0, m_textureProxy.getTextureForContext(context));
+                m_shaderProgram.setSampleTexture(1, colorTexture);
+                m_shaderProgram.update(context);
+                DeltaXSubGeometryManager.Instance.drawPackRect2(context, 1);
+                deactivatePass(context);
+            }
 			
-			renderCoordinate(_arg1);
+			renderCoordinate(context);
         }
 
     }

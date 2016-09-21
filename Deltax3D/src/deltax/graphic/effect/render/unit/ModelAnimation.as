@@ -1,51 +1,66 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.render.unit {
-    import deltax.graphic.scenegraph.object.*;
-    import __AS3__.vec.*;
-    import deltax.graphic.effect.render.*;
-    import deltax.graphic.effect.data.unit.*;
+﻿package deltax.graphic.effect.render.unit 
+{
+    import deltax.graphic.effect.data.unit.EffectUnitData;
+    import deltax.graphic.effect.data.unit.ModelAnimationData;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.scenegraph.object.LinkableRenderable;
+    import deltax.graphic.scenegraph.object.RenderObject;
 
-    public class ModelAnimation extends EffectUnit {
-
+	/**
+	 * 体型动画
+	 * @author lees
+	 * @date 2016/03/08
+	 */	
+	
+    public class ModelAnimation extends EffectUnit 
+	{
         private static var m_figureIDsForUpdate:Vector.<uint> = new Vector.<uint>();
-;
         private static var m_figureWeightsForUpdate:Vector.<Number> = new Vector.<Number>();
-;
 
+		/**父类模型对象*/
         private var m_parentModel:RenderObject;
 
-        public function ModelAnimation(_arg1:Effect, _arg2:EffectUnitData){
-            super(_arg1, _arg2);
+        public function ModelAnimation(eft:Effect, eUData:EffectUnitData)
+		{
+            super(eft, eUData);
         }
-        override public function onLinkedToParent(_arg1:LinkableRenderable):void{
-            super.onLinkedToParent(_arg1);
-            this.m_parentModel = (_arg1 as RenderObject);
+		
+        override public function onLinkedToParent(va:LinkableRenderable):void
+		{
+            super.onLinkedToParent(va);
+            this.m_parentModel = (va as RenderObject);
         }
-        override public function onParentUpdate(_arg1:uint):void{
-            var _local3:Number;
-            var _local4:Number;
-            var _local5:uint;
-            var _local6:Number;
-            var _local2:ModelAnimationData = ModelAnimationData(m_effectUnitData);
-            if (m_preFrame > _local2.endFrame){
+		
+        override public function onParentUpdate(time:uint):void
+		{
+            var data:ModelAnimationData = ModelAnimationData(m_effectUnitData);
+            if (m_preFrame > data.endFrame)
+			{
                 return;
-            };
-            if (((((!(this.m_parentModel)) || (!(this.m_parentModel.aniGroup)))) || (!(this.m_parentModel.aniGroup.loaded)))){
+            }
+			
+            if (!this.m_parentModel || !this.m_parentModel.aniGroup || !this.m_parentModel.aniGroup.loaded)
+			{
                 return;
-            };
-            if (_local2.m_type == 0){
-                _local3 = calcCurFrame(_arg1);
-                _local4 = ((_local3 - _local2.startFrame) / _local2.frameRange);
-                _local5 = this.m_parentModel.aniGroup.figureCount;
-                m_figureIDsForUpdate.length = (_local5 + 1);
-                m_figureWeightsForUpdate.length = (_local5 + 1);
+            }
+			
+            if (data.m_type == 0)
+			{
+				var curFrame:Number = calcCurFrame(time);
+				var percent:Number = (curFrame - data.startFrame) / data.frameRange;
+				var figureCount:uint = this.m_parentModel.aniGroup.figureCount;
+				var length:uint = figureCount + 1;
+                m_figureIDsForUpdate.length = length;
+                m_figureWeightsForUpdate.length = length;
                 this.m_parentModel.getFigure(m_figureIDsForUpdate, m_figureWeightsForUpdate);
-                _local6 = _local2.getScaleByPos(_local4);
-                m_figureIDsForUpdate[_local5] = _local2.m_figureWeightInfo.figureID;
-                m_figureWeightsForUpdate[_local5] = (_local6 / Math.max((1 - _local6), 0.01));
+				var scale:Number = data.getScaleByPos(percent);
+                m_figureIDsForUpdate[figureCount] = data.m_figureWeightInfo.figureID;
+                m_figureWeightsForUpdate[figureCount] = scale / Math.max((1 - scale), 0.01);
                 this.m_parentModel.setFigure(m_figureIDsForUpdate, m_figureWeightsForUpdate);
-            };
+            }
         }
 
+		
+		
     }
-}//package deltax.graphic.effect.render.unit 
+}

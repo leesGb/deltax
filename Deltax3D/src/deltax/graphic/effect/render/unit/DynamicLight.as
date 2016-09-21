@@ -1,62 +1,85 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.render.unit {
-    import deltax.graphic.camera.*;
-    import flash.geom.*;
-    import deltax.graphic.effect.render.*;
-    import deltax.graphic.light.*;
-    import deltax.common.math.*;
-    import deltax.graphic.effect.*;
-    import deltax.graphic.effect.data.unit.*;
-    import deltax.common.error.*;
+﻿package deltax.graphic.effect.render.unit 
+{
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    
+    import deltax.common.error.Exception;
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.VectorUtil;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.effect.EffectManager;
+    import deltax.graphic.effect.data.unit.DynamicLightData;
+    import deltax.graphic.effect.data.unit.EffectUnitData;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.light.DeltaXPointLight;
 
-    public class DynamicLight extends EffectUnit {
-
+	/**
+	 * 动态灯光
+	 * @author lees
+	 * @date 2016/03/03
+	 */	
+	
+    public class DynamicLight extends EffectUnit 
+	{
+		/**点光源*/
         private var m_internalLight:DeltaXPointLight;
 
-        public function DynamicLight(_arg1:Effect, _arg2:EffectUnitData){
+        public function DynamicLight(eft:Effect, eUData:EffectUnitData)
+		{
             this.m_internalLight = new DeltaXPointLight();
-            super(_arg1, _arg2);
+            super(eft, eUData);
         }
-        override public function release():void{
-            if (this.m_internalLight == null){
-                (Exception.CreateException("release DynamicLight twice!!"));
+		
+		final public function get dynamicLightData():DynamicLightData
+		{
+			return DynamicLightData(m_effectUnitData);
+		}
+		
+        override public function release():void
+		{
+            if (this.m_internalLight == null)
+			{
+                Exception.CreateException("release DynamicLight twice!!");
 				return;
-            };
+            }
+			
             this.m_internalLight.remove();
             this.m_internalLight.release();
             this.m_internalLight = null;
             super.release();
         }
-        override public function update(_arg1:uint, _arg2:Camera3D, _arg3:Matrix3D):Boolean{
-            var _local4:EffectManager;
-            var _local7:Number;
-            var _local8:Vector3D;
-            _local4 = EffectManager.instance;
-            var _local5:DynamicLightData = DynamicLightData(m_effectUnitData);
-            if (m_preFrame > _local5.endFrame){
+		
+        override public function update(time:uint, camera:Camera3D, mat:Matrix3D):Boolean
+		{
+            if (m_preFrame > dynamicLightData.endFrame)
+			{
                 this.m_internalLight.remove();
-                return (false);
-            };
-            var _local6:Number = calcCurFrame(_arg1);
-            _local7 = ((_local6 - _local5.startFrame) / _local5.frameRange);
-            _local8 = MathUtl.TEMP_VECTOR3D;
-            _local5.getOffsetByPos(_local7, _local8);
-            VectorUtil.transformByMatrixFast(_local8, _arg3, _local8);
-            m_matWorld.position = _local8;
-            m_preFrameTime = _arg1;
-            m_preFrame = _local6;
-            this.m_internalLight.color = getColorByPos(_local7);
-            var _local9:Number = (_local5.m_minStrong + ((_local5.m_maxStrong - _local5.m_minStrong) * _local5.getScaleByPos(_local7)));
-            _local9 = (1 / _local9);
-            this.m_internalLight.setAttenuation(1, _local9);
-            this.m_internalLight.radius = _local5.m_range;
-            this.m_internalLight.position = _local8;
-            if (this.m_internalLight.parent != _local4.renderer.mainRenderScene){
+                return false;
+            }
+			
+            var curFrame:Number = calcCurFrame(time);
+			var percent:Number = (curFrame - dynamicLightData.startFrame) / dynamicLightData.frameRange;
+			var pos:Vector3D = MathUtl.TEMP_VECTOR3D;
+			dynamicLightData.getOffsetByPos(percent, pos);
+            VectorUtil.transformByMatrixFast(pos, mat, pos);
+            m_matWorld.position = pos;
+            m_preFrameTime = time;
+            m_preFrame = curFrame;
+            this.m_internalLight.color = getColorByPos(percent);
+            var lightStrong:Number = dynamicLightData.m_minStrong + (dynamicLightData.m_maxStrong - dynamicLightData.m_minStrong) * dynamicLightData.getScaleByPos(percent);
+			lightStrong = 1 / lightStrong;
+            this.m_internalLight.setAttenuation(1, lightStrong);
+            this.m_internalLight.radius = dynamicLightData.m_range;
+            this.m_internalLight.position = pos;
+            if (this.m_internalLight.parent != EffectManager.instance.renderer.mainRenderScene)
+			{
                 this.m_internalLight.remove();
-                _local4.renderer.mainRenderScene.addPointLight(this.m_internalLight);
-            };
-            return (true);
+				EffectManager.instance.renderer.mainRenderScene.addPointLight(this.m_internalLight);
+            }
+            return true;
         }
 
+		
+		
     }
-}//package deltax.graphic.effect.render.unit 
+} 

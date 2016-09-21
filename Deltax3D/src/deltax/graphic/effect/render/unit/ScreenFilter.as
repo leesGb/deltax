@@ -1,23 +1,32 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.render.unit {
-    import deltax.graphic.camera.*;
-    import flash.display3D.*;
-    import deltax.graphic.manager.*;
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import deltax.graphic.effect.render.*;
-    import deltax.graphic.texture.*;
-    import deltax.common.math.*;
-    import flash.display3D.textures.*;
-    import deltax.graphic.shader.*;
-    import deltax.graphic.effect.*;
-    import deltax.graphic.effect.data.unit.*;
-    import deltax.graphic.util.*;
-    import deltax.graphic.effect.util.*;
-    import deltax.graphic.effect.data.unit.screenfilter.*;
+﻿package deltax.graphic.effect.render.unit 
+{
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DBlendFactor;
+    import flash.display3D.Context3DCompareMode;
+    import flash.display3D.Context3DTextureFormat;
+    import flash.display3D.Context3DTriangleFace;
+    import flash.display3D.textures.Texture;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.Vector2D;
+    import deltax.common.math.VectorUtil;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.effect.EffectManager;
+    import deltax.graphic.effect.data.unit.EffectUnitData;
+    import deltax.graphic.effect.data.unit.ScreenFilterData;
+    import deltax.graphic.effect.data.unit.screenfilter.ScreenFilterType;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.effect.util.BlendMode;
+    import deltax.graphic.manager.DeltaXSubGeometryManager;
+    import deltax.graphic.manager.ShaderManager;
+    import deltax.graphic.shader.DeltaXProgram3D;
+    import deltax.graphic.texture.DeltaXTexture;
+    import deltax.graphic.util.Color;
 
-    public class ScreenFilter extends EffectUnit {
-
+    public class ScreenFilter extends EffectUnit 
+	{
         private var m_deltaU:Number = 0;
         private var m_deltaV:Number = 0;
         private var m_depth:Number = 0.001;
@@ -218,4 +227,4 @@ package deltax.graphic.effect.render.unit {
         }
 
     }
-}//package deltax.graphic.effect.render.unit 
+}

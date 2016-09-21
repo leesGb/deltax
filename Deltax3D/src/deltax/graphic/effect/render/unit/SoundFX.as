@@ -1,21 +1,30 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.render.unit {
-    import deltax.graphic.camera.*;
-    import flash.display3D.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.scenegraph.object.*;
-    import flash.geom.*;
-    import deltax.graphic.effect.render.*;
-    import flash.utils.*;
-    import deltax.common.math.*;
-    import deltax.graphic.render.*;
-    import deltax.common.resource.*;
-    import deltax.graphic.effect.*;
-    import deltax.graphic.effect.data.unit.*;
-    import deltax.graphic.audio.*;
+﻿package deltax.graphic.effect.render.unit 
+{
+    import flash.display3D.Context3D;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    import flash.utils.getTimer;
+    
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.VectorUtil;
+    import deltax.common.resource.Enviroment;
+    import deltax.common.resource.FileRevisionManager;
+    import deltax.graphic.audio.Sound3D;
+    import deltax.graphic.audio.SoundResource;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.camera.DeltaXCamera3D;
+    import deltax.graphic.effect.EffectManager;
+    import deltax.graphic.effect.data.unit.EffectUnitData;
+    import deltax.graphic.effect.data.unit.SoundFXData;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.manager.IResource;
+    import deltax.graphic.manager.ResourceManager;
+    import deltax.graphic.manager.ResourceType;
+    import deltax.graphic.render.DeltaXRenderer;
+    import deltax.graphic.scenegraph.object.LinkableRenderable;
 
-    public class SoundFX extends EffectUnit {
-
+    public class SoundFX extends EffectUnit 
+	{
         private var m_sound:Sound3D;
         private var m_playEnabled:Boolean;
         private var m_prePlayTime:uint;
@@ -132,4 +141,4 @@ package deltax.graphic.effect.render.unit {
         }
 
     }
-}//package deltax.graphic.effect.render.unit 
+}

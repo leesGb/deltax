@@ -1,24 +1,32 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.render.unit {
-    import deltax.graphic.camera.*;
-    import flash.display3D.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.scenegraph.object.*;
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import deltax.graphic.effect.render.*;
-    import flash.utils.*;
-    import deltax.graphic.texture.*;
-    import deltax.graphic.model.*;
-    import deltax.common.math.*;
-    import flash.display3D.textures.*;
-    import deltax.graphic.shader.*;
-    import deltax.graphic.effect.*;
-    import deltax.graphic.effect.data.unit.*;
-    import deltax.graphic.effect.util.*;
-    import deltax.graphic.effect.data.unit.polychain.*;
+﻿package deltax.graphic.effect.render.unit 
+{
+    import flash.display3D.Context3D;
+    import flash.display3D.textures.Texture;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    import flash.utils.Dictionary;
+    
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.VectorUtil;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.effect.EffectManager;
+    import deltax.graphic.effect.data.unit.EffectUnitData;
+    import deltax.graphic.effect.data.unit.PolygonChainData;
+    import deltax.graphic.effect.data.unit.polychain.PolyChainBindType;
+    import deltax.graphic.effect.data.unit.polychain.PolyChainRenderType;
+    import deltax.graphic.effect.data.unit.polychain.PolyChainTextureType;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.effect.render.EffectUnitMsgID;
+    import deltax.graphic.effect.util.BlendMode;
+    import deltax.graphic.manager.DeltaXSubGeometryManager;
+    import deltax.graphic.manager.ShaderManager;
+    import deltax.graphic.model.Animation;
+    import deltax.graphic.scenegraph.object.LinkableRenderable;
+    import deltax.graphic.shader.DeltaXProgram3D;
+    import deltax.graphic.texture.DeltaXTexture;
 
-    public class PolygonChain extends EffectUnit {
+    public class PolygonChain extends EffectUnit 
+	{
 
         private static const MAX_BIND_POS_COUNT_4X:uint = 64;
 
@@ -38,7 +46,8 @@ package deltax.graphic.effect.render.unit {
         private var m_bindDestPoses:Vector.<Number>;
         private var m_percent:Number;
 
-        public function PolygonChain(_arg1:Effect, _arg2:EffectUnitData){
+        public function PolygonChain(_arg1:Effect, _arg2:EffectUnitData)
+		{
             this.m_bindDestPos = new Vector3D();
             this.m_ditheringBiasInfoList = new Vector.<Vector.<DitheringBiasPair>>();
             this.m_bindDestPoses = new Vector.<Number>();
@@ -85,7 +94,8 @@ package deltax.graphic.effect.render.unit {
             };
             super.release();
         }
-        override public function sendMsg(_arg1:uint, _arg2, _arg3=null):void{
+        override public function sendMsg(_arg1:uint, _arg2:*, _arg3:*=null):void
+		{
             if (_arg1 == EffectUnitMsgID.SET_POLYCHAIN_DEST_POS){
                 if ((_arg2 is Vector3D)){
                     this.m_bindDestPos.copyFrom(Vector3D(_arg2));
@@ -322,7 +332,7 @@ package deltax.graphic.effect.render.unit {
         }
 
     }
-}//package deltax.graphic.effect.render.unit 
+}
 
 class DitheringBiasPair {
 
