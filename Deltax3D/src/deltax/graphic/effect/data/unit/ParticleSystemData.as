@@ -1,124 +1,86 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.data.unit {
-    import deltax.common.math.*;
-    import deltax.common.resource.*;
-    import deltax.graphic.effect.data.EffectGroup;
+﻿package deltax.graphic.effect.data.unit 
+{
+    import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     
-    import flash.geom.*;
-    import flash.utils.*;
+    import deltax.common.math.VectorUtil;
+    import deltax.common.resource.CommonFileHeader;
+    import deltax.graphic.effect.data.EffectGroup;
+	
+	/**
+	 * 粒子数据
+	 * @author lees
+	 * @date 2016/03/20
+	 */	
 
     public class ParticleSystemData extends EffectUnitData 
 	{
-		/**
-		 * 最小发射间隔 
-		 */
+		/**最小发射间隔*/
         public var m_minEmissionInterval:int;
-		/**
-		 * 最大发射间隔 
-		 */		
+		/**最大发射间隔*/
         public var m_maxEmissionInterval:int;
-		/**
-		 * 每次发射的数量 
-		 */		
+		/**每次发射的数量 */
         public var m_particleCountPerEmission:int;
-		/**
-		 * 粒子的最小尺寸 
-		 */		
+		/**粒子的最小尺寸*/	
         public var m_minSize:Number;
-		/**
-		 * 粒子的最大尺寸 
-		 */		
+		/**粒子的最大尺寸*/	
         public var m_maxSize:Number;
-		/**
-		 * 发射平面 
-		 */		
+		/**发射平面 */	
         public var m_emissionPlan:Vector3D;
-		/**
-		 * 最小速度 
-		 */		
+		/**最小速度*/	
         public var m_minVelocity:Vector3D;
-		/**
-		 * 最大速度 
-		 */		
+		/**最大速度*/	
         public var m_maxVelocity:Vector3D;
-		/**
-		 * 加速度 
-		 */		
+		/**加速度*/
         public var m_acceleration:Vector3D;
-		/**
-		 * 最小自旋角速度 
-		 */		
+		/**最小自旋角速度*/	
         public var m_minAngularVelocity:Number;
-		/**
-		 * 最大自旋角速度 
-		 */		
+		/**最大自旋角速度*/	
         public var m_maxAngularVelocity:Number;
-		/**
-		 * 最小生命周期 
-		 */		
+		/**最小生命周期*/	
         public var m_minLifeTime:Number;
-		/**
-		 * 最大生命周期 
-		 */		
+		/**最大生命周期 */	
         public var m_maxLifeTime:Number;
-		/**
-		 * 最小发射半径 
-		 */		
+		/**最小发射半径*/
         public var m_minRadius:Number;
-		/**
-		 * 最大发射半径 
-		 */		
+		/**最大发射半径*/
         public var m_maxRadius:Number;
-		
+		/**矩形边角内半径*/
         public var m_longShortRadius:Number;
+		/**矩形边角外半径*/
         public var m_longShortDRadius:Number;
+		/**边角分隔值*/
         public var m_cornerDivision:Number;
+		/**加速百分比*/
         public var m_velocityPercent:Number;
-		/**
-		 * 长宽比 
-		 */		
+		/**长宽比*/
         public var m_widthRatio:Number;
-		/**
-		 * 移动类型 
-		 */		
+		/**移动类型*/
         public var m_moveType:uint;
-		/**
-		 * 发射类型 
-		 */		
+		/**发射类型*/	
         public var m_emissionType:uint;
-		/**
-		 * 速度方向 
-		 */		
+		/**速度方向*/
         public var m_velocityDir:uint;
-		/**
-		 * 加速类型 
-		 */		
+		/**加速类型*/
         public var m_accelType:uint;
-		/**
-		 * 面向类型 
-		 */		
+		/**面向类型*/
         public var m_faceType:uint;
         public var m_zBias:Number;
-		/**
-		 * 混合模式 
-		 */		
+		/**混合模式*/
         public var m_blendMode:uint;
-		/**
-		 * 深度模式 
-		 */		
+		/**深度模式*/	
         public var m_zTestMode:uint;
-		/**
-		 * 父类参数 
-		 */		
+		/**父类参数 */	
         public var m_parentParam:uint;
+		/**能否接受灯光*/
         public var m_enableLight:Boolean;
-		/**
-		 *初始角度 
-		 */		
+		/**初始角度*/	
 		public var m_startAngle:Number=0;
 		
-		override public function copyFrom(src:EffectUnitData):void{
+		override public function copyFrom(src:EffectUnitData):void
+		{
 			super.copyFrom(src);
+			
 			var sc:ParticleSystemData = src as ParticleSystemData;
 			this.m_minEmissionInterval = sc.m_minEmissionInterval;
 			this.m_maxEmissionInterval = sc.m_maxEmissionInterval;
@@ -153,62 +115,59 @@ package deltax.graphic.effect.data.unit {
 			this.m_startAngle = sc.m_startAngle;
 		}
 		
-        override public function load(_arg1:ByteArray, _arg2:CommonFileHeader):void{
-            var _local3:uint = _arg1.readUnsignedInt();
-            curVersion = _local3;
-			this.m_minEmissionInterval = _arg1.readInt();
-            this.m_particleCountPerEmission = _arg1.readInt();
-            this.m_minSize = _arg1.readFloat();
-            this.m_maxSize = _arg1.readFloat();
-            this.m_emissionPlan = VectorUtil.readVector3D(_arg1);
-            this.m_minVelocity = VectorUtil.readVector3D(_arg1);
-            this.m_maxVelocity = VectorUtil.readVector3D(_arg1);
-            this.m_acceleration = VectorUtil.readVector3D(_arg1);
-            this.m_minAngularVelocity = _arg1.readFloat();
-            this.m_maxAngularVelocity = _arg1.readFloat();
-            this.m_minLifeTime = _arg1.readInt();
-            this.m_maxLifeTime = _arg1.readInt();
-            this.m_minRadius = _arg1.readFloat();
-            this.m_maxRadius = _arg1.readFloat();
-            this.m_longShortRadius = _arg1.readFloat();
-            this.m_cornerDivision = _arg1.readFloat();
-            this.m_velocityPercent = _arg1.readFloat();
-            this.m_moveType = _arg1.readUnsignedInt();
-            this.m_emissionType = _arg1.readUnsignedInt();
-            this.m_velocityDir = _arg1.readUnsignedInt();
-            this.m_faceType = _arg1.readUnsignedInt();
-            this.m_widthRatio = _arg1.readFloat();
-            this.m_zBias = _arg1.readFloat();
-            this.m_longShortDRadius = _arg1.readFloat();
-            this.m_blendMode = _arg1.readUnsignedInt();
-            this.m_zTestMode = _arg1.readUnsignedInt();
-            this.m_enableLight = _arg1.readBoolean();
+        override public function load(date:ByteArray, head:CommonFileHeader):void
+		{
+            var version:uint = date.readUnsignedInt();
+            curVersion = version;
+			this.m_minEmissionInterval = date.readInt();
+            this.m_particleCountPerEmission = date.readInt();
+            this.m_minSize = date.readFloat();
+            this.m_maxSize = date.readFloat();
+            this.m_emissionPlan = VectorUtil.readVector3D(date);
+            this.m_minVelocity = VectorUtil.readVector3D(date);
+            this.m_maxVelocity = VectorUtil.readVector3D(date);
+            this.m_acceleration = VectorUtil.readVector3D(date);
+            this.m_minAngularVelocity = date.readFloat();
+            this.m_maxAngularVelocity = date.readFloat();
+            this.m_minLifeTime = date.readInt();
+            this.m_maxLifeTime = date.readInt();
+            this.m_minRadius = date.readFloat();
+            this.m_maxRadius = date.readFloat();
+            this.m_longShortRadius = date.readFloat();
+            this.m_cornerDivision = date.readFloat();
+            this.m_velocityPercent = date.readFloat();
+            this.m_moveType = date.readUnsignedInt();
+            this.m_emissionType = date.readUnsignedInt();
+            this.m_velocityDir = date.readUnsignedInt();
+            this.m_faceType = date.readUnsignedInt();
+            this.m_widthRatio = date.readFloat();
+            this.m_zBias = date.readFloat();
+            this.m_longShortDRadius = date.readFloat();
+            this.m_blendMode = date.readUnsignedInt();
+            this.m_zTestMode = date.readUnsignedInt();
+            this.m_enableLight = date.readBoolean();
             this.m_maxEmissionInterval = this.m_minEmissionInterval;
-            if (_local3 >= Version.ADD_PARENT_COLOR){
-                this.m_maxEmissionInterval = _arg1.readInt();
-                this.m_parentParam = _arg1.readUnsignedInt();
-            };
-            if (_local3 >= Version.ADD_ACCELERATE_TYPE){
-                this.m_accelType = _arg1.readUnsignedInt();
-            };
-			if(_local3 >= Version.ADD_STARTANGLE_TYPE){
-				this.m_startAngle = _arg1.readFloat();
+            if (version >= Version.ADD_PARENT_COLOR)
+			{
+                this.m_maxEmissionInterval = date.readInt();
+                this.m_parentParam = date.readUnsignedInt();
+            }
+			
+            if (version >= Version.ADD_ACCELERATE_TYPE)
+			{
+                this.m_accelType = date.readUnsignedInt();
+            }
+			
+			if(version >= Version.ADD_STARTANGLE_TYPE)
+			{
+				this.m_startAngle = date.readFloat();
 			}
-            super.load(_arg1, _arg2);
+			
+            super.load(date, head);
         }
-        override public function get orgExtent():Vector3D{
-            return (super.orgExtent);
-        }
-        override public function get depthTestMode():uint{
-            return (this.m_zTestMode);
-        }
-        override public function get blendMode():uint{
-            return (this.m_blendMode);
-        }
-        override public function get enableLight():Boolean{
-            return (this.m_enableLight);
-        }
-		override public function write(data:ByteArray, effectGroup:EffectGroup):void{
+		
+		override public function write(data:ByteArray, effectGroup:EffectGroup):void
+		{
 			curVersion = Version.CURRENT;
 			
 			data.writeUnsignedInt(this.curVersion);
@@ -239,23 +198,53 @@ package deltax.graphic.effect.data.unit {
 			data.writeUnsignedInt(this.m_blendMode);
 			data.writeUnsignedInt(this.m_zTestMode);
 			data.writeBoolean(this.m_enableLight);
-			if (curVersion >= Version.ADD_PARENT_COLOR){
+			if (curVersion >= Version.ADD_PARENT_COLOR)
+			{
 				data.writeInt(this.m_maxEmissionInterval);
 				data.writeUnsignedInt(this.m_parentParam);
 			}
-			if (curVersion >= Version.ADD_ACCELERATE_TYPE){
+			
+			if (curVersion >= Version.ADD_ACCELERATE_TYPE)
+			{
 				data.writeUnsignedInt(this.m_accelType);
 			}
-			if(curVersion >= Version.ADD_STARTANGLE_TYPE){
+			
+			if(curVersion >= Version.ADD_STARTANGLE_TYPE)
+			{
 				data.writeFloat(this.m_startAngle);
 			}
+			
 			super.write(data,effectGroup);
 		}
+		
+        override public function get orgExtent():Vector3D
+		{
+            return super.orgExtent;
+        }
+		
+        override public function get depthTestMode():uint
+		{
+            return this.m_zTestMode;
+        }
+		
+        override public function get blendMode():uint
+		{
+            return this.m_blendMode;
+        }
+		
+        override public function get enableLight():Boolean
+		{
+            return this.m_enableLight;
+        }
+		
+		
     }
-}//package deltax.graphic.effect.data.unit 
+}
 
-class Version {
 
+
+class Version 
+{
     public static const ORIGIN:uint = 0;
     public static const ADD_PARENT_COLOR:uint = 1;
     public static const ADD_ACCELERATE_TYPE:uint = 2;
@@ -263,6 +252,8 @@ class Version {
     public static const COUNT:uint = 4;
     public static const CURRENT:uint = 3;
 
-    public function Version(){
+    public function Version()
+	{
+		//
     }
 }

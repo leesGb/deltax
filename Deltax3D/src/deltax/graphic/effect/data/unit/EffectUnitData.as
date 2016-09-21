@@ -1,27 +1,37 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.data.unit {
-    import __AS3__.vec.*;
-    
-    import deltax.common.*;
-    import deltax.common.debug.*;
-    import deltax.common.math.*;
-    import deltax.common.resource.*;
-    import deltax.graphic.effect.*;
-    import deltax.graphic.effect.data.*;
-    import deltax.graphic.effect.util.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.model.*;
-    import deltax.graphic.texture.*;
-    import deltax.graphic.util.*;
-    
+﻿package deltax.graphic.effect.data.unit 
+{
     import flash.filesystem.File;
-    import flash.geom.*;
-    import flash.utils.*;
+    import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
+    import flash.utils.Dictionary;
+    import flash.utils.Endian;
+    import flash.utils.getQualifiedClassName;
     
-    import mx.controls.Alert;
+    import deltax.common.DictionaryUtil;
+    import deltax.common.Util;
+    import deltax.common.safeRelease;
+    import deltax.common.debug.ObjectCounter;
+    import deltax.common.math.VectorUtil;
+    import deltax.common.resource.CommonFileHeader;
+    import deltax.common.resource.DependentRes;
+    import deltax.common.resource.Enviroment;
+    import deltax.graphic.effect.EffectUnitType;
+    import deltax.graphic.effect.data.EffectData;
+    import deltax.graphic.effect.data.EffectGroup;
+    import deltax.graphic.effect.data.EffectVersion;
+    import deltax.graphic.effect.util.BlendMode;
+    import deltax.graphic.effect.util.DepthTestMode;
+    import deltax.graphic.manager.DeltaXTextureManager;
+    import deltax.graphic.manager.IResource;
+    import deltax.graphic.manager.ResourceManager;
+    import deltax.graphic.manager.ResourceType;
+    import deltax.graphic.model.Animation;
+    import deltax.graphic.texture.BitmapDataResource3D;
+    import deltax.graphic.texture.DeltaXTexture;
+    import deltax.graphic.util.Color;
 
-    public class EffectUnitData {
-
+    public class EffectUnitData 
+	{
         private static const DEFAULT_TIME_RANGE:Number = 1000;
         protected static const DEFAULT_BOUND_EXTENT:Vector3D = new Vector3D(128, 128, 128);
         protected static const DEFAULT_BOUND_CENTER:Vector3D = new Vector3D(128, 128, 128);
@@ -758,4 +768,4 @@ package deltax.graphic.effect.data.unit {
 		}
 		
     }
-}//package deltax.graphic.effect.data.unit 
+}
