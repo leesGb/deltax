@@ -13,7 +13,6 @@
     import deltax.graphic.effect.data.unit.modelmaterial.MaterialType;
     import deltax.graphic.effect.data.unit.modelmaterial.SystemShaderType;
     import deltax.graphic.effect.render.Effect;
-    import deltax.graphic.light.DeltaXDirectionalLight;
     import deltax.graphic.manager.ShaderManager;
     import deltax.graphic.material.SkinnedMeshMaterial;
     import deltax.graphic.render.DeltaXRenderer;
@@ -27,7 +26,12 @@
     import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
     import deltax.graphic.shader.DeltaXProgram3D;
     import deltax.graphic.texture.DeltaXTexture;
-    import deltax.graphic.util.Color;
+	
+	/**
+	 * 模型材质显示类
+	 * @author lees
+	 * @date 2016/03/09
+	 */	
 
     public class ModelMaterial extends EffectUnit implements IMaterialModifier 
 	{
@@ -42,6 +46,302 @@
 		{
             super(eft, eUData);
         }
+		
+		/**
+		 * 模型材质应用
+		 * @param context					渲染上下文
+		 * @param pass						程序
+		 * @param renderable				渲染对象
+		 * @param collector					场景收集器
+		 */		
+		public function apply(context:Context3D, pass:SkinnedMeshPass, renderable:IRenderable, collector:DeltaXEntityCollector):void
+		{
+			this.m_preProgram = null;
+			if (!this.checkIsTargetPieceClass(renderable))
+			{
+				return;
+			}
+			
+			var scale:Number;
+			var mData:ModelMaterialData = ModelMaterialData(m_effectUnitData);
+			var material:SkinnedMeshMaterial = SkinnedMeshMaterial(pass.material);
+			var programe:DeltaXProgram3D = pass.program3D;
+			
+			if (mData.m_materialType == MaterialType.BASE_BRIGHTNESS)
+			{
+				scale = mData.getScaleByPos(this.m_curPercent);
+				var brightness:Number = mData.m_brightnessInfo.min + (mData.m_brightnessInfo.max - mData.m_brightnessInfo.min) * scale;
+				var color:uint = getColorByPos(this.m_curPercent);
+				if (collector.sunLight)
+				{
+					programe.setSunLightColorBufferData(color);
+				}
+				programe.setParamValue(DeltaXProgram3D.BASEBRIGHTNESS, brightness, brightness, brightness, 1);
+			} else 
+			{
+				if (mData.m_materialType == MaterialType.DIFFUSE)
+				{
+					programe.setParamColor(DeltaXProgram3D.DIFFUSEMATERIAL, getColorByPos(this.m_curPercent));
+					if (mData.m_properties.alphaInfo.alphaTest == 2)
+					{
+						programe.setParamValue(DeltaXProgram3D.ALPHAREF, material.alphaRef * mData.getScaleByPos(this.m_curPercent), 0, 0, 0);
+					}
+					
+					if (mData.m_properties.alphaInfo.blendEnable)
+					{
+						if (mData.m_properties.alphaInfo.blendEnable == 2)
+						{
+							var srcBF:String = material.srcBlendFactor;
+							var destBF:String = material.desBlendFactor;
+							if (mData.m_properties.alphaInfo.srcBlend)
+							{
+								srcBF = SkinnedMeshMaterial.blendFactorIntToString(mData.m_properties.alphaInfo.srcBlend);
+							}
+							
+							if (mData.m_properties.alphaInfo.destBlend)
+							{
+								destBF = SkinnedMeshMaterial.blendFactorIntToString(mData.m_properties.alphaInfo.destBlend);
+							}
+							context.setBlendFactors(srcBF, destBF);
+						} else 
+						{
+							context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
+						}
+					}
+				} else 
+				{
+					if (mData.m_materialType == MaterialType.SPECULAR)
+					{
+						programe.setParamColor(DeltaXProgram3D.SPECULARMATERIAL, getColorByPos(this.m_curPercent));
+					} else 
+					{
+						if (mData.m_materialType == MaterialType.EMISSIVE)
+						{
+							programe.setParamColor(DeltaXProgram3D.EMISSIVEMATERIAL, getColorByPos(this.m_curPercent));
+						}else if (mData.m_materialType == MaterialType.AMBIENT)
+						{
+							programe.setParamColor(DeltaXProgram3D.AMBIENTCOLOR,  getColorByPos(this.m_curPercent) & 0x00FFFFFF);
+						}else 
+						{
+							if (mData.m_materialType == MaterialType.TEXTUREUV)
+							{
+								var boo:Boolean = false;
+								var uvTexCount:uint = mData.m_uvTransformTexLayers ? mData.m_uvTransformTexLayers.length : 0;
+								var fragCount:uint = (programe.getFragmentParamRegisterCount(DeltaXProgram3D.TEXTUREMATRIX)) >>1;
+								fragCount = MathUtl.min(fragCount, uvTexCount);
+								var idx:uint = 0;
+								var fStartIndex:int;
+								var fParams:Vector.<Number>;
+								while (idx < fragCount) 
+								{
+									fStartIndex = programe.getFragmentParamRegisterStartIndex(DeltaXProgram3D.TEXTUREMATRIX) * 4;
+									fStartIndex += idx * 8;
+									fParams = programe.getFragmentParamCache();
+									if (mData.m_uvTransformTexLayers[idx])
+									{
+										if (!boo)
+										{
+											var texUVScale:Number = mData.m_properties.uvInfo.maxScale - mData.m_properties.uvInfo.minScale;
+											scale = mData.getScaleByPos(this.m_curPercent) * texUVScale + mData.m_properties.uvInfo.minScale;
+											var pos:Vector3D = MathUtl.TEMP_VECTOR3D;
+											mData.getOffsetByPos(this.m_curPercent, pos);
+											boo = true;
+										}
+										fParams[fStartIndex] = scale;
+										fParams[(fStartIndex + 2)] = pos.x;
+										fParams[(fStartIndex + 5)] = scale;
+										fParams[(fStartIndex + 6)] = pos.y;
+									} else 
+									{
+										fParams[fStartIndex] = 1;
+										fParams[(fStartIndex + 2)] = 0;
+										fParams[(fStartIndex + 5)] = 1;
+										fParams[(fStartIndex + 6)] = 0;
+									}
+									idx++;
+								}
+							} else 
+							{
+								var texture:DeltaXTexture;
+								if (mData.m_materialType == MaterialType.SYS_SHADER)
+								{
+									var shaderIndex:uint = ShaderManager.SHADER_COUNT;
+									switch (mData.m_properties.sysShaderType)
+									{
+										case SystemShaderType.SCREEN_DISTURB:
+											return;
+										case SystemShaderType.SEPERATE_ALPHA:
+											this.m_preProgram = programe;
+											var alphaShader:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_SEPERATE_ALPHA);
+											alphaShader.copyStateFromOther(programe, context);
+											pass.resetProgram(alphaShader, context, false);
+											alphaShader.setSampleTexture(1, pass.getTexture(0).getTextureForContext(context));
+											break;
+										case SystemShaderType.ADD_TEXTURE_MASK:
+											shaderIndex = ShaderManager.SHADER_ADDMASK;
+											texture = mData.getTextureByPos(this.m_curPercent);
+											break;
+										case SystemShaderType.ADD_TEXTURE_MASK2:
+											shaderIndex = ShaderManager.SHADER_ADDMASK;
+											texture = mData.getTextureByPos(this.m_curPercent);
+											break;
+									}
+									
+									if (texture && shaderIndex != ShaderManager.SHADER_COUNT)
+									{
+										this.m_preProgram = programe;
+										programe = ShaderManager.instance.getProgram3D(shaderIndex);
+										programe.copyStateFromOther(pass.program3D, context);
+										pass.resetProgram(programe, context, false);
+										this.setTextureFromEffectUnit(pass, context, 1, texture);
+									}
+								} else 
+								{
+									if (mData.m_materialType >= MaterialType.TEXTURE1 && mData.m_materialType <= MaterialType.TEXTURE8)
+									{
+										texture = mData.getTextureByPos(this.m_curPercent);
+										this.setTextureFromEffectUnit(pass, context, (mData.m_materialType - MaterialType.TEXTURE1), texture);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		/**
+		 * 检测目标是否为网格面片类
+		 * @param renderable
+		 * @return 
+		 */		
+		private function checkIsTargetPieceClass(renderable:IRenderable):Boolean
+		{
+			var mmData:ModelMaterialData = ModelMaterialData(m_effectUnitData);
+			if (mmData.m_applyClasses.length == 0)
+			{
+				return true;
+			}
+			
+			var subGeometry:EnhanceSkinnedSubGeometry = EnhanceSkinnedSubGeometry(SubMesh(renderable).subGeometry);
+			return (mmData.m_applyClasses.indexOf(subGeometry.associatePiece.m_pieceClass.m_name) >= 0);
+		}
+		
+		/**
+		 * 从指定特效单元里设置位图纹理
+		 * @param pass
+		 * @param context
+		 * @param idx
+		 * @param texture
+		 */		
+		private function setTextureFromEffectUnit(pass:SkinnedMeshPass, context:Context3D, idx:uint, texture:DeltaXTexture):void
+		{
+			if (!texture)
+			{
+				return;
+			}
+			
+			m_textureProxy = texture;
+			idx = Math.min((int(pass.program3D.getSampleRegisterCount()) - 1), idx);
+			pass.program3D.setSampleTexture(idx, m_textureProxy.getTextureForContext(context));
+		}
+		
+		/**
+		 * 重设
+		 * @param context
+		 * @param pass
+		 * @param renderable
+		 * @param collector
+		 */		
+		public function restore(context:Context3D, pass:SkinnedMeshPass, renderable:IRenderable, collector:DeltaXEntityCollector):void
+		{
+			if (!this.checkIsTargetPieceClass(renderable))
+			{
+				return;
+			}
+			var mmData:ModelMaterialData = ModelMaterialData(m_effectUnitData);
+			var material:SkinnedMeshMaterial = SkinnedMeshMaterial(pass.material);
+			var program:DeltaXProgram3D = pass.program3D;
+			if (mmData.m_materialType == MaterialType.BASE_BRIGHTNESS)
+			{
+				var renderScene:RenderScene = DeltaXRenderer.instance.mainRenderScene;
+				var brightness:Number = renderScene ? renderScene.curEnviroment.baseBrightnessOfSunLight : 1;
+				if (collector.sunLight)
+				{
+					program.setSunLightColorBufferData(collector.sunLight.color);
+				}
+				program.setParamValue(DeltaXProgram3D.BASEBRIGHTNESS, brightness, brightness, brightness, 1);
+			} else 
+			{
+				if (mmData.m_materialType == MaterialType.DIFFUSE)
+				{
+					program.setParamNumberVector(DeltaXProgram3D.DIFFUSEMATERIAL, material.diffuse);
+					program.setParamValue(DeltaXProgram3D.ALPHAREF, material.alphaRef, 0, 0, 0);
+					if (mmData.m_properties.alphaInfo.blendEnable)
+					{
+						if (mmData.m_properties.alphaInfo.blendEnable == 2)
+						{
+							var sbf:String = material.srcBlendFactor;
+							var dbf:String = material.desBlendFactor;
+							if (mmData.m_properties.alphaInfo.srcBlend)
+							{
+								sbf = SkinnedMeshMaterial.blendFactorIntToString(mmData.m_properties.alphaInfo.srcBlend);
+							}
+							if (mmData.m_properties.alphaInfo.destBlend)
+							{
+								dbf = SkinnedMeshMaterial.blendFactorIntToString(mmData.m_properties.alphaInfo.destBlend);
+							}
+							material.srcBlendFactor = sbf;
+							material.desBlendFactor = dbf;
+							context.setBlendFactors(sbf, dbf);
+						} else 
+						{
+							material.srcBlendFactor = Context3DBlendFactor.ONE;
+							material.desBlendFactor = Context3DBlendFactor.ZERO;							
+							context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
+						}
+					}
+				} else 
+				{
+					if (mmData.m_materialType == MaterialType.SPECULAR)
+					{
+						program.setParamValue(DeltaXProgram3D.SPECULARMATERIAL, 0, 0, 0, 0);
+					} else 
+					{
+						if (mmData.m_materialType == MaterialType.EMISSIVE)
+						{
+							program.setParamValue(DeltaXProgram3D.EMISSIVEMATERIAL, 0, 0, 0, 0);
+						} else 
+						{
+							if (mmData.m_materialType == MaterialType.TEXTUREUV)
+							{
+								program.setParamNumberVector(DeltaXProgram3D.TEXTUREMATRIX, MathUtl.IDENTITY_TWO_LAYER_TEXTURE_MATRIX_DATA);
+							} else 
+							{
+								if (mmData.m_materialType == MaterialType.SYS_SHADER)
+								{
+									pass.afterDrawPrimitive(renderable, context, collector.camera);
+									program.deactivate(context);
+									if (this.m_preProgram)
+									{
+										pass.resetProgram(this.m_preProgram, context, false);
+										this.m_preProgram.deactivate(context);
+										this.m_preProgram = null;
+									}
+								} else 
+								{
+									if (mmData.m_materialType >= MaterialType.TEXTURE1 && mmData.m_materialType <= MaterialType.TEXTURE8)
+									{
+										var idx:uint = mmData.m_materialType - MaterialType.TEXTURE1;
+										pass.resetTextureManually(idx, context);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 		
         override public function onLinkedToParent(va:LinkableRenderable):void
 		{
@@ -80,298 +380,7 @@
             return true;
         }
 		
-        public function apply(context:Context3D, pass:SkinnedMeshPass, renderable:IRenderable, collector:DeltaXEntityCollector):void
-		{
-            var _local10:Number;
-            var _local11:Number;
-            var _local12:Number;
-            var _local13:DeltaXDirectionalLight;
-            var _local14:Number;
-            var _local15:uint;
-            var _local16:String;
-            var _local17:String;
-            var _local18:Boolean;
-            var _local19:uint;
-            var _local20:uint;
-            var _local21:uint;
-            var _local22:uint;
-            var _local23:int;
-            var _local24:Vector.<Number>;
-            var _local25:Vector3D;
-            var _local26:DeltaXTexture;
-            var _local27:uint;
-            var _local28:DeltaXProgram3D;
-            this.m_preProgram = null;
-            if (!this.checkIsTargetPieceClass(renderable))
-			{
-                return;
-            }
-			
-            var mData:ModelMaterialData = ModelMaterialData(m_effectUnitData);
-            var material:SkinnedMeshMaterial = SkinnedMeshMaterial(pass.material);
-            var programe:DeltaXProgram3D = pass.program3D;
-            var renderScene:RenderScene = DeltaXRenderer.instance.mainRenderScene;
-            if (mData.m_materialType == MaterialType.BASE_BRIGHTNESS)
-			{
-                _local10 = mData.getScaleByPos(this.m_curPercent);
-                _local12 = (mData.m_brightnessInfo.min + ((mData.m_brightnessInfo.max - mData.m_brightnessInfo.min) * _local10));
-                _local13 = collector.sunLight;
-                _local14 = renderScene ? renderScene.curEnviroment.baseBrightnessOfSunLight : 1;
-                _local15 = getColorByPos(this.m_curPercent);
-                if (_local13)
-				{
-					programe.setSunLightColorBufferData(_local15);
-                }
-				programe.setParamValue(DeltaXProgram3D.BASEBRIGHTNESS, _local12, _local12, _local12, 1);
-            } else 
-			{
-                if (mData.m_materialType == MaterialType.DIFFUSE)
-				{
-					programe.setParamColor(DeltaXProgram3D.DIFFUSEMATERIAL, getColorByPos(this.m_curPercent));
-                    if (mData.m_properties.alphaInfo.alphaTest == 2)
-					{
-						programe.setParamValue(DeltaXProgram3D.ALPHAREF, (material.alphaRef * mData.getScaleByPos(this.m_curPercent)), 0, 0, 0);
-                    }
-					
-                    if (mData.m_properties.alphaInfo.blendEnable)
-					{
-                        if (mData.m_properties.alphaInfo.blendEnable == 2)
-						{
-                            _local16 = material.srcBlendFactor;
-                            _local17 = material.desBlendFactor;
-                            if (mData.m_properties.alphaInfo.srcBlend)
-							{
-                                _local16 = SkinnedMeshMaterial.blendFactorIntToString(mData.m_properties.alphaInfo.srcBlend);
-                            }
-							
-                            if (mData.m_properties.alphaInfo.destBlend)
-							{
-                                _local17 = SkinnedMeshMaterial.blendFactorIntToString(mData.m_properties.alphaInfo.destBlend);
-                            }
-							context.setBlendFactors(_local16, _local17);
-                        } else 
-						{
-							context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
-                        }
-                    }
-                } else 
-				{
-                    if (mData.m_materialType == MaterialType.SPECULAR)
-					{
-						programe.setParamColor(DeltaXProgram3D.SPECULARMATERIAL, getColorByPos(this.m_curPercent));
-                    } else 
-					{
-                        if (mData.m_materialType == MaterialType.EMISSIVE)
-						{
-							programe.setParamColor(DeltaXProgram3D.EMISSIVEMATERIAL, getColorByPos(this.m_curPercent));
-                        }else if (mData.m_materialType == MaterialType.AMBIENT)
-						{
-							programe.setParamColor(DeltaXProgram3D.AMBIENTCOLOR,  getColorByPos(this.m_curPercent) & 0x00FFFFFF);
-						}else 
-						{
-                            if (mData.m_materialType == MaterialType.TEXTUREUV)
-							{
-                                _local18 = false;
-                                _local19 = (mData.m_uvTransformTexLayers) ? mData.m_uvTransformTexLayers.length : 0;
-                                _local20 = programe.getFragmentParamRegisterCount(DeltaXProgram3D.TEXTUREMATRIX);
-                                _local21 = (_local20 >> 1);
-                                _local21 = MathUtl.min(_local21, _local19);
-                                _local22 = 0;
-                                while (_local22 < _local21) 
-								{
-                                    _local23 = (programe.getFragmentParamRegisterStartIndex(DeltaXProgram3D.TEXTUREMATRIX) * 4);
-                                    _local23 = (_local23 + (_local22 * 8));
-                                    _local24 = programe.getFragmentParamCache();
-                                    if (mData.m_uvTransformTexLayers[_local22])
-									{
-                                        if (!_local18)
-										{
-                                            _local11 = (mData.m_properties.uvInfo.maxScale - mData.m_properties.uvInfo.minScale);
-                                            _local10 = ((mData.getScaleByPos(this.m_curPercent) * _local11) + mData.m_properties.uvInfo.minScale);
-                                            _local25 = MathUtl.TEMP_VECTOR3D;
-											mData.getOffsetByPos(this.m_curPercent, _local25);
-                                            _local18 = true;
-                                        }
-                                        _local24[_local23] = _local10;
-                                        _local24[(_local23 + 2)] = _local25.x;
-                                        _local24[(_local23 + 5)] = _local10;
-                                        _local24[(_local23 + 6)] = _local25.y;
-                                    } else 
-									{
-                                        _local24[_local23] = 1;
-                                        _local24[(_local23 + 2)] = 0;
-                                        _local24[(_local23 + 5)] = 1;
-                                        _local24[(_local23 + 6)] = 0;
-                                    }
-                                    _local22++;
-                                }
-                            } else 
-							{
-                                if (mData.m_materialType == MaterialType.SYS_SHADER)
-								{
-                                    _local27 = ShaderManager.SHADER_COUNT;
-                                    switch (mData.m_properties.sysShaderType)
-									{
-                                        case SystemShaderType.SCREEN_DISTURB:
-                                            return;
-                                        case SystemShaderType.SEPERATE_ALPHA:
-                                            this.m_preProgram = programe;
-                                            _local28 = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_SEPERATE_ALPHA);
-                                            _local28.copyStateFromOther(programe, context);
-											pass.resetProgram(_local28, context, false);
-                                            _local28.setSampleTexture(1, pass.getTexture(0).getTextureForContext(context));
-                                            break;
-                                        case SystemShaderType.ADD_TEXTURE_MASK:
-                                            _local27 = ShaderManager.SHADER_ADDMASK;
-                                            _local26 = mData.getTextureByPos(this.m_curPercent);
-                                            break;
-                                        case SystemShaderType.ADD_TEXTURE_MASK2:
-                                            _local27 = ShaderManager.SHADER_ADDMASK;
-                                            _local26 = mData.getTextureByPos(this.m_curPercent);
-                                            break;
-                                    }
-									
-                                    if (((_local26) && (!((_local27 == ShaderManager.SHADER_COUNT)))))
-									{
-                                        this.m_preProgram = programe;
-										programe = ShaderManager.instance.getProgram3D(_local27);
-										programe.copyStateFromOther(pass.program3D, context);
-										pass.resetProgram(programe, context, false);
-                                        this.setTextureFromEffectUnit(pass, context, 1, _local26);
-                                    }
-                                } else 
-								{
-                                    if ((((mData.m_materialType >= MaterialType.TEXTURE1)) && ((mData.m_materialType <= MaterialType.TEXTURE8))))
-									{
-                                        _local26 = mData.getTextureByPos(this.m_curPercent);
-                                        this.setTextureFromEffectUnit(pass, context, (mData.m_materialType - MaterialType.TEXTURE1), _local26);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        
 		
-        private function setTextureFromEffectUnit(_arg1:SkinnedMeshPass, _arg2:Context3D, _arg3:uint, _arg4:DeltaXTexture):void
-		{
-            if (!_arg4)
-			{
-                return;
-            }
-            m_textureProxy = _arg4;
-            _arg3 = Math.min((int(_arg1.program3D.getSampleRegisterCount()) - 1), _arg3);
-            _arg1.program3D.setSampleTexture(_arg3, m_textureProxy.getTextureForContext(_arg2));
-        }
-		
-        private function checkIsTargetPieceClass(_arg1:IRenderable):Boolean
-		{
-            var _local2:ModelMaterialData = ModelMaterialData(m_effectUnitData);
-            if (_local2.m_applyClasses.length == 0)
-			{
-                return (true);
-            }
-            var _local3:EnhanceSkinnedSubGeometry = EnhanceSkinnedSubGeometry(SubMesh(_arg1).subGeometry);
-            return ((_local2.m_applyClasses.indexOf(_local3.associatePiece.m_pieceClass.m_name) >= 0));
-        }
-		
-        public function restore(_arg1:Context3D, _arg2:SkinnedMeshPass, _arg3:IRenderable, _arg4:DeltaXEntityCollector):void
-		{
-            var _local9:RenderScene;
-            var _local10:DeltaXDirectionalLight;
-            var _local11:Number;
-            var _local12:uint;
-            if (!this.checkIsTargetPieceClass(_arg3))
-			{
-                return;
-            }
-            var _local5:ModelMaterialData = ModelMaterialData(m_effectUnitData);
-            var _local6:SkinnedMeshMaterial = SkinnedMeshMaterial(_arg2.material);
-            var _local7:DeltaXProgram3D = _arg2.program3D;
-            var _local8:Color = Color.TEMP_COLOR;
-            if (_local5.m_materialType == MaterialType.BASE_BRIGHTNESS)
-			{
-                _local9 = DeltaXRenderer.instance.mainRenderScene;
-                _local10 = _arg4.sunLight;
-                _local11 = (_local9) ? _local9.curEnviroment.baseBrightnessOfSunLight : 1;
-                if (_local10)
-				{
-                    _local7.setSunLightColorBufferData(_local10.color);
-                }
-                _local7.setParamValue(DeltaXProgram3D.BASEBRIGHTNESS, _local11, _local11, _local11, 1);
-            } else 
-			{
-                if (_local5.m_materialType == MaterialType.DIFFUSE)
-				{
-                    _local7.setParamNumberVector(DeltaXProgram3D.DIFFUSEMATERIAL, _local6.diffuse);
-                    _local7.setParamValue(DeltaXProgram3D.ALPHAREF, _local6.alphaRef, 0, 0, 0);
-                    //_arg1.setBlendFactors(_local6.srcBlendFactor, _local6.desBlendFactor);
-					if (_local5.m_properties.alphaInfo.blendEnable)
-					{
-                        if (_local5.m_properties.alphaInfo.blendEnable == 2)
-						{
-                            var sbf:String = _local6.srcBlendFactor;
-                            var dbf:String = _local6.desBlendFactor;
-                            if (_local5.m_properties.alphaInfo.srcBlend)
-							{
-                                sbf = SkinnedMeshMaterial.blendFactorIntToString(_local5.m_properties.alphaInfo.srcBlend);
-                            }
-                            if (_local5.m_properties.alphaInfo.destBlend)
-							{
-                                dbf = SkinnedMeshMaterial.blendFactorIntToString(_local5.m_properties.alphaInfo.destBlend);
-                            }
-							_local6.srcBlendFactor = sbf;
-							_local6.desBlendFactor = dbf;
-                            _arg1.setBlendFactors(sbf, dbf);
-                        } else 
-						{
-							_local6.srcBlendFactor = Context3DBlendFactor.ONE;
-							_local6.desBlendFactor = Context3DBlendFactor.ZERO;							
-                            _arg1.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
-                        }
-                    }
-                } else 
-				{
-                    if (_local5.m_materialType == MaterialType.SPECULAR)
-					{
-                        _local7.setParamValue(DeltaXProgram3D.SPECULARMATERIAL, 0, 0, 0, 0);
-                    } else 
-					{
-                        if (_local5.m_materialType == MaterialType.EMISSIVE)
-						{
-                            _local7.setParamValue(DeltaXProgram3D.EMISSIVEMATERIAL, 0, 0, 0, 0);
-                        } else 
-						{
-                            if (_local5.m_materialType == MaterialType.TEXTUREUV)
-							{
-                                _local7.setParamNumberVector(DeltaXProgram3D.TEXTUREMATRIX, MathUtl.IDENTITY_TWO_LAYER_TEXTURE_MATRIX_DATA);
-                            } else 
-							{
-                                if (_local5.m_materialType == MaterialType.SYS_SHADER)
-								{
-                                    _arg2.afterDrawPrimitive(_arg3, _arg1, _arg4.camera);
-                                    _local7.deactivate(_arg1);
-                                    if (this.m_preProgram)
-									{
-                                        _arg2.resetProgram(this.m_preProgram, _arg1, false);
-                                        this.m_preProgram.deactivate(_arg1);
-                                        this.m_preProgram = null;
-                                    }
-                                } else 
-								{
-                                    if ((((_local5.m_materialType >= MaterialType.TEXTURE1)) && ((_local5.m_materialType <= MaterialType.TEXTURE8))))
-									{
-                                        _local12 = (_local5.m_materialType - MaterialType.TEXTURE1);
-                                        _arg2.resetTextureManually(_local12, _arg1);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
     }
 } 

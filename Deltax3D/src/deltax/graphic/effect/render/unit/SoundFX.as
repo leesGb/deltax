@@ -23,122 +23,162 @@
     import deltax.graphic.render.DeltaXRenderer;
     import deltax.graphic.scenegraph.object.LinkableRenderable;
 
+	/**
+	 * 声音特效
+	 * @author lees
+	 * @date 2016/03/16
+	 */	
+	
     public class SoundFX extends EffectUnit 
 	{
+		/**3d声音*/
         private var m_sound:Sound3D;
+		/**是否播放结束*/
         private var m_playEnabled:Boolean;
+		/**上次播放时间*/
         private var m_prePlayTime:uint;
 
-        public function SoundFX(_arg1:Effect, _arg2:EffectUnitData){
-            super(_arg1, _arg2);
+        public function SoundFX(eft:Effect, eUData:EffectUnitData)
+		{
+            super(eft, eUData);
             this.checkCreateSound();
         }
-        private function _destroySound():void{
-            if (this.m_sound){
+		
+		private function checkCreateSound():void
+		{
+			var sData:SoundFXData = SoundFXData(m_effectUnitData);
+			if (this.m_sound && this.m_sound.name == sData.m_audioFileName)
+			{
+				return;
+			}
+			
+			this._destroySound();
+			
+			if (sData.m_audioFileName.length > 0 && EffectManager.instance.soundEffectEnable)
+			{
+				if (sData.m_audioFileName.indexOf("/nd/") >= 0)
+				{
+					throw new Error("invalid sound file! " + this.effect.effectData.effectGroup.name + ", " + this.effect.effectFullName);
+				}
+				var soundPath:String = Enviroment.ResourceRootPath + sData.m_audioFileName;
+				soundPath = FileRevisionManager.instance.getVersionedURL(soundPath);
+				var soundRes:SoundResource = ResourceManager.instance.getResource(soundPath, ResourceType.SOUND, this.onSoundLoaded) as SoundResource;
+				this.m_sound = new Sound3D(soundRes, EffectManager.instance.audioListener);
+				this.m_sound.name = sData.m_audioFileName;
+				if (DeltaXRenderer.instance.mainRenderScene)
+				{
+					DeltaXRenderer.instance.mainRenderScene.addChild(this.m_sound);
+				}
+				soundRes.release();
+			}
+		}
+		
+		private function onSoundLoaded(res:IResource, isSuccess:Boolean):void
+		{
+			if (isSuccess)
+			{
+				return;
+			}
+			this._destroySound();
+		}
+		
+        private function _destroySound():void
+		{
+            if (this.m_sound)
+			{
                 this.m_sound.remove();
                 this.m_sound.release();
                 this.m_sound = null;
-            };
+            }
         }
-        private function checkCreateSound():void{
-            var _local2:String;
-            var _local3:SoundResource;
-            var _local1:SoundFXData = SoundFXData(m_effectUnitData);
-            if (((this.m_sound) && ((this.m_sound.name == _local1.m_audioFileName)))){
-                return;
-            };
-            this._destroySound();
-            if ((((_local1.m_audioFileName.length > 0)) && (EffectManager.instance.soundEffectEnable))){
-                if (_local1.m_audioFileName.indexOf("/nd/") >= 0){
-                    throw (new Error(((("invalid sound file! " + this.effect.effectData.effectGroup.name) + ", ") + this.effect.effectFullName)));
-                };
-                _local2 = (Enviroment.ResourceRootPath + _local1.m_audioFileName);
-                _local2 = FileRevisionManager.instance.getVersionedURL(_local2);
-                _local3 = (ResourceManager.instance.getResource(_local2, ResourceType.SOUND, this.onSoundLoaded) as SoundResource);
-                this.m_sound = new Sound3D(_local3, EffectManager.instance.audioListener);
-                this.m_sound.name = _local1.m_audioFileName;
-                if (DeltaXRenderer.instance.mainRenderScene){
-                    DeltaXRenderer.instance.mainRenderScene.addChild(this.m_sound);
-                };
-                _local3.release();
-            };
-        }
-        private function onSoundLoaded(_arg1:IResource, _arg2:Boolean):void{
-            if (_arg2){
-                return;
-            };
-            this._destroySound();
-        }
-        override public function release():void{
+		
+        override public function release():void
+		{
             this._destroySound();
             super.release();
         }
-        override public function onLinkedToParent(_arg1:LinkableRenderable):void{
-            super.onLinkedToParent(_arg1);
+		
+        override public function onLinkedToParent(va:LinkableRenderable):void
+		{
+            super.onLinkedToParent(va);
             this.checkCreateSound();
         }
-        override protected function onPlayStarted():void{
+		
+        override protected function onPlayStarted():void
+		{
             super.onPlayStarted();
             this.m_playEnabled = (Math.random() < SoundFXData(m_effectUnitData).m_playRatio);
-            if (((((((((getTimer() - this.m_prePlayTime) > 100)) && (this.m_playEnabled))) && (this.m_sound))) && (!(this.m_sound.playing)))){
+            if ((getTimer() - this.m_prePlayTime) > 100 && this.m_playEnabled && this.m_sound && !this.m_sound.playing)
+			{
                 this.m_sound.play();
-                if (!this.m_sound.parent){
-                    if (DeltaXRenderer.instance.mainRenderScene){
+                if (!this.m_sound.parent)
+				{
+                    if (DeltaXRenderer.instance.mainRenderScene)
+					{
                         DeltaXRenderer.instance.mainRenderScene.addChild(this.m_sound);
-                    };
-                };
-            };
+                    }
+                }
+            }
         }
-        override public function update(_arg1:uint, _arg2:Camera3D, _arg3:Matrix3D):Boolean{
-            var _local4:SoundFXData;
-            var _local5:Number;
-            var _local9:Vector3D;
-            var _local10:Vector3D;
-            var _local11:Number;
-            var _local12:Number;
-            var _local13:Number;
-            _local4 = SoundFXData(m_effectUnitData);
-            if ((((m_preFrame > _local4.endFrame)) || (!(EffectManager.instance.soundEffectEnable)))){
-                if (((this.m_sound) && (this.m_sound.playing))){
+		
+        override public function update(time:uint, camera:Camera3D, mat:Matrix3D):Boolean
+		{
+			var sData:SoundFXData = SoundFXData(m_effectUnitData);
+            if (m_preFrame > sData.endFrame || !EffectManager.instance.soundEffectEnable)
+			{
+                if (this.m_sound && this.m_sound.playing)
+				{
                     this.m_sound.stop();
-                };
-                return (false);
-            };
-            _local5 = calcCurFrame(_arg1);
+                }
+                return false;
+            }
+			
+			var curFrame:Number = calcCurFrame(time);
             this.m_prePlayTime = getTimer();
-            m_preFrameTime = _arg1;
-            m_preFrame = _local5;
-            m_matWorld.copyFrom(_arg3);
-            var _local6:Number = ((_local5 - _local4.startFrame) / _local4.frameRange);
-            var _local7:Number = _local4.getScaleByPos(_local6);
-            var _local8:Vector3D = MathUtl.TEMP_VECTOR3D;
-            _local4.getOffsetByPos(_local6, _local8);
-            VectorUtil.transformByMatrixFast(_local8, _arg3, _local8);
-            m_matWorld.position = _local8;
-            if (((this.m_sound) && (this.m_playEnabled))){
-                _local9 = MathUtl.TEMP_VECTOR3D2;
-                _local9.copyFrom(DeltaXCamera3D(_arg2).lookAtPos);
-                _local10 = MathUtl.TEMP_VECTOR3D3;
-                _local10.copyFrom(_local9);
-                _local10.decrementBy(_local8);
-                _local11 = _local10.length;
-                _local12 = Math.max((_local4.m_maxDistance - _local4.m_minDistance), 1);
-                _local13 = MathUtl.limit(((_local4.m_maxDistance - _local11) / _local12), 0, 1);
-                this.m_sound.position = _local8;
-                this.m_sound.volume = ((_local7 * _local13) * EffectManager.instance.soundEffectVolume);
-                this.m_sound.scaleDistance = _local4.m_maxDistance;
-                if (!this.m_sound.playing){
+            m_preFrameTime = time;
+            m_preFrame = curFrame;
+            m_matWorld.copyFrom(mat);
+			
+            var percent:Number = (curFrame - sData.startFrame) / sData.frameRange;
+            var scale:Number = sData.getScaleByPos(percent);
+            var pos:Vector3D = MathUtl.TEMP_VECTOR3D;
+			sData.getOffsetByPos(percent, pos);
+            VectorUtil.transformByMatrixFast(pos, mat, pos);
+            m_matWorld.position = pos;
+            if (this.m_sound && this.m_playEnabled)
+			{
+				var lookAt:Vector3D = MathUtl.TEMP_VECTOR3D2;
+				lookAt.copyFrom(DeltaXCamera3D(camera).lookAtPos);
+				lookAt.decrementBy(pos);
+				
+				var length:Number = lookAt.length;
+				var dist:Number = Math.max((sData.m_maxDistance - sData.m_minDistance), 1);
+				var distRatio:Number = MathUtl.limit(((sData.m_maxDistance - length) / dist), 0, 1);
+                this.m_sound.position = pos;
+                this.m_sound.volume = scale * distRatio * EffectManager.instance.soundEffectVolume;
+                this.m_sound.scaleDistance = sData.m_maxDistance;
+                if (!this.m_sound.playing)
+				{
                     this.m_sound.play();
-                };
+                }
+				
                 this.m_sound.update();
-                if ((((_local7 < 0.0001)) && (this.m_sound.playing))){
+				
+                if (scale < 0.0001 && this.m_sound.playing)
+				{
                     this.m_sound.stop();
-                };
-            };
-            return (true);
+                }
+            }
+			
+            return true;
         }
-        override public function render(_arg1:Context3D, _arg2:Camera3D):void{
+		
+        override public function render(context:Context3D, camera:Camera3D):void
+		{
+			//
         }
 
+		
+		
     }
 }

@@ -24,207 +24,287 @@
     import deltax.graphic.shader.DeltaXProgram3D;
     import deltax.graphic.texture.DeltaXTexture;
     import deltax.graphic.util.Color;
+	
+	/**
+	 * 屏幕滤镜类
+	 * @author lees
+	 * @date 2016/03/20
+	 */	
 
     public class ScreenFilter extends EffectUnit 
 	{
+		/**u值*/
         private var m_deltaU:Number = 0;
+		/**v值*/
         private var m_deltaV:Number = 0;
+		/**深度*/
         private var m_depth:Number = 0.001;
+		/**颜色*/
         private var m_color:uint = 0;
+		/**当前百分比*/
         private var m_curFrameUpdatePercent:Number = 0;
+		/**模糊宽度*/
         private var m_blurTargetWidth:int;
+		/**模糊高度*/
         private var m_blurTargetHeight:int;
+		/**当前屏幕模糊的裁剪区域*/
         private var m_curBlurScreenReciprocal:Vector2D;
-        private var m_invalidBufferOnce:Boolean = true;
+		/**镜面级别*/
         private var m_specularPowerData:Vector.<Number>;
+		/**镜面级别最终值*/
         private var m_specularPowerDataFinal:Vector.<Number>;
+		/**镜面材质数值列表*/
         private var m_specularMaterialDataPrepare:Vector.<Number>;
+		/**镜面材质数值最终列表*/
         private var m_specularMaterialDataFinal:Vector.<Number>;
+		/**屏幕反转数据*/
         private var m_screenInvData:Vector.<Number>;
 
-        public function ScreenFilter(_arg1:Effect, _arg2:EffectUnitData){
+        public function ScreenFilter(eft:Effect, eUData:EffectUnitData)
+		{
             this.m_curBlurScreenReciprocal = new Vector2D();
             this.m_specularPowerData = new Vector.<Number>(1, true);
             this.m_specularPowerDataFinal = new Vector.<Number>(1, true);
             this.m_specularMaterialDataPrepare = new Vector.<Number>(4, true);
             this.m_specularMaterialDataFinal = new Vector.<Number>(4, true);
             this.m_screenInvData = new Vector.<Number>(2, true);
-            super(_arg1, _arg2);
+			
+            super(eft, eUData);
         }
-        override public function release():void{
+		
+		/**
+		 * 模糊渲染
+		 * @param context
+		 * @param eMgr
+		 * @param sfData
+		 */		
+		private function renderBlur(context:Context3D, eMgr:EffectManager, sfData:ScreenFilterData):void
+		{
+			var texture:Texture = eMgr.mainRenderTarget;
+			if (!texture)
+			{
+				return;
+			}
+			
+			context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
+			context.setCulling(Context3DTriangleFace.BACK);
+			context.setDepthTest(false, Context3DCompareMode.ALWAYS);
+			var t1:Texture = context.createTexture(this.m_blurTargetWidth, this.m_blurTargetHeight, Context3DTextureFormat.BGRA, true);
+			var t2:Texture = context.createTexture(this.m_blurTargetWidth, this.m_blurTargetHeight, Context3DTextureFormat.BGRA, true);
+			context.setRenderToTexture(t1);
+			context.clear();
+			
+			var program:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_SCREEN_BLUR_DOWN);
+			context.setProgram(program.getProgram3D(context));
+			program.setSampleTexture(0, texture);
+			program.setFragmentNumberParameterByName("specularMaterial", this.m_specularMaterialDataPrepare);
+			program.setFragmentNumberParameterByName("specularPower", this.m_specularPowerData);
+			this.drawScreenRect(context, program);
+			context.setRenderToTexture(t2);
+			context.clear();
+			
+			var program_h:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_SCREEN_BLUR_H);
+			context.setProgram(program_h.getProgram3D(context));
+			program_h.setSampleTexture(0, t1);
+			program_h.setFragmentNumberParameterByName("screenInv", this.m_screenInvData);
+			this.drawScreenRect(context, program_h);
+			context.setRenderToBackBuffer();
+			context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.SOURCE_ALPHA);
+			
+			var program_v:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_SCREEN_BLUR_V);
+			context.setProgram(program_v.getProgram3D(context));
+			program_v.setSampleTexture(0, t2);
+			program_v.setFragmentNumberParameterByName("screenInv", this.m_screenInvData);
+			program_v.setFragmentNumberParameterByName("specularMaterial", this.m_specularMaterialDataFinal);
+			program_v.setFragmentNumberParameterByName("specularPower", this.m_specularPowerDataFinal);
+			this.drawScreenRect(context, program_v);
+			deactivatePass(context);
+			t1.dispose();
+			t2.dispose();
+		}
+		
+		/**
+		 * 绘制屏幕矩形区域
+		 * @param context
+		 * @param program
+		 */		
+		private function drawScreenRect(context:Context3D, program:DeltaXProgram3D):void
+		{
+			program.update(context);
+			DeltaXSubGeometryManager.Instance.drawPackRect(context, 1);
+		}
+		
+        override public function release():void
+		{
             super.release();
             EffectManager.instance.removeScreenFilter(this);
         }
-        override public function update(_arg1:uint, _arg2:Camera3D, _arg3:Matrix3D):Boolean{
-            var _local4:ScreenFilterData;
-            var _local6:Vector3D;
-            var _local7:Number;
-            var _local10:EffectManager;
-            var _local11:DeltaXTexture;
-            var _local12:Number;
-            var _local13:Color;
-            _local4 = ScreenFilterData(m_effectUnitData);
-            if (m_preFrame > _local4.endFrame){
-                return (false);
-            };
-			_local10 = EffectManager.instance;
-            if (_local4.m_filterType == ScreenFilterType.CUSTOM_TEXTURE){
-                if ((((_local4.m_blendMode == BlendMode.DISTURB_SCREEN)) && (!(_local10.screenDisturbEnable)))){
-                    return (false);
-                };
-            };
-            var _local5:Number = calcCurFrame(_arg1);
-            _local6 = MathUtl.TEMP_VECTOR3D;
-            _local6.setTo(0, 0, 0);
-            _local7 = ((_local5 - _local4.startFrame) / _local4.frameRange);
-            if (_local4.m_filterType == ScreenFilterType.CUSTOM_TEXTURE){
-                _local11 = getTexture(_local7);
-                if (!_local11){
-                    return (false);
-                };
-                m_textureProxy = _local11;
-            };
-            if (_local4.offsets.length > 0){
-                _local4.getOffsetByPos(_local7, _local6);
-            };
-            VectorUtil.transformByMatrixFast(_local6, _arg3, _local6);
-            m_matWorld.copyFrom(_arg3);
-            m_matWorld.position = _local6;
-            m_preFrameTime = _arg1;
-            m_preFrame = _local5;
-            var _local8:Vector3D = _arg2.scenePosition;
-            var _local9:Boolean = (((((Math.abs((_local8.x - _local6.x)) < _local4.m_xScale)) && ((Math.abs((_local8.y - _local6.y)) < _local4.m_yScale)))) && ((Math.abs((_local8.z - _local6.z)) < _local4.m_zScale)));
-            if (!_local9){
-                return (false);
-            };
-            this.m_curFrameUpdatePercent = _local7;
+		
+        override public function update(time:uint, camera:Camera3D, mat:Matrix3D):Boolean
+		{
+			var sfData:ScreenFilterData = ScreenFilterData(m_effectUnitData);
+            if (m_preFrame > sfData.endFrame)
+			{
+                return false;
+            }
+			
+			var eMgr:EffectManager= EffectManager.instance;
+            if (sfData.m_filterType == ScreenFilterType.CUSTOM_TEXTURE)
+			{
+                if (sfData.m_blendMode == BlendMode.DISTURB_SCREEN && !eMgr.screenDisturbEnable)
+				{
+                    return false;
+                }
+            }
+			
+            var curFrame:Number = calcCurFrame(time);
+			var pos:Vector3D = MathUtl.TEMP_VECTOR3D;
+			pos.setTo(0, 0, 0);
+			var percent:Number = (curFrame - sfData.startFrame) / sfData.frameRange;
+            if (sfData.m_filterType == ScreenFilterType.CUSTOM_TEXTURE)
+			{
+				var texture:DeltaXTexture = getTexture(percent);
+                if (!texture)
+				{
+                    return false;
+                }
+                m_textureProxy = texture;
+            }
+			
+            if (sfData.offsets.length > 0)
+			{
+				sfData.getOffsetByPos(percent, pos);
+            }
+			
+            VectorUtil.transformByMatrixFast(pos, mat, pos);
+            m_matWorld.copyFrom(mat);
+            m_matWorld.position = pos;
+            m_preFrameTime = time;
+            m_preFrame = curFrame;
+			
+            var cPos:Vector3D = camera.scenePosition;
+            var boo:Boolean = (Math.abs(cPos.x - pos.x) < sfData.m_xScale) && (Math.abs(cPos.y - pos.y) < sfData.m_yScale) && (Math.abs(cPos.z - pos.z) < sfData.m_zScale);
+            if (!boo)
+			{
+                return false;
+            }
+			
+            this.m_curFrameUpdatePercent = percent;
             
             this.m_depth = 0.01;
-            this.m_color = getColorByPos(_local7);
+            this.m_color = getColorByPos(percent);
             this.m_deltaU = 0;
             this.m_deltaV = 0;
-            if (_local4.m_filterType == ScreenFilterType.BLUR){
-                _local12 = (2 << _local4.m_scaleLevel);
-                this.m_curBlurScreenReciprocal.x = (_local12 / _local10.view3D.width);
-                this.m_curBlurScreenReciprocal.y = (_local12 / _local10.view3D.height);
+            if (sfData.m_filterType == ScreenFilterType.BLUR)
+			{
+				var scale:Number = 2 << sfData.m_scaleLevel;
+                this.m_curBlurScreenReciprocal.x = scale / eMgr.view3D.width;
+                this.m_curBlurScreenReciprocal.y = scale / eMgr.view3D.height;
                 this.m_screenInvData[0] = this.m_curBlurScreenReciprocal.x;
                 this.m_screenInvData[1] = this.m_curBlurScreenReciprocal.y;
-                this.m_deltaU = (this.m_curBlurScreenReciprocal.x * 0.5);
-                this.m_deltaV = (this.m_curBlurScreenReciprocal.y * 0.5);
-                this.m_blurTargetWidth = int((_local10.view3D.width / _local12));
-                this.m_blurTargetHeight = int((_local10.view3D.height / _local12));
+                this.m_deltaU = this.m_curBlurScreenReciprocal.x * 0.5;
+                this.m_deltaV = this.m_curBlurScreenReciprocal.y * 0.5;
+                this.m_blurTargetWidth = int(eMgr.view3D.width / scale);
+                this.m_blurTargetHeight = int(eMgr.view3D.height / scale);
                 this.m_blurTargetWidth = MathUtl.wrapToUpperPowerOf2(this.m_blurTargetWidth);
                 this.m_blurTargetHeight = MathUtl.wrapToUpperPowerOf2(this.m_blurTargetHeight);
-                this.m_specularPowerData[0] = _local4.m_brightnessPower;
-                this.m_specularPowerDataFinal[0] = _local4.getScaleByPos(_local7);
-                _local13 = Color.TEMP_COLOR;
-                _local13.value = this.m_color;
-                this.m_specularMaterialDataPrepare[0] = (_local13.R / 0xFF);
-                this.m_specularMaterialDataPrepare[1] = (_local13.G / 0xFF);
-                this.m_specularMaterialDataPrepare[2] = (_local13.B / 0xFF);
-                this.m_specularMaterialDataPrepare[3] = (_local13.A / 0xFF);
-                this.m_specularMaterialDataFinal[0] = (_local4.m_darknessAttenuation / 0xFF);
-                this.m_specularMaterialDataFinal[1] = (_local4.m_brightnessAttenuation / 0xFF);
-                this.m_specularMaterialDataFinal[2] = (_local4.m_darknessAttenuation / 0xFF);
+                this.m_specularPowerData[0] = sfData.m_brightnessPower;
+                this.m_specularPowerDataFinal[0] = sfData.getScaleByPos(percent);
+				var color:Color = Color.TEMP_COLOR;
+				color.value = this.m_color;
+                this.m_specularMaterialDataPrepare[0] = color.R / 0xFF;
+                this.m_specularMaterialDataPrepare[1] = color.G / 0xFF;
+                this.m_specularMaterialDataPrepare[2] = color.B / 0xFF;
+                this.m_specularMaterialDataPrepare[3] = color.A / 0xFF;
+                this.m_specularMaterialDataFinal[0] = sfData.m_darknessAttenuation / 0xFF;
+                this.m_specularMaterialDataFinal[1] = sfData.m_brightnessAttenuation / 0xFF;
+                this.m_specularMaterialDataFinal[2] = sfData.m_darknessAttenuation / 0xFF;
                 this.m_specularMaterialDataFinal[3] = this.m_specularMaterialDataPrepare[3];
-            };
-            return (true);
+            }
+			
+            return true;
         }
-        override public function render(_arg1:Context3D, _arg2:Camera3D):void{
-            var _local5:Texture;
-            if (!m_textureProxy){
+		
+        override public function render(context:Context3D, camera:Camera3D):void
+		{
+            if (!m_textureProxy)
+			{
                 failedOnRenderWhileDisposed();
                 return;
-            };
-            var _local3:ScreenFilterData = ScreenFilterData(m_effectUnitData);
-            var _local4:EffectManager = EffectManager.instance;
-            if (_local3.m_filterType == ScreenFilterType.BLUR){
-                this.renderBlur(_arg1, _local4, _local3);
+            }
+			
+            var sfData:ScreenFilterData = ScreenFilterData(m_effectUnitData);
+            var eMgr:EffectManager = EffectManager.instance;
+            if (sfData.m_filterType == ScreenFilterType.BLUR)
+			{
+                this.renderBlur(context, eMgr, sfData);
                 return;
-            };
-            activatePass(_arg1, _arg2);
-            _arg1.setCulling(Context3DTriangleFace.BACK);
-            _arg1.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
-            if (_local3.m_filterType == ScreenFilterType.CUSTOM_TEXTURE){
-                _local5 = m_textureProxy.getTextureForContext(_arg1);
-            } else {
-                if (_local3.m_filterType == ScreenFilterType.GRAY){
-                    _local5 = _local4.mainRenderTarget;
-                };
-            };
-            if (!_local5){
-                deactivatePass(_arg1);
+            }
+			
+            activatePass(context, camera);
+			context.setCulling(Context3DTriangleFace.BACK);
+			context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
+			
+			var texture:Texture;
+            if (sfData.m_filterType == ScreenFilterType.CUSTOM_TEXTURE)
+			{
+				texture = m_textureProxy.getTextureForContext(context);
+            } else 
+			{
+                if (sfData.m_filterType == ScreenFilterType.GRAY)
+				{
+					texture = eMgr.mainRenderTarget;
+                }
+            }
+			
+            if (!texture)
+			{
+                deactivatePass(context);
                 return;
-            };
-            if (_local3.m_filterType == ScreenFilterType.CUSTOM_TEXTURE){
-                setDisturbState(_arg1);
-            };
-            m_shaderProgram.setSampleTexture(0, _local5);
-            this.drawScreenRect(_arg1, m_shaderProgram);
-            deactivatePass(_arg1);
-			renderCoordinate(_arg1);
+            }
+			
+            if (sfData.m_filterType == ScreenFilterType.CUSTOM_TEXTURE)
+			{
+                setDisturbState(context);
+            }
+			
+            m_shaderProgram.setSampleTexture(0, texture);
+            this.drawScreenRect(context, m_shaderProgram);
+            deactivatePass(context);
+			
+			renderCoordinate(context);
         }
-        private function drawScreenRect(_arg1:Context3D, _arg2:DeltaXProgram3D):void{
-            _arg2.update(_arg1);
-            DeltaXSubGeometryManager.Instance.drawPackRect(_arg1, 1);
+		
+        override protected function setDepthTest(context:Context3D, model:uint, compareModel:String="less"):void
+		{
+			context.setDepthTest(false, Context3DCompareMode.ALWAYS);
         }
-        override protected function setDepthTest(_arg1:Context3D, _arg2:uint, _arg3:String="less"):void{
-            _arg1.setDepthTest(false, Context3DCompareMode.ALWAYS);
-        }
-        private function renderBlur(_arg1:Context3D, _arg2:EffectManager, _arg3:ScreenFilterData):void{
-            var _local4:Texture = _arg2.mainRenderTarget;
-            if (!_local4){
-                return;
-            };
-            _arg1.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ZERO);
-            _arg1.setCulling(Context3DTriangleFace.BACK);
-            _arg1.setDepthTest(false, Context3DCompareMode.ALWAYS);
-            var _local5:Texture = _arg1.createTexture(this.m_blurTargetWidth, this.m_blurTargetHeight, Context3DTextureFormat.BGRA, true);
-            var _local6:Texture = _arg1.createTexture(this.m_blurTargetWidth, this.m_blurTargetHeight, Context3DTextureFormat.BGRA, true);
-            _arg1.setRenderToTexture(_local5);
-            _arg1.clear();
-            var _local7:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_SCREEN_BLUR_DOWN);
-            _arg1.setProgram(_local7.getProgram3D(_arg1));
-            _local7.setSampleTexture(0, _local4);
-            _local7.setFragmentNumberParameterByName("specularMaterial", this.m_specularMaterialDataPrepare);
-            _local7.setFragmentNumberParameterByName("specularPower", this.m_specularPowerData);
-            this.drawScreenRect(_arg1, _local7);
-            _arg1.setRenderToTexture(_local6);
-            _arg1.clear();
-            var _local8:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_SCREEN_BLUR_H);
-            _arg1.setProgram(_local8.getProgram3D(_arg1));
-            _local8.setSampleTexture(0, _local5);
-            _local8.setFragmentNumberParameterByName("screenInv", this.m_screenInvData);
-            this.drawScreenRect(_arg1, _local8);
-            _arg1.setRenderToBackBuffer();
-            _arg1.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.SOURCE_ALPHA);
-            var _local9:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_SCREEN_BLUR_V);
-            _arg1.setProgram(_local9.getProgram3D(_arg1));
-            _local9.setSampleTexture(0, _local6);
-            _local9.setFragmentNumberParameterByName("screenInv", this.m_screenInvData);
-            _local9.setFragmentNumberParameterByName("specularMaterial", this.m_specularMaterialDataFinal);
-            _local9.setFragmentNumberParameterByName("specularPower", this.m_specularPowerDataFinal);
-            this.drawScreenRect(_arg1, _local9);
-            deactivatePass(_arg1);
-            _local5.dispose();
-            _local6.dispose();
-        }
-        override protected function get shaderType():uint{
-            var _local1:ScreenFilterData = ScreenFilterData(m_effectUnitData);
-            if (_local1.m_filterType == ScreenFilterType.CUSTOM_TEXTURE){
-                if (m_effectUnitData.blendMode == BlendMode.DISTURB_SCREEN){
-                    return (ShaderManager.SHADER_DISTURB);
-                };
-                return (ShaderManager.SHADER_SCREEN_TEXTURE);
-            };
-            if (_local1.m_filterType == ScreenFilterType.GRAY){
-                return (ShaderManager.SHADER_SCREEN_GRAY);
-            };
-            if (_local1.m_filterType == ScreenFilterType.BLUR){
-                return (ShaderManager.SHADER_SCREEN_BLUR_DOWN);
-            };
-            return (ShaderManager.SHADER_DEFAULT);
+		
+        override protected function get shaderType():uint
+		{
+            var sfData:ScreenFilterData = ScreenFilterData(m_effectUnitData);
+            if (sfData.m_filterType == ScreenFilterType.CUSTOM_TEXTURE)
+			{
+                if (m_effectUnitData.blendMode == BlendMode.DISTURB_SCREEN)
+				{
+                    return ShaderManager.SHADER_DISTURB;
+                }
+                return ShaderManager.SHADER_SCREEN_TEXTURE;
+            }
+			
+            if (sfData.m_filterType == ScreenFilterType.GRAY)
+			{
+                return ShaderManager.SHADER_SCREEN_GRAY;
+            }
+			
+            if (sfData.m_filterType == ScreenFilterType.BLUR)
+			{
+                return ShaderManager.SHADER_SCREEN_BLUR_DOWN;
+            }
+			
+            return ShaderManager.SHADER_DEFAULT;
         }
 
+		
     }
 }
