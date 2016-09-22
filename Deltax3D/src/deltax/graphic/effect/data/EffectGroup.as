@@ -1,91 +1,229 @@
 ﻿package deltax.graphic.effect.data 
 {
-    import deltax.common.*;
-    import deltax.common.error.*;
-    import deltax.common.resource.*;
-    import deltax.graphic.effect.data.unit.EffectUnitData;
-    import deltax.graphic.effect.render.*;
-    import deltax.graphic.manager.*;
-    
     import flash.filesystem.File;
-    import flash.net.*;
-    import flash.utils.*;
+    import flash.net.URLLoaderDataFormat;
+    import flash.utils.ByteArray;
+    
+    import deltax.common.Util;
+    import deltax.common.error.Exception;
+    import deltax.common.resource.CommonFileHeader;
+    import deltax.common.resource.DependentRes;
+    import deltax.common.resource.Enviroment;
+    import deltax.graphic.effect.data.unit.EffectUnitData;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.manager.IResource;
+    import deltax.graphic.manager.ResourceManager;
+    import deltax.graphic.manager.ResourceType;
+	
+	/**
+	 * 特效组数据
+	 * @author lees
+	 * @date 2016/03/26
+	 */	
 
     public class EffectGroup extends CommonFileHeader implements IResource 
 	{
         public static const EMPTY_EFFECT_GROUP:EffectGroup = new EffectGroup();
-
+		
+		/**引用个数*/
         private var m_refCount:int = 1;
+		/**加载失败*/
         private var m_loadfailed:Boolean = false;
+		/**文件名*/
         private var m_fileName:String;
+		/**是否加载完成*/
         private var m_selfLoaded:Boolean;
+		/**特效数据列表*/
         public var m_effectDatas:Vector.<EffectData>;
+		
+		public function EffectGroup()
+		{
+			//
+		}
 
-        public function get name():String
+		/**
+		 * 创建特效实例
+		 * @param eName
+		 * @return 
+		 */		
+		public function createEffect(eName:String):Effect
 		{
-            return (this.m_fileName);
-        }
+			var eData:EffectData = this.getEffectDataByName(eName);
+			return eData ? new Effect(eData) : null;
+		}
 		
-        public function set name(_arg1:String):void
+		/**
+		 * 获取指定名字的特效数据
+		 * @param eName
+		 * @return 
+		 */		
+		public function getEffectDataByName(eName:String):EffectData
 		{
-            this.m_fileName = _arg1;
-        }
-		
-        public function dispose():void
-		{
-            var _local1:uint;
-            if (this.m_effectDatas)
+			if (!this.m_effectDatas)
 			{
-                _local1 = 0;
-                while (_local1 < this.m_effectDatas.length) 
+				return null;
+			}
+			
+			var index = -1;
+			var idx:uint;
+			while (idx < this.m_effectDatas.length) 
+			{
+				if (this.m_effectDatas[idx].fullName == eName)
 				{
-                    this.m_effectDatas[_local1].destroy();
-                    _local1++;
-                }
-                this.m_effectDatas = null;
-            }
-        }
+					index = idx;
+					break;
+				}
+				idx++;
+			}
+			return index < 0 ? null : this.m_effectDatas[index];
+		}
+		
+		/**
+		 * 获取特效个数
+		 * @return 
+		 */		
+		public function get effectCount():uint
+		{
+			return this.m_effectDatas ? this.m_effectDatas.length : 0;
+		}
+		
+		/**
+		 * 获取特效名字
+		 * @param idx
+		 * @return 
+		 */		
+		public function getEffectName(idx:uint):String
+		{
+			return (!this.m_effectDatas || idx >= this.m_effectDatas.length) ? null : this.m_effectDatas[idx].name;
+		}
+		
+		/**
+		 * 获取特效全名
+		 * @param idx
+		 * @return 
+		 */		
+		public function getEffectFullName(idx:uint):String
+		{
+			return (!this.m_effectDatas || idx >= this.m_effectDatas.length) ? null : this.m_effectDatas[idx].fullName;
+		}
+		
+		//=======================================================================================================================
+		//=======================================================================================================================
+		//
+		override public function write(data:ByteArray):Boolean
+		{
+			var textureDependRes:DependentRes;
+			for each(var dependRes:DependentRes in this.m_dependantResList)
+			{
+				if(dependRes.m_resType == eFT_GammaTexture)
+				{
+					textureDependRes = dependRes;
+				}
+			}
+			
+			if(textureDependRes == null)
+			{
+				textureDependRes = new DependentRes();
+				textureDependRes.m_resType = eFT_GammaTexture;
+				textureDependRes.m_resFileNames = new Vector.<String>();
+				m_dependantResList.push(textureDependRes);
+			}
+			
+			for each(var effectData:EffectData in this.m_effectDatas)
+			{
+				for each(var effectUnitData:EffectUnitData in effectData.m_effectUnitDatas)
+				{
+					for each(var textureUrl:String in effectUnitData.m_textureNames)
+					{
+						if(textureUrl)
+						{
+							var tempTextureName:String = textureUrl;
+							var resFileName:String = tempTextureName.toLocaleLowerCase().replace(/\\/g,"/").replace(new File(Enviroment.ResourceRootPath).nativePath.toLocaleLowerCase().replace(/\\/g,"/") + "/","");							
+							textureUrl = resFileName;
+							if(textureDependRes && textureDependRes.m_resFileNames.indexOf(textureUrl) == -1)
+							{
+								textureDependRes.m_resFileNames.push(textureUrl);
+							}
+						}
+					}
+				}
+			}
+			
+			super.write(data);
+			
+			data.writeShort(this.m_effectDatas.length);
+			for each(var effectData:EffectData in this.m_effectDatas)
+			{
+				Util.writeStringWithCount(data,effectData.fullName);
+				effectData.write(data);
+			}
+			
+			return true;
+		}
+		
+		//=======================================================================================================================
+		//=======================================================================================================================
+		//
+		public function get name():String
+		{
+			return this.m_fileName;
+		}
+		public function set name(va:String):void
+		{
+			this.m_fileName = va;
+		}
 		
         public function get loaded():Boolean
 		{
-            return (this.m_selfLoaded);
+            return this.m_selfLoaded;
         }
+		
+		public function get loadfailed():Boolean
+		{
+			return this.m_loadfailed;
+		}
+		public function set loadfailed(va:Boolean):void
+		{
+			this.m_loadfailed = va;
+		}
 		
         public function get dataFormat():String
 		{
-            return (URLLoaderDataFormat.BINARY);
+            return URLLoaderDataFormat.BINARY;
         }
 		
         public function get type():String
 		{
-            return (ResourceType.EFFECT_GROUP);
+            return ResourceType.EFFECT_GROUP;
         }
 		
-        public function parse(_arg1:ByteArray):int
+        public function parse(data:ByteArray):int
 		{
-            var _local3:uint;
-            var _local4:String;
-            var _local5:EffectData;
-            if (!super.load(_arg1))
+            if (!super.load(data))
 			{
-                return (-1);
+                return -1;
             }
-            var _local2:uint = _arg1.readUnsignedShort();
-            this.m_effectDatas = new Vector.<EffectData>(_local2, false);
-            _local3 = 0;
-            while (_local3 < _local2) 
+			
+            var eDataCount:uint = data.readUnsignedShort();
+            this.m_effectDatas = new Vector.<EffectData>(eDataCount, false);
+			var idx:uint = 0;
+			var fullName:String;
+			var eData:EffectData;
+            while (idx < eDataCount) 
 			{
-                _local4 = Util.readUcs2StringWithCount(_arg1);
-                _local5 = new EffectData(this, _local4);
-                this.m_effectDatas[_local3] = _local5;
-                _local5.readIndexData(_arg1, this);
-                _local3++;
+				fullName = Util.readUcs2StringWithCount(data);
+				eData = new EffectData(this, fullName);
+                this.m_effectDatas[idx] = eData;
+				eData.readIndexData(data, this);
+				idx++;
             }
+			
             this.m_selfLoaded = true;
-            return (1);
+			
+            return 1;
         }
 		
-        public function onDependencyRetrieve(_arg1:IResource, _arg2:Boolean):void
+        public function onDependencyRetrieve(res:IResource, isSuccess:Boolean):void
 		{
 			//	
         }
@@ -95,105 +233,50 @@
 			//
         }
 		
-        public function createEffect(_arg1:String):Effect
-		{
-            var _local2:EffectData = this.getEffectDataByName(_arg1);
-            return ((_local2) ? new Effect(_local2) : null);
-        }
 		
-        public function getEffectDataByName(_arg1:String):EffectData
+		//=======================================================================================================================
+		//=======================================================================================================================
+		//
+		public function reference():void
 		{
-            if (!this.m_effectDatas)
-			{
-                return (null);
-            }
-            var _local2 = -1;
-            var _local3:uint;
-            while (_local3 < this.m_effectDatas.length) 
-			{
-                if (this.m_effectDatas[_local3].fullName == _arg1)
-				{
-                    _local2 = _local3;
-                    break;
-                }
-                _local3++;
-            }
-            return (((_local2 < 0)) ? null : this.m_effectDatas[_local2]);
-        }
-		
-        public function get effectCount():uint
-		{
-            return ((this.m_effectDatas) ? this.m_effectDatas.length : 0);
-        }
-		
-        public function getEffectName(_arg1:uint):String
-		{
-            return ((((!(this.m_effectDatas)) || ((_arg1 >= this.m_effectDatas.length)))) ? null : this.m_effectDatas[_arg1].name);
-        }
-		
-        public function getEffectFullName(_arg1:uint):String
-		{
-            return ((((!(this.m_effectDatas)) || ((_arg1 >= this.m_effectDatas.length)))) ? null : this.m_effectDatas[_arg1].fullName);
-        }
-        public function reference():void{
-            this.m_refCount++;
-        }
-        public function release():void{
-            if (--this.m_refCount > 0){
-                return;
-            };
-            if (this.m_refCount < 0){
-                (Exception.CreateException(((this.name + ":after release refCount == ") + this.m_refCount)));
-				return;
-            };
-            ResourceManager.instance.releaseResource(this, ResourceManager.DESTROY_DELAY);
-        }
-        public function get refCount():uint{
-            return (this.m_refCount);
-        }
-        public function get loadfailed():Boolean{
-            return (this.m_loadfailed);
-        }
-        public function set loadfailed(_arg1:Boolean):void{
-            this.m_loadfailed = _arg1;
-        }
-		
-		override public function write(data:ByteArray):Boolean{
-			var textureDependRes:DependentRes;
-			for each(var dependRes:DependentRes in this.m_dependantResList){
-				if(dependRes.m_resType == eFT_GammaTexture){
-					textureDependRes = dependRes;
-				}
-			}
-			if(textureDependRes == null){
-				textureDependRes = new DependentRes();
-				textureDependRes.m_resType = eFT_GammaTexture;
-				textureDependRes.m_resFileNames = new Vector.<String>();
-				m_dependantResList.push(textureDependRes);
-			}
-			
-			for each(var effectData:EffectData in this.m_effectDatas){
-				for each(var effectUnitData:EffectUnitData in effectData.m_effectUnitDatas){
-					for each(var textureUrl:String in effectUnitData.m_textureNames){
-						if(textureUrl){
-							var tempTextureName:String = textureUrl;
-							var resFileName:String = tempTextureName.toLocaleLowerCase().replace(/\\/g,"/").replace(new File(Enviroment.ResourceRootPath).nativePath.toLocaleLowerCase().replace(/\\/g,"/") + "/","");							
-							textureUrl = resFileName;
-							if(textureDependRes && textureDependRes.m_resFileNames.indexOf(textureUrl) == -1){
-								textureDependRes.m_resFileNames.push(textureUrl);
-							}
-						}
-					}
-				}
-			}
-			
-			super.write(data);
-			data.writeShort(this.m_effectDatas.length);
-			for each(var effectData:EffectData in this.m_effectDatas){
-				Util.writeStringWithCount(data,effectData.fullName);
-				effectData.write(data);
-			}
-			return true;
+			this.m_refCount++;
 		}
+		
+		public function release():void
+		{
+			if (--this.m_refCount > 0)
+			{
+				return;
+			}
+			
+			if (this.m_refCount < 0)
+			{
+				Exception.CreateException(this.name + ":after release refCount == " + this.m_refCount);
+				return;
+			}
+			
+			ResourceManager.instance.releaseResource(this, ResourceManager.DESTROY_DELAY);
+		}
+		
+		public function get refCount():uint
+		{
+			return this.m_refCount;
+		}
+		
+		public function dispose():void
+		{
+			if (this.m_effectDatas)
+			{
+				var idx:uint = 0;
+				while (idx < this.m_effectDatas.length) 
+				{
+					this.m_effectDatas[idx].destroy();
+					idx++;
+				}
+				this.m_effectDatas = null;
+			}
+		}
+		
+        
     }
 }
