@@ -20,7 +20,6 @@
     import deltax.graphic.effect.util.BlendMode;
     import deltax.graphic.manager.DeltaXSubGeometryManager;
     import deltax.graphic.manager.ShaderManager;
-    import deltax.graphic.model.Animation;
     import deltax.graphic.scenegraph.object.LinkableRenderable;
     import deltax.graphic.shader.DeltaXProgram3D;
     import deltax.graphic.texture.DeltaXTexture;
@@ -38,29 +37,29 @@
         private static var m_randNumber:Vector.<Number>;
         private static var m_destPosGenerateCompareFunctions:Vector.<Function>;
 
-		/***/
+		/**设置指定帧的目标位置*/
         private var m_setDestPosThisFrame:Boolean;
-		/***/
+		/**当前自定义名字*/
         private var m_curCustomName:String = "";
-		/***/
+		/**绑定目标位置*/
         private var m_bindDestPos:Vector3D;
-		/***/
+		/**当前位图添加数量*/
         private var m_curTextureAdd:Number = 0;
-		/***/
+		/**当前角度*/
         private var m_curAngle:Number = 0;
-		/***/
+		/**抖动基础信息列表*/
         private var m_ditheringBiasInfoList:Vector.<Vector.<DitheringBiasPair>>;
-		/***/
+		/**上次抖动的时间*/
         private var m_preDitheringTime:uint;
-		/***/
+		/**当前抖动的时间*/
         private var m_curDitheringTime:uint;
-		/***/
+		/**上一次缩放的百分比*/
         private var m_preScalePercent:Number = 0;
-		/***/
+		/**当前缩放百分比*/
         private var m_curScalePercent:Number = 0;
-		/***/
+		/**绑定目标位置列表*/
         private var m_bindDestPoses:Vector.<Number>;
-		/***/
+		/**百分比*/
         private var m_percent:Number;
 
         public function PolygonChain(eft:Effect, eUData:EffectUnitData)
@@ -97,6 +96,9 @@
             return (va == eU.effect);
         }
 
+		/**
+		 * 检测构建静态数据
+		 */		
         private function checkBuildStaticValues():void
 		{
             if (!m_destPosGenerateCompareFunctions)
@@ -118,6 +120,57 @@
                 }
             }
         }
+		
+		/**
+		 * 构建所有目标位置
+		 * @param list
+		 * @param data
+		 * @param pos
+		 */		
+		private function makeDestPosAll(list:Dictionary, data:PolygonChainData, pos:Vector3D):void
+		{
+			var bRangeSqrt:Number = data.m_maxBindRange * data.m_maxBindRange;
+			var destPos:Vector3D = MathUtl.TEMP_VECTOR3D2;
+			var fun:Function = m_destPosGenerateCompareFunctions[data.m_bindType];
+			var linkable:LinkableRenderable = (data.m_bindType == PolyChainBindType.ONLY_SELF_PARENT) ? this.effect.parentLinkObject : this.effect;
+			var scaleRatio:Number = data.m_fitScale / data.m_chainNodeCount;
+			var eu:EffectUnit;
+			var idx:uint;
+			for each (eu in list) 
+			{
+				if (this != eu && fun(linkable, eu))
+				{
+					eu.worldMatrix.copyColumnTo(3, destPos);
+					destPos.decrementBy(pos);
+					if (destPos.lengthSquared < bRangeSqrt)
+					{
+						this.m_bindDestPoses[idx++] = destPos.x;
+						this.m_bindDestPoses[idx++] = destPos.y;
+						this.m_bindDestPoses[idx++] = destPos.z;
+						if (data.m_textureType == PolyChainTextureType.FILLSIZE)
+						{
+							this.m_bindDestPoses[idx] = destPos.length * scaleRatio;
+						} else 
+						{
+							if (data.m_textureType == PolyChainTextureType.STRETCH)
+							{
+								this.m_bindDestPoses[idx] = 1;
+							} else 
+							{
+								this.m_bindDestPoses[idx] = data.m_chainNodeCount;
+							}
+						}
+						idx++;
+					}
+				}
+				
+				if (idx >= MAX_BIND_POS_COUNT_4X)
+				{
+					break;
+				}
+			}
+			this.m_bindDestPoses.length = idx;
+		}
 		
         override public function release():void
 		{
@@ -233,10 +286,6 @@
 		
         override public function render(context:Context3D, camera:Camera3D):void
 		{
-            var _local35:uint;
-            var _local36:uint;
-            var _local37:uint;
-            
             if (m_textureProxy == null)
 			{
                 return;
@@ -258,99 +307,84 @@
             var wVertexIndex:uint = m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.WORLD) * 4;
             var bPosLength:uint = this.m_bindDestPoses.length;
             var bPosCount:uint = bPosLength / 3;
-            var cNodeCount:uint = pcData.m_chainNodeCount;
-            var _local15:uint = cNodeCount * pcData.m_chainCount;
-            var _local16:uint = (_local15 * bPosCount);
-            var _local17:uint = (((pcData.m_renderType == PolyChainRenderType.SMOOTH)) ? 8 : 1 * _local16);
-            var _local18:uint = Math.min(_local17, 0x1000);
-            var _local19:Number = pcData.m_chainNodeMinScope;
-            var _local20:Number = pcData.m_chainNodeMaxScope;
-            var _local21:Number = (_local20 - _local19);
-            var _local22:Number = (pcData.m_changeScaleByTime) ? 0 : 1;
-            var _local23:uint = (this.m_preDitheringTime & 4095);
-            var _local24:uint = (this.m_curDitheringTime & 4095);
-            var _local25:Number = (m_preFrameTime - this.m_curDitheringTime);
-            var _local26:Number = (1 - _local22);
-            var _local27:Number = (_local25 / pcData.m_ditheringInterval);
-            var _local28:Number = (1 - _local27);
-            var _local29:Number = (pcData.m_scaleAsDitheringScope) ? 0 : 1;
-            var _local30:Number = (pcData.m_scaleAsDitheringScope) ? (1 / _local20) : 0;
-            var _local31:Number = (1.000001 / _local15);
-            var _local32:Number = (1.000001 / cNodeCount);
-            var _local33:uint = m_randNumber.length;
-            var _local34:uint = scInfo.length;
-            _local35 = 0;
-            while (_local35 < bPosLength) 
+            var oneNodeCount:uint = pcData.m_chainNodeCount;
+            var nodeCount:uint = oneNodeCount * pcData.m_chainCount;
+            var posCount:uint = nodeCount * bPosCount;
+            var drawCount:uint = pcData.m_renderType == PolyChainRenderType.SMOOTH ? 8 : posCount;
+			drawCount = Math.min(drawCount, 0x1000);
+            var scopeRange:Number = pcData.m_chainNodeMaxScope - pcData.m_chainNodeMinScope;
+            var scaleRatioSrc:Number = pcData.m_changeScaleByTime ? 0 : 1;
+            var scaleRatioDest:Number = 1 - scaleRatioSrc;
+            var ditheringRatioSrc:Number = (m_preFrameTime - this.m_curDitheringTime) / pcData.m_ditheringInterval;
+            var ditheringRatioDest:Number = 1 - ditheringRatioSrc;
+            var scaleAsDS:Number = pcData.m_scaleAsDitheringScope ? 0 : 1;
+            var scaleAsDS_inv:Number = pcData.m_scaleAsDitheringScope ? (1 / pcData.m_chainNodeMaxScope) : 0;
+            var oneNode_inv:Number = 1.000001 / oneNodeCount;
+            var rnCount:uint = m_randNumber.length;
+            var scInfoCount:uint = scInfo.length;
+			
+			var idx:uint = 0;
+            while (idx < bPosLength) 
 			{
-				vertexParams[aVertexIndex] = this.m_bindDestPoses[_local35];
-				aVertexIndex++;
-                _local35++;
-				vertexParams[aVertexIndex] = this.m_bindDestPoses[_local35];
-				aVertexIndex++;
-                _local35++;
-				vertexParams[aVertexIndex] = this.m_bindDestPoses[_local35];
-				aVertexIndex++;
-                _local35++;
-				vertexParams[aVertexIndex] = this.m_bindDestPoses[_local35];
-				aVertexIndex++;
-                _local35++;
+				vertexParams[aVertexIndex++] = this.m_bindDestPoses[idx++];
+				vertexParams[aVertexIndex++] = this.m_bindDestPoses[idx++];
+				vertexParams[aVertexIndex++] = this.m_bindDestPoses[idx++];
+				vertexParams[aVertexIndex++] = this.m_bindDestPoses[idx++];
             }
 			
-            _local35 = 0;
-            _local37 = (wVertexIndex + 3);
-            while (_local35 < _local33) 
+			idx = 0;
+			var wIndx:uint = wVertexIndex + 3;
+            while (idx < rnCount) 
 			{
-				vertexParams[_local37] = m_randNumber[_local35];
-                _local35++;
-                _local37 = (_local37 + 4);
+				vertexParams[wIndx] = m_randNumber[idx++];
+				wIndx += 4;
             }
-            _local35 = 0;
-            _local37 = wVertexIndex;
-            while (_local35 < _local34) 
+			
+			idx = 0;
+			wIndx = wVertexIndex;
+            while (idx < scInfoCount) 
 			{
-				vertexParams[_local37] = scInfo[_local35];
-                _local37++;
-                _local35++;
-				vertexParams[_local37] = scInfo[_local35];
-                _local37 = (_local37 + 3);
-                _local35++;
+				vertexParams[wIndx++] = scInfo[idx++];
+				vertexParams[wIndx] = scInfo[idx++];
+				wIndx += 3;
             }
-            _local35 = 0;
-            _local37 = (wVertexIndex + 2);
-            while (_local35 < 50) 
+			
+			idx = 0;
+			wIndx = wVertexIndex + 2;
+            while (idx < 50) 
 			{
-				vertexParams[_local37] = sBuffers[_local35];
-                _local35++;
-                _local37 = (_local37 + 4);
+				vertexParams[wIndx] = sBuffers[idx++];
+				wIndx += 4;
             }
 			
             if (pcData.m_widthAsTexU)
 			{
 				vertexParams[tVertexIndex] = (pcData.m_invertTexU) ? -1 : 1;
-				tVertexIndex = (tVertexIndex + 5);
+				tVertexIndex += 5;
 				vertexParams[tVertexIndex] = (pcData.m_invertTexV) ? -1 : 1;
-				tVertexIndex = (tVertexIndex + 1);
+				tVertexIndex += 1;
 				vertexParams[tVertexIndex] = (pcData.m_invertTexV) ? -(this.m_curTextureAdd) : this.m_curTextureAdd;
             } else 
 			{
 				tVertexIndex++;
 				vertexParams[tVertexIndex] = (pcData.m_invertTexU) ? -1 : 1;
-				tVertexIndex = (tVertexIndex + 3);
+				tVertexIndex += 3;
 				vertexParams[tVertexIndex] = (pcData.m_invertTexV) ? -1 : 1;
-				tVertexIndex = (tVertexIndex - 2);
+				tVertexIndex -= 2;
 				vertexParams[tVertexIndex] = (pcData.m_invertTexU) ? -(this.m_curTextureAdd) : this.m_curTextureAdd;
             }
+			
             activatePass(context, camera);
             setDisturbState(context);
             m_shaderProgram.setSampleTexture(0, m_textureProxy.getTextureForContext(context));
             m_shaderProgram.setSampleTexture(1, colorTexture);
-            m_shaderProgram.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, _local31, _local32, pcData.m_chainCount, m_curAlpha);
-            m_shaderProgram.setParamValue(DeltaXProgram3D.EMISSIVEMATERIAL, (this.m_preScalePercent * _local26), (this.m_curScalePercent * _local26), _local19, _local21);
-            m_shaderProgram.setParamValue(DeltaXProgram3D.SPECULARMATERIAL, _local23, _local24, (this.m_percent * _local26), ((_local22 * (cNodeCount - 1)) * _local32));
+            m_shaderProgram.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, (1.000001 / nodeCount), oneNode_inv, pcData.m_chainCount, m_curAlpha);
+            m_shaderProgram.setParamValue(DeltaXProgram3D.EMISSIVEMATERIAL, (this.m_preScalePercent * scaleRatioDest), (this.m_curScalePercent * scaleRatioDest), pcData.m_chainNodeMinScope, scopeRange);
+            m_shaderProgram.setParamValue(DeltaXProgram3D.SPECULARMATERIAL, (this.m_preDitheringTime & 4095), (this.m_curDitheringTime & 4095), (this.m_percent * scaleRatioDest), ((scaleRatioSrc * (oneNodeCount - 1)) * oneNode_inv));
             m_shaderProgram.setParamValue(DeltaXProgram3D.SPECULARPOWER, wPos.x, wPos.y, wPos.z, pcData.m_chainWidth);
-            m_shaderProgram.setParamValue(DeltaXProgram3D.BASEBRIGHTNESS, _local28, _local27, _local29, _local30);
+            m_shaderProgram.setParamValue(DeltaXProgram3D.BASEBRIGHTNESS, ditheringRatioDest, ditheringRatioSrc, scaleAsDS, scaleAsDS_inv);
             m_shaderProgram.update(context);
-            DeltaXSubGeometryManager.Instance.drawPackRect(context, _local18);
+            DeltaXSubGeometryManager.Instance.drawPackRect(context, drawCount);
             deactivatePass(context);
 			renderCoordinate(context);
         }
@@ -365,56 +399,7 @@
             return ShaderManager.SHADER_POLYCHAIN_NORMAL;
         }
 		
-        private function makeDestPosAll(_arg1:Dictionary, _arg2:PolygonChainData, _arg3:Vector3D):void
-		{
-            var _local6:Matrix3D;
-            var _local12:EffectUnit;
-            var _local4:Number = (_arg2.m_maxBindRange * _arg2.m_maxBindRange);
-            var _local5:uint;
-            var _local7:Vector3D = MathUtl.TEMP_VECTOR3D2;
-            var _local8:Vector3D = MathUtl.TEMP_VECTOR3D3;
-            var _local9:Function = m_destPosGenerateCompareFunctions[_arg2.m_bindType];
-            var _local10:LinkableRenderable = ((_arg2.m_bindType == PolyChainBindType.ONLY_SELF_PARENT)) ? this.effect.parentLinkObject : this.effect;
-            var _local11:Number = (_arg2.m_fitScale / _arg2.m_chainNodeCount);
-            for each (_local12 in _arg1) 
-			{
-                if (((!((this == _local12))) && (_local9(_local10, _local12))))
-				{
-                    _local6 = _local12.worldMatrix;
-                    _local6.copyColumnTo(3, _local7);
-                    _local8.copyFrom(_local7);
-                    _local7.decrementBy(_arg3);
-                    if (_local7.lengthSquared < _local4)
-					{
-                        this.m_bindDestPoses[_local5] = _local7.x;
-                        _local5++;
-                        this.m_bindDestPoses[_local5] = _local7.y;
-                        _local5++;
-                        this.m_bindDestPoses[_local5] = _local7.z;
-                        _local5++;
-                        if (_arg2.m_textureType == PolyChainTextureType.FILLSIZE)
-						{
-                            this.m_bindDestPoses[_local5] = (_local7.length * _local11);
-                        } else 
-						{
-                            if (_arg2.m_textureType == PolyChainTextureType.STRETCH)
-							{
-                                this.m_bindDestPoses[_local5] = 1;
-                            } else 
-							{
-                                this.m_bindDestPoses[_local5] = _arg2.m_chainNodeCount;
-                            }
-                        }
-                        _local5++;
-                    }
-                }
-                if (_local5 >= MAX_BIND_POS_COUNT_4X)
-				{
-                    break;
-                }
-            }
-            this.m_bindDestPoses.length = _local5;
-        }
+		
 
     }
 }
@@ -430,10 +415,10 @@ class DitheringBiasPair
 		//
     }
 	
-    public function copyFrom(_arg1:DitheringBiasPair):void
+    public function copyFrom(va:DitheringBiasPair):void
 	{
-        this.first = _arg1.first;
-        this.second = _arg1.second;
+        this.first = va.first;
+        this.second = va.second;
     }
 
 }

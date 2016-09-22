@@ -1,11 +1,11 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common.math {
-    import __AS3__.vec.*;
+﻿package deltax.common.math 
+{
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     
-    import flash.geom.*;
-    import flash.utils.*;
-
-    public final class VectorUtil {
+    public final class VectorUtil 
+	{
 
         public static function readVector3D(_arg1:ByteArray, _arg2:Vector3D=null):Vector3D{
             _arg2 = ((_arg2) || (new Vector3D()));

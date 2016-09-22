@@ -95,7 +95,7 @@
                 this.m_tailTrail = null;
             }
 			
-            if (effect && (int(time - m_preFrameTime) > 0)) && (m_preFrame < ptData.endFrame))
+            if (effect && (int(time - m_preFrameTime) > 0) && (m_preFrame < ptData.endFrame))
 			{
 				var offset:Vector3D = MathUtl.TEMP_VECTOR3D;
 				var rotate:Vector3D = MathUtl.TEMP_VECTOR3D2;
