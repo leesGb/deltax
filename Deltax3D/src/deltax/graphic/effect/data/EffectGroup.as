@@ -64,7 +64,7 @@
 				return null;
 			}
 			
-			var index = -1;
+			var index:int = -1;
 			var idx:uint;
 			while (idx < this.m_effectDatas.length) 
 			{
@@ -129,7 +129,8 @@
 				m_dependantResList.push(textureDependRes);
 			}
 			
-			for each(var effectData:EffectData in this.m_effectDatas)
+			var effectData:EffectData;
+			for each(effectData in this.m_effectDatas)
 			{
 				for each(var effectUnitData:EffectUnitData in effectData.m_effectUnitDatas)
 				{
@@ -152,7 +153,7 @@
 			super.write(data);
 			
 			data.writeShort(this.m_effectDatas.length);
-			for each(var effectData:EffectData in this.m_effectDatas)
+			for each(effectData in this.m_effectDatas)
 			{
 				Util.writeStringWithCount(data,effectData.fullName);
 				effectData.write(data);

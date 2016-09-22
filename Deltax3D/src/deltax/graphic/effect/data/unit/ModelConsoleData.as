@@ -1,19 +1,22 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.data.unit {
-    import __AS3__.vec.*;
+﻿package deltax.graphic.effect.data.unit 
+{
+    import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     
-    import deltax.common.*;
-    import deltax.common.math.*;
-    import deltax.common.resource.*;
+    import deltax.common.Util;
+    import deltax.common.safeRelease;
+    import deltax.common.math.VectorUtil;
+    import deltax.common.resource.CommonFileHeader;
+    import deltax.common.resource.Enviroment;
     import deltax.graphic.effect.data.EffectGroup;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.model.*;
-    
-    import flash.geom.*;
-    import flash.utils.*;
+    import deltax.graphic.manager.ResourceManager;
+    import deltax.graphic.manager.ResourceType;
+    import deltax.graphic.model.AnimationGroup;
+    import deltax.graphic.model.Piece;
+    import deltax.graphic.model.PieceGroup;
 
-    public class ModelConsoleData extends EffectUnitData {
-
+    public class ModelConsoleData extends EffectUnitData 
+	{
         public static const MAX_PIECECLASS_COUNT:Number = 6;
 
         public var m_rotate:Vector3D;
@@ -38,7 +41,9 @@ package deltax.graphic.effect.data.unit {
         public var m_mergeLevel:uint;
         private var m_pieceGroupLoadCompeleteHandlers:Vector.<Function>;
         private var m_aniGroupLoadCompeleteHandlers:Vector.<Function>;
-        public function ModelConsoleData(){
+        
+		public function ModelConsoleData()
+		{
             this.m_pieceClassIndice = new Vector.<uint>(MAX_PIECECLASS_COUNT, true);
             this.m_pieceMaterialIndice = new Vector.<uint>(MAX_PIECECLASS_COUNT, true);
             this.m_extent = EffectUnitData.DEFAULT_BOUND_EXTENT.clone();
@@ -46,7 +51,8 @@ package deltax.graphic.effect.data.unit {
             super();
         }
 		
-		override public function copyFrom(src:EffectUnitData):void{
+		override public function copyFrom(src:EffectUnitData):void
+		{
 			super.copyFrom(src);
 			var sc:ModelConsoleData = src as ModelConsoleData;
 			this.m_rotate = sc.m_rotate.clone();				
@@ -73,7 +79,8 @@ package deltax.graphic.effect.data.unit {
 			calculateProps();
 		}
 		
-        override public function destroy():void{
+        override public function destroy():void
+		{
             var _local1:PieceGroup = this.m_pieceGroup;
             var _local2:AnimationGroup = this.m_aniGroup;
             this.m_pieceGroup = null;
@@ -82,7 +89,9 @@ package deltax.graphic.effect.data.unit {
             safeRelease(_local2);
             super.destroy();
         }
-        override public function load(_arg1:ByteArray, _arg2:CommonFileHeader):void{
+		
+        override public function load(_arg1:ByteArray, _arg2:CommonFileHeader):void
+		{
             var _local3:uint = _arg1.readUnsignedInt();
 			curVersion = _local3;
             this.m_linkedParentSkeletal = Util.readUcs2StringWithCount(_arg1);
@@ -262,15 +271,17 @@ package deltax.graphic.effect.data.unit {
 			super.write(data,effectGroup);
 		}
     }
-}//package deltax.graphic.effect.data.unit 
+}
 
-class Version {
-
+class Version 
+{
     public static const ORIGIN:uint = 0;
     public static const ADD_MERGE_LEVEL:uint = 1;
     public static const ADD_MERGE_LEVEL_EX:uint = 2;
     public static const CURRENT:uint = 2;
 
-    public function Version(){
+    public function Version()
+	{
+		//
     }
 }

@@ -1,25 +1,36 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.data.unit {
-    import deltax.common.resource.*;
-    import deltax.graphic.effect.data.EffectGroup;
+﻿package deltax.graphic.effect.data.unit 
+{
+    import flash.utils.ByteArray;
     
-    import flash.utils.*;
+    import deltax.common.resource.CommonFileHeader;
+    import deltax.graphic.effect.data.EffectGroup;
 
-    public class DynamicLightData extends EffectUnitData {
-
+	/**
+	 * 动态灯光数据
+	 * @author lees
+	 * @date 2016/03/16
+	 */	
+	
+    public class DynamicLightData extends EffectUnitData 
+	{
+		/**范围*/
         public var m_range:Number;
+		/**最大强度*/
         public var m_maxStrong:Number;
+		/**最小强度*/
         public var m_minStrong:Number;
-        override public function load(_arg1:ByteArray, _arg2:CommonFileHeader):void{
-            var _local3:uint = _arg1.readUnsignedInt();
-			curVersion = _local3;
-            this.m_range = _arg1.readFloat();
-            this.m_minStrong = _arg1.readFloat();
-            this.m_maxStrong = _arg1.readFloat();
-            super.load(_arg1, _arg2);
+		
+        override public function load(data:ByteArray, header:CommonFileHeader):void
+		{
+			curVersion = data.readUnsignedInt();
+            this.m_range = data.readFloat();
+            this.m_minStrong = data.readFloat();
+            this.m_maxStrong = data.readFloat();
+            super.load(data, header);
         }
 		
-		override public function write(data:ByteArray, effectGroup:EffectGroup):void{
+		override public function write(data:ByteArray, effectGroup:EffectGroup):void
+		{
 			data.writeUnsignedInt(curVersion);
 			data.writeFloat(this.m_range);
 			data.writeFloat(this.m_minStrong);
@@ -27,10 +38,12 @@ package deltax.graphic.effect.data.unit {
 			super.write(data,effectGroup);
 		}
 		
-		override public function copyFrom(src:EffectUnitData):void{
+		override public function copyFrom(src:EffectUnitData):void
+		{
 			super.copyFrom(src);
-			
 		}
 
+		
+		
     }
-}//package deltax.graphic.effect.data.unit 
+} 

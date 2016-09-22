@@ -87,19 +87,24 @@ package deltax.graphic.manager {
                 };
             };
         }
-        public function createTexture(_arg1):DeltaXTexture{
-            if (_arg1 == null){
+        public function createTexture(_arg1:*):DeltaXTexture
+		{
+            if (_arg1 == null)
+			{
                 _arg1 = BitmapDataResource3D.DEFAULT_BITMAP_RESOURCE;
-            };
+            }
+			
             var _local2:String = BitmapMergeInfo.bitmapMergeInfoArraToString(_arg1);
             var _local3:DeltaXTexture = this.m_textureMap[_local2];
-            if (!_local3){
+            if (!_local3)
+			{
                 _local3 = new DeltaXTexture(_arg1, _local2);
                 this.m_textureMap[_local2] = _local3;
                 this.m_totalTextureCount++;
-            } else {
+            } else 
+			{
                 _local3.reference();
-            };
+            }
             return (_local3);
         }
         public function unregisterTexture(_arg1:DeltaXTexture):void{

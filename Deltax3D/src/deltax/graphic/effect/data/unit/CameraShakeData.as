@@ -1,44 +1,60 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.data.unit {
-    import deltax.common.resource.*;
-    import deltax.graphic.effect.data.EffectGroup;
+﻿package deltax.graphic.effect.data.unit 
+{
+    import flash.utils.ByteArray;
     
-    import flash.utils.*;
+    import deltax.common.resource.CommonFileHeader;
+    import deltax.graphic.effect.data.EffectGroup;
 
-    public class CameraShakeData extends EffectUnitData {
-
+	/**
+	 * 摄像机抖动数据
+	 * @author lees
+	 * @date 2016/03/16
+	 */	
+	
+    public class CameraShakeData extends EffectUnitData 
+	{
+		/**频率*/
         public var m_frequency:Number;
+		/**强度*/
         public var m_strength:Number;
+		/**最小半径*/
         public var m_minRadius:Number;
+		/**最大半径*/
         public var m_maxRadius:Number;
+		/**震动类型*/
         public var m_shakeType:uint;
-        override public function load(_arg1:ByteArray, _arg2:CommonFileHeader):void{
-            var _local3:uint = _arg1.readUnsignedInt();
-			curVersion = _local3;
-            this.m_frequency = _arg1.readFloat();
-            this.m_strength = _arg1.readFloat();
-            this.m_minRadius = _arg1.readFloat();
-            this.m_maxRadius = _arg1.readFloat();
-            if (_local3 >= Version.ADD_SHAKE_TYPE){
-                this.m_shakeType = _arg1.readUnsignedInt();
-            };
-            super.load(_arg1, _arg2);
+		
+        override public function load(data:ByteArray, header:CommonFileHeader):void
+		{
+			curVersion = data.readUnsignedInt();
+            this.m_frequency = data.readFloat();
+            this.m_strength = data.readFloat();
+            this.m_minRadius = data.readFloat();
+            this.m_maxRadius = data.readFloat();
+            if (curVersion >= Version.ADD_SHAKE_TYPE)
+			{
+                this.m_shakeType = data.readUnsignedInt();
+            }
+            super.load(data, header);
         }
 		
-		override public function write(data:ByteArray, effectGroup:EffectGroup):void{
+		override public function write(data:ByteArray, effectGroup:EffectGroup):void
+		{
 			curVersion = Version.CURRENT;
 			data.writeUnsignedInt(curVersion);
 			data.writeFloat(this.m_frequency);
 			data.writeFloat(this.m_strength);
 			data.writeFloat(this.m_minRadius);
 			data.writeFloat(this.m_maxRadius);
-			if(curVersion>=Version.ADD_SHAKE_TYPE){
+			if(curVersion>=Version.ADD_SHAKE_TYPE)
+			{
 				data.writeUnsignedInt(this.m_shakeType);
 			}
 			super.write(data,effectGroup);
 		}
 		
-		override public function copyFrom(src:EffectUnitData):void{
+		override public function copyFrom(src:EffectUnitData):void
+		{
 			super.copyFrom(src);
 			var sc:CameraShakeData = src as CameraShakeData;
 			this.m_frequency = sc.m_frequency;
@@ -47,15 +63,20 @@ package deltax.graphic.effect.data.unit {
 			this.m_maxRadius = sc.m_maxRadius;
 			this.m_shakeType = sc.m_shakeType;
 		}
+		
+		
+		
     }
-}//package deltax.graphic.effect.data.unit 
+}
 
-class Version {
-
+class Version 
+{
     public static const ORIGIN:uint = 0;
     public static const ADD_SHAKE_TYPE:uint = 1;
     public static const CURRENT:uint = 1;
 
-    public function Version(){
+    public function Version()
+	{
+		//
     }
 }
