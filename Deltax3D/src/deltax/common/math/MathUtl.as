@@ -1,10 +1,13 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common.math {
-    import flash.geom.*;
-    import __AS3__.vec.*;
+﻿package deltax.common.math 
+{
+    import flash.geom.Matrix3D;
+    import flash.geom.Point;
+    import flash.geom.Rectangle;
+    import flash.geom.Vector3D;
+    
 
-    public class MathUtl {
-
+    public class MathUtl 
+	{
         public static const IDENTITY_MATRIX3D:Matrix3D = new Matrix3D(Vector.<Number>([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]));
         public static const EMPTY_VECTOR3D:Vector3D = new Vector3D();
         public static const EMPTY_VECTOR3D_WITH_W:Vector3D = new Vector3D(0, 0, 0, 1);
@@ -246,4 +249,4 @@ package deltax.common.math {
         }
 
     }
-}//package deltax.common.math 
+}
