@@ -21,7 +21,6 @@
     import deltax.graphic.effect.util.FaceType;
     import deltax.graphic.manager.DeltaXSubGeometryManager;
     import deltax.graphic.manager.ShaderManager;
-    import deltax.graphic.model.Animation;
     import deltax.graphic.shader.DeltaXProgram3D;
     import deltax.graphic.texture.DeltaXTexture;
 	

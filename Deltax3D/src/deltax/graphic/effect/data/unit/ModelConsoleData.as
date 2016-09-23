@@ -15,31 +15,59 @@
     import deltax.graphic.model.Piece;
     import deltax.graphic.model.PieceGroup;
 
+	/**
+	 * 模型控制数据
+	 * @author lees
+	 * @date 2016/04/05
+	 */	
+	
     public class ModelConsoleData extends EffectUnitData 
 	{
         public static const MAX_PIECECLASS_COUNT:Number = 6;
 
+		/**旋转轴*/
         public var m_rotate:Vector3D;
+		/**开始角度*/
         public var m_startAngle:Number;
+		/**最大缩放值*/
         public var m_maxScale:Number;
+		/**最小缩放值*/
         public var m_minScale:Number;
+		/**角速度*/
         public var m_angularVelocity:Number;
+		/**网格名字*/
         public var m_meshName:String;
+		/**网格面片类索引列表*/
         public var m_pieceClassIndice:Vector.<uint>;
+		/**网格材质索引*/
         public var m_pieceMaterialIndice:Vector.<uint>;
+		/**是否异步*/
         public var m_syncronize:Boolean;
+		/**骨骼索引*/
         public var m_skeletalIndex:uint;
+		/**动作索引*/
         public var m_animationIndex:int;
+		/**动作组名*/
         public var m_aniGroupName:String;
+		/**链接父类的骨骼*/
         public var m_linkedParentSkeletal:String;
+		/**体型1*/
         public var m_figure1:uint;
+		/**体型2*/
         public var m_figure2:uint;
+		/**网格面片组*/
         public var m_pieceGroup:PieceGroup;
+		/**动作组*/
         public var m_aniGroup:AnimationGroup;
+		/**长度*/
         private var m_extent:Vector3D;
+		/**中心点*/
         private var m_center:Vector3D;
+		/**融合级别*/
         public var m_mergeLevel:uint;
+		/**网格面片组加载完成后的处理方法列表*/
         private var m_pieceGroupLoadCompeleteHandlers:Vector.<Function>;
+		/**动作组加载完成后的处理方法列表*/
         private var m_aniGroupLoadCompeleteHandlers:Vector.<Function>;
         
 		public function ModelConsoleData()
@@ -48,8 +76,76 @@
             this.m_pieceMaterialIndice = new Vector.<uint>(MAX_PIECECLASS_COUNT, true);
             this.m_extent = EffectUnitData.DEFAULT_BOUND_EXTENT.clone();
             this.m_center = EffectUnitData.DEFAULT_BOUND_CENTER.clone();
-            super();
         }
+		
+		override public function load(data:ByteArray, header:CommonFileHeader):void
+		{
+			curVersion = data.readUnsignedInt();
+			this.m_linkedParentSkeletal = Util.readUcs2StringWithCount(data);
+			this.m_skeletalIndex = data.readUnsignedShort();
+			this.m_figure1 = data.readUnsignedShort();
+			this.m_figure2 = data.readUnsignedShort();
+			data.position += 8;
+			this.m_startAngle = data.readFloat();
+			this.m_maxScale = data.readFloat();
+			this.m_minScale = data.readFloat();
+			this.m_meshName = Util.readUcs2StringWithCount(data);
+			this.m_aniGroupName = Util.readUcs2StringWithCount(data);
+			this.m_rotate = VectorUtil.readVector3D(data);
+			var idx:uint;
+			while (idx < MAX_PIECECLASS_COUNT) 
+			{
+				this.m_pieceClassIndice[idx] = data.readUnsignedShort();
+				this.m_pieceMaterialIndice[idx] = data.readUnsignedByte();
+				idx++;
+			}
+			
+			this.m_animationIndex = data.readShort();
+			this.m_syncronize = data.readBoolean();
+			if (curVersion >= Version.ADD_MERGE_LEVEL_EX)
+			{
+				this.m_mergeLevel = data.readUnsignedByte();
+			}
+			
+			super.load(data, header);
+			
+			this.calculateProps();
+		}
+		
+		override public function write(data:ByteArray, effectGroup:EffectGroup):void
+		{
+			curVersion = Version.CURRENT;
+			
+			data.writeUnsignedInt(this.curVersion);
+			Util.writeStringWithCount(data,this.m_linkedParentSkeletal);
+			data.writeShort(this.m_skeletalIndex);
+			data.writeShort(this.m_figure1);
+			data.writeShort(this.m_figure2);
+			data.position += 8;
+			data.writeFloat(this.m_startAngle);
+			data.writeFloat(this.m_maxScale);
+			data.writeFloat(this.m_minScale);
+			Util.writeStringWithCount(data,this.m_meshName);
+			Util.writeStringWithCount(data,this.m_aniGroupName);
+			VectorUtil.writeVector3D(data,this.m_rotate);
+			
+			var pieceClassIdx:uint;
+			while (pieceClassIdx < MAX_PIECECLASS_COUNT) 
+			{
+				data.writeShort(this.m_pieceClassIndice[pieceClassIdx]);
+				data.writeByte(this.m_pieceMaterialIndice[pieceClassIdx]);
+				pieceClassIdx++;
+			}
+			
+			data.writeShort(this.m_animationIndex);
+			data.writeBoolean(this.m_syncronize);
+			
+			if(this.curVersion>=Version.ADD_MERGE_LEVEL_EX)
+			{
+				data.writeByte(this.m_mergeLevel);
+			}
+			super.write(data,effectGroup);
+		}
 		
 		override public function copyFrom(src:EffectUnitData):void
 		{
@@ -70,8 +166,6 @@
 			this.m_linkedParentSkeletal = sc.m_linkedParentSkeletal;
 			this.m_figure1 = sc.m_figure1;
 			this.m_figure2 = sc.m_figure2;
-			//this.m_pieceGroup = sc.m_pieceGroup;
-			//this.m_aniGroup = sc.m_aniGroup;
 			this.m_extent = sc.orgExtent.clone();
 			this.m_center = sc.orgCenter.clone();
 			this.m_mergeLevel = sc.m_mergeLevel;
@@ -81,195 +175,196 @@
 		
         override public function destroy():void
 		{
-            var _local1:PieceGroup = this.m_pieceGroup;
-            var _local2:AnimationGroup = this.m_aniGroup;
-            this.m_pieceGroup = null;
-            this.m_aniGroup = null;
-            safeRelease(_local1);
-            safeRelease(_local2);
+            safeRelease(this.m_pieceGroup);
+            safeRelease(this.m_aniGroup);
+			this.m_pieceGroup = null;
+			this.m_aniGroup = null;
+			this.m_pieceGroupLoadCompeleteHandlers = null;
+			this.m_aniGroupLoadCompeleteHandlers = null;
             super.destroy();
         }
 		
-        override public function load(_arg1:ByteArray, _arg2:CommonFileHeader):void
+		override public function get orgExtent():Vector3D
 		{
-            var _local3:uint = _arg1.readUnsignedInt();
-			curVersion = _local3;
-            this.m_linkedParentSkeletal = Util.readUcs2StringWithCount(_arg1);
-            this.m_skeletalIndex = _arg1.readUnsignedShort();
-            this.m_figure1 = _arg1.readUnsignedShort();
-            this.m_figure2 = _arg1.readUnsignedShort();
-            _arg1.position = (_arg1.position + 8);
-            this.m_startAngle = _arg1.readFloat();
-            this.m_maxScale = _arg1.readFloat();
-            this.m_minScale = _arg1.readFloat();
-            this.m_meshName = Util.readUcs2StringWithCount(_arg1);
-            this.m_aniGroupName = Util.readUcs2StringWithCount(_arg1);
-            this.m_rotate = VectorUtil.readVector3D(_arg1);
-            var _local4:uint;
-            while (_local4 < MAX_PIECECLASS_COUNT) {
-                this.m_pieceClassIndice[_local4] = _arg1.readUnsignedShort();
-                this.m_pieceMaterialIndice[_local4] = _arg1.readUnsignedByte();
-                _local4++;
-            };
-            this.m_animationIndex = _arg1.readShort();
-            this.m_syncronize = _arg1.readBoolean();
-            if (_local3 >= Version.ADD_MERGE_LEVEL_EX){
-                this.m_mergeLevel = _arg1.readUnsignedByte();
-            };
-            super.load(_arg1, _arg2);
-            this.calculateProps();
-        }
-        public function calculateProps():void{
+			return this.m_extent;
+		}
+		
+		override public function get orgCenter():Vector3D
+		{
+			return this.m_center;
+		}
+		
+		/**
+		 * 计算属性
+		 */        
+        public function calculateProps():void
+		{
             this.m_angularVelocity = this.m_rotate.length;
-            if (this.m_meshName.length > 0){
-                this.m_pieceGroup = (ResourceManager.instance.getResource((Enviroment.ResourceRootPath + this.m_meshName), ResourceType.PIECE_GROUP, this.onPieceGroupLoaded) as PieceGroup);
-            };
-            if (this.m_aniGroupName.length > 0){
-                this.m_aniGroup = (ResourceManager.instance.getResource((Enviroment.ResourceRootPath + this.m_aniGroupName), ResourceType.ANI_GROUP, this.onAniGroupLoaded) as AnimationGroup);
-            };
-        }
-        private function onAniGroupLoaded(_arg1:AnimationGroup, _arg2:Boolean):void{
-            var _local3:uint;
-            if (this.m_aniGroup == null){
-                return;
-            };
-            if (this.m_aniGroupLoadCompeleteHandlers){
-                _local3 = 0;
-                while (_local3 < this.m_aniGroupLoadCompeleteHandlers.length) {
-                    var _local4 = this.m_aniGroupLoadCompeleteHandlers;
-                    _local4[_local3](_arg1, _arg2);
-                    _local3++;
-                };
-                this.m_aniGroupLoadCompeleteHandlers.length = 0;
-                this.m_aniGroupLoadCompeleteHandlers = null;
-            };
-        }
-        private function onPieceGroupLoaded(_arg1:PieceGroup, _arg2:Boolean):void{
-            var _local3:Vector3D;
-            var _local4:Vector3D;
-            var _local5:Vector3D;
-            var _local6:Vector3D;
-            var _local7:Vector3D;
-            var _local8:Vector3D;
-            var _local9:Piece;
-            var _local10:Boolean;
-            var _local11:uint;
-            var _local12:uint;
-            var _local13:uint;
-            if (this.m_pieceGroup == null){
-                return;
-            };
-            if (_arg2){
-                _local3 = new Vector3D(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE);
-                _local4 = new Vector3D(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
-                _local10 = false;
-                _local11 = 0;
-                while (_local11 < MAX_PIECECLASS_COUNT) {
-                    _local12 = this.m_pieceClassIndice[_local11];
-                    _local13 = 0;
-                    while (_local13 < this.m_pieceGroup.getPieceCountOfPieceClass(_local12)) {
-                        _local9 = this.m_pieceGroup.getPiece(_local12, _local13);
-                        if (!_local9){
-                        } else {
-                            _local5 = _local9.m_curOffset;
-                            _local6 = _local9.m_curScale;
-                            _local7 = _local5.add(_local6);
-                            _local7.scaleBy(0.5);
-                            _local8 = _local5.subtract(_local6);
-                            _local8.scaleBy(0.5);
-                            _local3.x = Math.max(_local7.x, _local3.x);
-                            _local3.y = Math.max(_local7.y, _local3.y);
-                            _local3.z = Math.max(_local7.z, _local3.z);
-                            _local4.x = Math.min(_local8.x, _local4.x);
-                            _local4.y = Math.min(_local8.y, _local4.y);
-                            _local4.z = Math.min(_local8.z, _local4.z);
-                            _local10 = true;
-                        };
-                        _local13++;
-                    };
-                    _local11++;
-                };
-                if (_local10){
-                    this.m_center.copyFrom(_local3);
-                    this.m_center.incrementBy(_local4);
-                    this.m_center.scaleBy(0.5);
-                    this.m_extent.copyFrom(_local3);
-                    this.m_extent.decrementBy(_local4);
-                    m_effectData.buildBoundingBoxFromTracks();
-                };
-            };
-            if (this.m_pieceGroupLoadCompeleteHandlers){
-                _local11 = 0;
-                while (_local11 < this.m_pieceGroupLoadCompeleteHandlers.length) {
-                    var _local14 = this.m_pieceGroupLoadCompeleteHandlers;
-                    _local14[_local11](this.m_pieceGroup, _arg2);
-                    _local11++;
-                };
-                this.m_pieceGroupLoadCompeleteHandlers.length = 0;
-                this.m_pieceGroupLoadCompeleteHandlers = null;
-            };
-        }
-        public function addPieceGroupLoadHandler(_arg1:Function):void{
-            if (!this.m_pieceGroupLoadCompeleteHandlers){
-                this.m_pieceGroupLoadCompeleteHandlers = new Vector.<Function>();
-            };
-            if (this.m_pieceGroupLoadCompeleteHandlers.indexOf(_arg1) != -1){
-                return;
-            };
-            if (((this.m_pieceGroup) && (this.m_pieceGroup.loaded))){
-                _arg1(this.m_pieceGroup, true);
-                return;
-            };
-            this.m_pieceGroupLoadCompeleteHandlers.push(_arg1);
-        }
-        public function addAniGroupLoadHandler(_arg1:Function):void{
-            if (!this.m_aniGroupLoadCompeleteHandlers){
-                this.m_aniGroupLoadCompeleteHandlers = new Vector.<Function>();
-            };
-            if (this.m_aniGroupLoadCompeleteHandlers.indexOf(_arg1) != -1){
-                return;
-            };
-            if (((this.m_aniGroup) && (this.m_aniGroup.loaded))){
-                _arg1(this.m_aniGroup, true);
-                return;
-            };
-            this.m_aniGroupLoadCompeleteHandlers.push(_arg1);
-        }
-        override public function get orgExtent():Vector3D{
-            return (this.m_extent);
-        }
-        override public function get orgCenter():Vector3D{
-            return (this.m_center);
+            if (this.m_meshName.length > 0)
+			{
+                this.m_pieceGroup = ResourceManager.instance.getResource((Enviroment.ResourceRootPath + this.m_meshName), ResourceType.PIECE_GROUP, this.onPieceGroupLoaded) as PieceGroup;
+            }
+			
+            if (this.m_aniGroupName.length > 0)
+			{
+                this.m_aniGroup = ResourceManager.instance.getResource((Enviroment.ResourceRootPath + this.m_aniGroupName), ResourceType.ANI_GROUP, this.onAniGroupLoaded) as AnimationGroup;
+            }
         }
 		
-		override public function write(data:ByteArray, effectGroup:EffectGroup):void{
-			curVersion = Version.CURRENT;
+		/**
+		 * 动作组加载完成
+		 * @param aniGroup
+		 * @param isSuccess
+		 */		
+        private function onAniGroupLoaded(aniGroup:AnimationGroup, isSuccess:Boolean):void
+		{
+            if (this.m_aniGroup == null)
+			{
+                return;
+            }
 			
-			data.writeUnsignedInt(this.curVersion);
-			Util.writeStringWithCount(data,this.m_linkedParentSkeletal);
-			data.writeShort(this.m_skeletalIndex);
-			data.writeShort(this.m_figure1);
-			data.writeShort(this.m_figure2);
-			data.position = data.position + 8;
-			data.writeFloat(this.m_startAngle);
-			data.writeFloat(this.m_maxScale);
-			data.writeFloat(this.m_minScale);
-			Util.writeStringWithCount(data,this.m_meshName);
-			Util.writeStringWithCount(data,this.m_aniGroupName);
-			VectorUtil.writeVector3D(data,this.m_rotate);
-			var pieceClassIdx:uint;
-			while (pieceClassIdx < MAX_PIECECLASS_COUNT) {
-				data.writeShort(this.m_pieceClassIndice[pieceClassIdx]);
-				data.writeByte(this.m_pieceMaterialIndice[pieceClassIdx]);
-				pieceClassIdx++;
-			}
-			data.writeShort(this.m_animationIndex);
-			data.writeBoolean(this.m_syncronize);
-			if(this.curVersion>=Version.ADD_MERGE_LEVEL_EX){
-				data.writeByte(this.m_mergeLevel);
-			}
-			super.write(data,effectGroup);
-		}
+            if (this.m_aniGroupLoadCompeleteHandlers)
+			{
+				var idx:uint = 0;
+				var list:Vector.<Function> = this.m_aniGroupLoadCompeleteHandlers;
+                while (idx < list.length) 
+				{
+					list[idx](aniGroup, isSuccess);
+					idx++;
+                }
+				
+                this.m_aniGroupLoadCompeleteHandlers.length = 0;
+                this.m_aniGroupLoadCompeleteHandlers = null;
+            }
+        }
+		
+		/**
+		 * 模型网格组加载完成
+		 * @param pGroup
+		 * @param isSuccess
+		 */		
+        private function onPieceGroupLoaded(pGroup:PieceGroup, isSuccess:Boolean):void
+		{
+            if (this.m_pieceGroup == null)
+			{
+                return;
+            }
+			
+            if (isSuccess)
+			{
+				var max:Vector3D = new Vector3D(Number.MIN_VALUE, Number.MIN_VALUE, Number.MIN_VALUE);
+				var min:Vector3D = new Vector3D(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+				var update:Boolean = false;
+				var idx:uint = 0;
+				var pIndex:uint;
+				var pclIdx:uint;
+				var p:Piece;
+				var tMax:Vector3D;
+				var tMin:Vector3D;
+                while (idx < MAX_PIECECLASS_COUNT) 
+				{
+					pIndex = this.m_pieceClassIndice[idx];
+					pclIdx = 0;
+                    while (pclIdx < this.m_pieceGroup.getPieceCountOfPieceClass(pIndex)) 
+					{
+                        p = this.m_pieceGroup.getPiece(pIndex, pclIdx);
+                        if (p)
+						{
+							tMax = p.m_curOffset.add(p.m_curScale);
+							tMax.scaleBy(0.5);
+							tMin = p.m_curOffset.subtract(p.m_curScale);
+							tMin.scaleBy(0.5);
+							max.x = Math.max(tMax.x, max.x);
+							max.y = Math.max(tMax.y, max.y);
+							max.z = Math.max(tMax.z, max.z);
+							min.x = Math.min(tMin.x, min.x);
+							min.y = Math.min(tMin.y, min.y);
+							min.z = Math.min(tMin.z, min.z);
+							update = true;
+                        }
+						pclIdx++;
+                    }
+					idx++;
+                }
+				
+                if (update)
+				{
+                    this.m_center.copyFrom(max);
+                    this.m_center.incrementBy(min);
+                    this.m_center.scaleBy(0.5);
+                    this.m_extent.copyFrom(max);
+                    this.m_extent.decrementBy(min);
+                    m_effectData.buildBoundingBoxFromTracks();
+                }
+            }
+			
+            if (this.m_pieceGroupLoadCompeleteHandlers)
+			{
+				idx = 0;
+				var list:Vector.<Function> = this.m_pieceGroupLoadCompeleteHandlers;
+                while (idx < list.length) 
+				{
+					list[idx](this.m_pieceGroup, isSuccess);
+					idx++;
+                }
+				
+                this.m_pieceGroupLoadCompeleteHandlers.length = 0;
+                this.m_pieceGroupLoadCompeleteHandlers = null;
+            }
+        }
+		
+		/**
+		 * 添加模型网格组加载完后的处理方法
+		 * @param fun
+		 */		
+        public function addPieceGroupLoadHandler(fun:Function):void
+		{
+            if (!this.m_pieceGroupLoadCompeleteHandlers)
+			{
+                this.m_pieceGroupLoadCompeleteHandlers = new Vector.<Function>();
+            }
+			
+            if (this.m_pieceGroupLoadCompeleteHandlers.indexOf(fun) != -1)
+			{
+                return;
+            }
+			
+            if (this.m_pieceGroup && this.m_pieceGroup.loaded)
+			{
+				fun(this.m_pieceGroup, true);
+                return;
+            }
+			
+            this.m_pieceGroupLoadCompeleteHandlers.push(fun);
+        }
+		
+		/**
+		 * 添加动作组加载完后的处理方法
+		 * @param fun
+		 */		
+        public function addAniGroupLoadHandler(fun:Function):void
+		{
+            if (!this.m_aniGroupLoadCompeleteHandlers)
+			{
+                this.m_aniGroupLoadCompeleteHandlers = new Vector.<Function>();
+            }
+			
+            if (this.m_aniGroupLoadCompeleteHandlers.indexOf(fun) != -1)
+			{
+                return;
+            }
+			
+            if (this.m_aniGroup && this.m_aniGroup.loaded)
+			{
+				fun(this.m_aniGroup, true);
+                return;
+            }
+			
+            this.m_aniGroupLoadCompeleteHandlers.push(fun);
+        }
+        
+		
+		
     }
 }
 

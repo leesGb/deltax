@@ -1,7 +1,8 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.data.unit.modelmaterial {
+﻿package deltax.graphic.effect.data.unit.modelmaterial 
+{
 
-    public final class SystemShaderType {
+    public final class SystemShaderType 
+	{
 
         public static const SCREEN_DISTURB:uint = 0;
         public static const SEPERATE_ALPHA:uint = 1;
@@ -9,4 +10,4 @@ package deltax.graphic.effect.data.unit.modelmaterial {
         public static const ADD_TEXTURE_MASK2:uint = 3;
 
     }
-}//package deltax.graphic.effect.data.unit.modelmaterial 
+} 

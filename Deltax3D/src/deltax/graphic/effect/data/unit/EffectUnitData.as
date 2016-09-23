@@ -440,14 +440,16 @@
 						var tempTextureName:String = this.m_textureNames[j];
 						if (tempTextureName == null)
 						{
-							data.writeUnsignedInt(-1);							
+//							data.writeUnsignedInt(-1);	
+							throw new Error("textureName is not null!!!!!!!!!!!!!");
 						}else
 						{
 							var resFileName:String = tempTextureName.toLocaleLowerCase().replace(/\\/g,"/").replace(new File(Enviroment.ResourceRootPath).nativePath.toLocaleLowerCase().replace(/\\/g,"/") + "/","");
 							var resFileIndex:int = dependentRes.m_resFileNames.indexOf(resFileName);
 							if(resFileIndex == -1)
 							{
-								trace("texture is null");
+//								trace("texture is null");
+								throw new Error("textureName is not null!!!!!!!!!!!!!");
 							}
 							data.writeUnsignedInt(resFileIndex);
 						}
@@ -564,20 +566,22 @@
 			Util.writeStringWithCount(data,this.m_customName);
 			
 			i = 0;
-			for(var idx:String in this.m_aniNames)
+			var aName:String;
+			for(aName in this.m_aniNames)
 			{
-				if(this.m_aniNames[idx] == true)
+				if(this.m_aniNames[aName])
 				{
 					i++;
 				}
 			}
 			
 			data.writeUnsignedInt(i);
-			for(var idx:String in this.m_aniNames)
+			
+			for(aName in this.m_aniNames)
 			{
-				if(this.m_aniNames[idx] == true)
+				if(this.m_aniNames[aName])
 				{
-					Util.writeStringWithCount(data,idx);
+					Util.writeStringWithCount(data,aName);
 				}
 			}			
 		}

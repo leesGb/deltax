@@ -1,7 +1,8 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.data.unit.particle {
+﻿package deltax.graphic.effect.data.unit.particle 
+{
 
-    public final class ParticleFaceType {
+    public final class ParticleFaceType 
+	{
 
         public static const CAMERA:uint = 0;
         public static const VELOCITY:uint = 1;
@@ -12,4 +13,4 @@ package deltax.graphic.effect.data.unit.particle {
         public static const VELOCITY_IGNORE_CAMERA:uint = 6;
 
     }
-}//package deltax.graphic.effect.data.unit.particle 
+} 

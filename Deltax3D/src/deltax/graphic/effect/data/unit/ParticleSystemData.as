@@ -77,45 +77,12 @@
 		/**初始角度*/	
 		public var m_startAngle:Number=0;
 		
-		override public function copyFrom(src:EffectUnitData):void
+		public function ParticleSystemData()
 		{
-			super.copyFrom(src);
-			
-			var sc:ParticleSystemData = src as ParticleSystemData;
-			this.m_minEmissionInterval = sc.m_minEmissionInterval;
-			this.m_maxEmissionInterval = sc.m_maxEmissionInterval;
-			this.m_particleCountPerEmission = sc.m_particleCountPerEmission;
-			this.m_minSize = sc.m_minSize;
-			this.m_maxSize = sc.m_maxSize;
-			this.m_emissionPlan = sc.m_emissionPlan.clone();
-			this.m_minVelocity = sc.m_minVelocity.clone();
-			this.m_maxVelocity = sc.m_maxVelocity.clone();
-			this.m_acceleration = sc.m_acceleration.clone();
-			this.m_minAngularVelocity = sc.m_minAngularVelocity;
-			this.m_maxAngularVelocity = sc.m_maxAngularVelocity;
-			this.m_minLifeTime = sc.m_minLifeTime;
-			this.m_maxLifeTime = sc.m_maxLifeTime;
-			this.m_minRadius = sc.m_minRadius;
-			this.m_maxRadius = sc.m_maxRadius;
-			this.m_longShortRadius = sc.m_longShortRadius;
-			this.m_longShortDRadius = sc.m_longShortDRadius;
-			this.m_cornerDivision = sc.m_cornerDivision;
-			this.m_velocityPercent = sc.m_velocityPercent;
-			this.m_widthRatio = sc.m_widthRatio;
-			this.m_moveType = sc.m_moveType;
-			this.m_emissionType = sc.m_emissionType;
-			this.m_velocityDir = sc.m_velocityDir;
-			this.m_accelType = sc.m_accelType;
-			this.m_faceType = sc.m_faceType;
-			this.m_zBias = sc.m_zBias;
-			this.m_blendMode = sc.m_blendMode;
-			this.m_zTestMode = sc.m_zTestMode;
-			this.m_parentParam = sc.m_parentParam;
-			this.m_enableLight = sc.m_enableLight;
-			this.m_startAngle = sc.m_startAngle;
+			//
 		}
 		
-        override public function load(date:ByteArray, head:CommonFileHeader):void
+        override public function load(date:ByteArray, header:CommonFileHeader):void
 		{
             var version:uint = date.readUnsignedInt();
             curVersion = version;
@@ -163,7 +130,7 @@
 				this.m_startAngle = date.readFloat();
 			}
 			
-            super.load(date, head);
+            super.load(date, header);
         }
 		
 		override public function write(data:ByteArray, effectGroup:EffectGroup):void
@@ -215,6 +182,44 @@
 			}
 			
 			super.write(data,effectGroup);
+		}
+		
+		override public function copyFrom(src:EffectUnitData):void
+		{
+			super.copyFrom(src);
+			
+			var sc:ParticleSystemData = src as ParticleSystemData;
+			this.m_minEmissionInterval = sc.m_minEmissionInterval;
+			this.m_maxEmissionInterval = sc.m_maxEmissionInterval;
+			this.m_particleCountPerEmission = sc.m_particleCountPerEmission;
+			this.m_minSize = sc.m_minSize;
+			this.m_maxSize = sc.m_maxSize;
+			this.m_emissionPlan = sc.m_emissionPlan.clone();
+			this.m_minVelocity = sc.m_minVelocity.clone();
+			this.m_maxVelocity = sc.m_maxVelocity.clone();
+			this.m_acceleration = sc.m_acceleration.clone();
+			this.m_minAngularVelocity = sc.m_minAngularVelocity;
+			this.m_maxAngularVelocity = sc.m_maxAngularVelocity;
+			this.m_minLifeTime = sc.m_minLifeTime;
+			this.m_maxLifeTime = sc.m_maxLifeTime;
+			this.m_minRadius = sc.m_minRadius;
+			this.m_maxRadius = sc.m_maxRadius;
+			this.m_longShortRadius = sc.m_longShortRadius;
+			this.m_longShortDRadius = sc.m_longShortDRadius;
+			this.m_cornerDivision = sc.m_cornerDivision;
+			this.m_velocityPercent = sc.m_velocityPercent;
+			this.m_widthRatio = sc.m_widthRatio;
+			this.m_moveType = sc.m_moveType;
+			this.m_emissionType = sc.m_emissionType;
+			this.m_velocityDir = sc.m_velocityDir;
+			this.m_accelType = sc.m_accelType;
+			this.m_faceType = sc.m_faceType;
+			this.m_zBias = sc.m_zBias;
+			this.m_blendMode = sc.m_blendMode;
+			this.m_zTestMode = sc.m_zTestMode;
+			this.m_parentParam = sc.m_parentParam;
+			this.m_enableLight = sc.m_enableLight;
+			this.m_startAngle = sc.m_startAngle;
 		}
 		
         override public function get orgExtent():Vector3D

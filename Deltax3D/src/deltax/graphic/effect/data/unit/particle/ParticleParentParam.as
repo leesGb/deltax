@@ -1,7 +1,8 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.effect.data.unit.particle {
+﻿package deltax.graphic.effect.data.unit.particle 
+{
 
-    public final class ParticleParentParam {
+    public final class ParticleParentParam 
+	{
 
         public static const NONE:uint = 0;
         public static const ADD_PARENT_COLOR:uint = 1;
@@ -9,4 +10,4 @@ package deltax.graphic.effect.data.unit.particle {
         public static const USE_SCALE_AND_EMITTION_INTERPOLATE:uint = 4;
 
     }
-}//package deltax.graphic.effect.data.unit.particle 
+} 

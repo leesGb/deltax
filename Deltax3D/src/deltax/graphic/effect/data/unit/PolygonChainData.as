@@ -7,6 +7,12 @@
     import deltax.common.resource.CommonFileHeader;
     import deltax.graphic.effect.data.EffectGroup;
 
+	/**
+	 * 多边形链数据
+	 * @author lees
+	 * @date 2016/04/05
+	 */	
+	
     public class PolygonChainData extends EffectUnitData 
 	{
 		/**绑定名字*/
@@ -64,37 +70,9 @@
 		/**抖动值（sin cos值列表）*/
         public var m_sinCosInfo:Vector.<Number>;
 		
-		override public function copyFrom(src:EffectUnitData):void
+		public function PolygonChainData()
 		{
-			super.copyFrom(src);
-			var sc:PolygonChainData = src as PolygonChainData;
-			this.m_nextBindName = sc.m_nextBindName;
-			this.m_bindType = sc.m_bindType;
-			this.m_startAngle = sc.m_startAngle;
-			this.m_rotateSpeed = sc.m_rotateSpeed;
-			this.m_chainWidth = sc.m_chainWidth;
-			this.m_chainCount = sc.m_chainCount;
-			this.m_chainNodeCount = sc.m_chainNodeCount;
-			this.m_chainNodeMaxScope = sc.m_chainNodeMaxScope;
-			this.m_chainNodeMinScope = sc.m_chainNodeMinScope;
-			this.m_ditheringInterval = sc.m_ditheringInterval;
-			this.m_uvSpeed = sc.m_uvSpeed;
-			this.m_maxBindRange = sc.m_maxBindRange;
-			this.m_fitScale = sc.m_fitScale;
-			this.m_blendMode = sc.m_blendMode;
-			this.m_zTestMode = sc.m_zTestMode;
-			this.m_textureType = sc.m_textureType;
-			this.m_enableLight = sc.m_enableLight;
-			this.m_changeScaleByTime = sc.m_changeScaleByTime;
-			this.m_scaleAsDitheringScope = sc.m_scaleAsDitheringScope;
-			this.m_widthAsTexU = sc.m_widthAsTexU;
-			this.m_invertTexU = sc.m_invertTexU;
-			this.m_invertTexV = sc.m_invertTexV;
-			this.m_randomChain = sc.m_randomChain;
-			this.m_renderType = sc.m_renderType;
-			this.m_diffuse = sc.m_diffuse;
-			this.m_faceType = sc.m_faceType;
-			this.m_sinCosInfo = sc.m_sinCosInfo.concat();
+			//
 		}
 		
         override public function load(data:ByteArray, head:CommonFileHeader):void
@@ -231,6 +209,39 @@
 				data.writeUnsignedInt(this.m_bindType);
 			}
 			super.write(data,effectGroup);
+		}
+		
+		override public function copyFrom(src:EffectUnitData):void
+		{
+			super.copyFrom(src);
+			var sc:PolygonChainData = src as PolygonChainData;
+			this.m_nextBindName = sc.m_nextBindName;
+			this.m_bindType = sc.m_bindType;
+			this.m_startAngle = sc.m_startAngle;
+			this.m_rotateSpeed = sc.m_rotateSpeed;
+			this.m_chainWidth = sc.m_chainWidth;
+			this.m_chainCount = sc.m_chainCount;
+			this.m_chainNodeCount = sc.m_chainNodeCount;
+			this.m_chainNodeMaxScope = sc.m_chainNodeMaxScope;
+			this.m_chainNodeMinScope = sc.m_chainNodeMinScope;
+			this.m_ditheringInterval = sc.m_ditheringInterval;
+			this.m_uvSpeed = sc.m_uvSpeed;
+			this.m_maxBindRange = sc.m_maxBindRange;
+			this.m_fitScale = sc.m_fitScale;
+			this.m_blendMode = sc.m_blendMode;
+			this.m_zTestMode = sc.m_zTestMode;
+			this.m_textureType = sc.m_textureType;
+			this.m_enableLight = sc.m_enableLight;
+			this.m_changeScaleByTime = sc.m_changeScaleByTime;
+			this.m_scaleAsDitheringScope = sc.m_scaleAsDitheringScope;
+			this.m_widthAsTexU = sc.m_widthAsTexU;
+			this.m_invertTexU = sc.m_invertTexU;
+			this.m_invertTexV = sc.m_invertTexV;
+			this.m_randomChain = sc.m_randomChain;
+			this.m_renderType = sc.m_renderType;
+			this.m_diffuse = sc.m_diffuse;
+			this.m_faceType = sc.m_faceType;
+			this.m_sinCosInfo = sc.m_sinCosInfo.concat();
 		}
 		
         override public function get orgExtent():Vector3D
