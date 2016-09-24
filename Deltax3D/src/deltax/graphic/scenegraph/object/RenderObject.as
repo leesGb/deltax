@@ -1,37 +1,62 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.scenegraph.object {
-    import __AS3__.vec.*;
-    
-    import deltax.*;
-    import deltax.appframe.*;
-    import deltax.common.*;
-    import deltax.common.error.*;
-    import deltax.common.log.*;
-    import deltax.common.math.*;
-    import deltax.common.resource.*;
-    import deltax.graphic.animation.*;
-    import deltax.graphic.bounds.*;
-    import deltax.graphic.camera.*;
-    import deltax.graphic.effect.data.*;
-    import deltax.graphic.effect.render.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.map.*;
-    import deltax.graphic.material.*;
-    import deltax.graphic.model.*;
-    import deltax.graphic.model.Socket;
-    import deltax.graphic.render.*;
-    import deltax.graphic.render.pass.*;
-    import deltax.graphic.scenegraph.partition.*;
-    import deltax.graphic.texture.*;
-    import deltax.graphic.util.*;
-    
-    import flash.display3D.*;
-    import flash.geom.*;
+﻿package deltax.graphic.scenegraph.object 
+{
+    import flash.display3D.Context3D;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
     import flash.net.URLLoaderDataFormat;
-    import flash.utils.*;
+    import flash.utils.ByteArray;
+    import flash.utils.Dictionary;
+    import flash.utils.getTimer;
+    
+    import deltax.delta;
+    import deltax.appframe.BaseApplication;
+    import deltax.common.DictionaryUtil;
+    import deltax.common.Util;
+    import deltax.common.safeRelease;
+    import deltax.common.error.Exception;
+    import deltax.common.log.LogLevel;
+    import deltax.common.log.dtrace;
+    import deltax.common.math.MathConsts;
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.Vector2D;
+    import deltax.common.math.VectorUtil;
+    import deltax.common.resource.Enviroment;
+    import deltax.graphic.animation.AniPlayType;
+    import deltax.graphic.animation.EnhanceSkeletonAnimationNode;
+    import deltax.graphic.animation.EnhanceSkeletonAnimationState;
+    import deltax.graphic.animation.EnhanceSkeletonAnimator;
+    import deltax.graphic.animation.EnhanceSkinnedSubGeometry;
+    import deltax.graphic.bounds.BoundingVolumeBase;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.effect.data.EffectGroup;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.manager.IResource;
+    import deltax.graphic.manager.OcclusionManager;
+    import deltax.graphic.manager.ResourceManager;
+    import deltax.graphic.manager.ResourceType;
+    import deltax.graphic.map.MapConstants;
+    import deltax.graphic.material.MaterialBase;
+    import deltax.graphic.material.RenderObjectMaterialInfo;
+    import deltax.graphic.material.SkinnedMeshMaterial;
+    import deltax.graphic.model.AniGroupLoadHandler;
+    import deltax.graphic.model.Animation;
+    import deltax.graphic.model.AnimationGroup;
+    import deltax.graphic.model.FigureUnit;
+    import deltax.graphic.model.FramePair;
+    import deltax.graphic.model.HPieceGroup;
+    import deltax.graphic.model.Piece;
+    import deltax.graphic.model.PieceGroup;
+    import deltax.graphic.model.Skeletal;
+    import deltax.graphic.model.Socket;
+    import deltax.graphic.render.IMaterialModifier;
+    import deltax.graphic.render.pass.SkinnedMeshPass;
+    import deltax.graphic.scenegraph.partition.EntityNode;
+    import deltax.graphic.texture.DeltaXTexture;
+    import deltax.graphic.util.DefaultAlphaController;
+    import deltax.graphic.util.IAlphaChangeable;
 
-    public class RenderObject extends Mesh implements IResource, AniGroupLoadHandler, LinkableRenderable, IAlphaChangeable {
-
+    public class RenderObject extends Mesh implements IResource, AniGroupLoadHandler, LinkableRenderable, IAlphaChangeable 
+	{
         private static const ANI_SYNC_EFFECT_ATTACH_NAMES:Vector.<String> = Vector.<String>(["DE01", "DE02", "DE03", "DE04", "DE05", "DE06", "DE07", "DE08", "DE09", "DE10", "DE11", "DE12", "DE13", "DE14", "DE15", "DE16", "DE17", "DE18", "DE19", "DE20"]);
         private static const ANI_NOSYNC_EFFECT_ATTACH_NAMES:Vector.<String> = Vector.<String>(["IE01", "IE02", "IE03", "IE04", "IE05", "IE06", "IE07", "IE08", "IE09", "DE10", "IE11", "IE12", "IE13", "IE14", "IE15", "IE16", "IE17", "IE18", "IE19", "IE20"]);
 
@@ -41,11 +66,8 @@ package deltax.graphic.scenegraph.object {
         private static var m_socketMatrixTemp:Matrix3D = new Matrix3D();
         private static var ANI_REPLACE_MAP:Dictionary = new Dictionary();
         private static var m_tempFigureIDsForUpdate:Vector.<uint> = new Vector.<uint>();
-;
         private static var m_tempFigureWeightsForUpdate:Vector.<Number> = new Vector.<Number>();
-;
         public static var DEFAULT_HIGHLIGHT_EMMISIVE:Vector.<Number> = new Vector.<Number>(4, true);
-;
 
         public var m_aniGroup:AnimationGroup;
 		public var m_pieceGroups:Vector.<PieceGroup> = new Vector.<PieceGroup>();
@@ -91,7 +113,8 @@ package deltax.graphic.scenegraph.object {
         private var m_alphaController:DefaultAlphaController;
         private var m_materialModifiers:Vector.<IMaterialModifier>;
 
-        public function RenderObject(_arg1:MaterialBase=null, _arg2:Geometry=null){
+        public function RenderObject(_arg1:MaterialBase=null, _arg2:Geometry=null)
+		{
             this.m_preOccupyEffectAttachNames = new Dictionary();
             this.m_addedPieceClasses = new Dictionary();
             this.m_addedNamedSubMeshes = new Dictionary();
@@ -859,7 +882,7 @@ package deltax.graphic.scenegraph.object {
         }
         public function convertToStatue(_arg1:Boolean):void{
         }
-        override public function clone():Object3D{
+        override public function clone():ObjectContainer3D{
             var _local1:RenderObject = new RenderObject(material, geometry);
             _local1.animationController = (animationController) ? animationController.clone() : null;
             _local1.transform = transform;
@@ -2225,50 +2248,63 @@ package deltax.graphic.scenegraph.object {
         DEFAULT_HIGHLIGHT_EMMISIVE[1] = 0.8745;
         DEFAULT_HIGHLIGHT_EMMISIVE[2] = 0.8745;
     }
-}//package deltax.graphic.scenegraph.object 
+} 
 
-import __AS3__.vec.*;
-import deltax.graphic.model.*;
-import deltax.graphic.scenegraph.object.*;
-class RenderObjectLink {
+
+
+import deltax.graphic.model.FigureUnit;
+import deltax.graphic.scenegraph.object.LinkableRenderable;
+import deltax.graphic.scenegraph.object.ObjectContainer3D;
+class RenderObjectLink 
+{
 
     public var m_linkProxyContainer:ObjectContainer3D;
     public var m_linkedObject:LinkableRenderable;
     public var m_linkID:uint;
     public var m_lifeEndTime:uint = 4294967295;
 
-    public function RenderObjectLink(){
+    public function RenderObjectLink()
+	{
+		//
     }
 }
-class FigureState {
+
+class FigureState 
+{
 
     public var m_figureUnits:Vector.<FigureUnit>;
     public var m_figureWeights:Vector.<FigureWeight>;
 
-    public function FigureState(){
+    public function FigureState()
+	{
         this.m_figureUnits = new Vector.<FigureUnit>();
         this.m_figureWeights = new Vector.<FigureWeight>();
-        super();
         this.clear();
     }
-    public function clear():void{
+	
+    public function clear():void
+	{
         this.m_figureUnits.length = 0;
         this.m_figureWeights.length = 1;
         this.m_figureWeights[0] = new FigureWeight();
     }
 
 }
-class FigureWeight {
 
+class FigureWeight 
+{
     public var m_weight:Number = 1;
     public var m_figureID:uint;
     public var m_figureIndex:uint;
 
-    public function FigureWeight(){
+    public function FigureWeight()
+	{
+		//
     }
 }
-class EffectLoadParam {
 
+class EffectLoadParam 
+{
     public var effectName:String;
     public var attachName:String;
     public var linkType:uint = 0;
@@ -2278,11 +2314,14 @@ class EffectLoadParam {
     public var aniBind:Boolean;
     public var aniWhenTryToAddSyncFx:String;
 
-    public function EffectLoadParam(){
+    public function EffectLoadParam()
+	{
+		//
     }
 }
-class AniPlayParam {
 
+class AniPlayParam 
+{
     public var aniName:String;
     public var loop:Boolean;
     public var initFrame:uint;
@@ -2292,14 +2331,20 @@ class AniPlayParam {
     public var delayTime:uint;
     public var excludeSkeletalIDs:Array;
 
-    public function AniPlayParam(){
+    public function AniPlayParam()
+	{
+		//
     }
-    public function clear():void{
+	
+    public function clear():void
+	{
         this.aniName = null;
         this.excludeSkeletalIDs = null;
     }
-    public function get valid():Boolean{
-        return (!((this.aniName == null)));
+	
+    public function get valid():Boolean
+	{
+        return this.aniName != null;
     }
 
 }

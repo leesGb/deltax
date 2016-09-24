@@ -254,7 +254,7 @@
             invalidateTransform();
         }
 		
-		override public function translateX(distance:Number, local:Boolean=true):void
+		public function translateX(distance:Number, local:Boolean=true):void
 		{
 			var xx:Number = _x;
 			var yy:Number = _y;
@@ -287,7 +287,7 @@
 			invalidateTransform();
 		}
 		
-		override public function translateY(distance:Number, local:Boolean=true):void
+		public function translateY(distance:Number, local:Boolean=true):void
 		{
 			var xx:Number = _x;
 			var yy:Number = _y;
@@ -396,13 +396,6 @@
         override public function set rotationZ(_arg1:Number):void
 		{
             super.rotationZ = _arg1;
-            this.m_lookAtPosInvalid = true;
-            this.m_rightValid = true;
-        }
-		
-        override public function set eulers(_arg1:Vector3D):void
-		{
-            super.eulers = _arg1;
             this.m_lookAtPosInvalid = true;
             this.m_rightValid = true;
         }

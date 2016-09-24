@@ -1,25 +1,40 @@
 ﻿package deltax.graphic.model 
 {
-    import __AS3__.vec.*;
-    
     import com.hmh.loaders.parsers.AbstMeshParser;
     import com.hmh.loaders.parsers.BJMeshParser;
     import com.hmh.loaders.parsers.SubGeometryVo;
     
-    import deltax.*;
-    import deltax.common.*;
-    import deltax.common.error.*;
-    import deltax.common.math.*;
-    import deltax.common.resource.*;
-    import deltax.graphic.animation.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.material.*;
-    import deltax.graphic.scenegraph.object.*;
+    import flash.geom.Vector3D;
+    import flash.net.URLLoaderDataFormat;
+    import flash.utils.ByteArray;
+    import flash.utils.Endian;
     
-    import flash.geom.*;
-    import flash.net.*;
-    import flash.utils.*;
-
+    import deltax.delta;
+    import deltax.common.Util;
+    import deltax.common.error.Exception;
+    import deltax.common.math.MathUtl;
+    import deltax.common.resource.CommonFileHeader;
+    import deltax.common.resource.DependentRes;
+    import deltax.common.resource.Enviroment;
+    import deltax.graphic.animation.EnhanceSkinnedSubGeometry;
+    import deltax.graphic.manager.BitmapMergeInfo;
+    import deltax.graphic.manager.IResource;
+    import deltax.graphic.manager.MaterialManager;
+    import deltax.graphic.manager.ResourceManager;
+    import deltax.graphic.manager.ResourceType;
+    import deltax.graphic.manager.StepTimeManager;
+    import deltax.graphic.material.MaterialBase;
+    import deltax.graphic.material.RenderObjectMaterialInfo;
+    import deltax.graphic.material.SkinnedMeshMaterial;
+    import deltax.graphic.scenegraph.object.RenderObject;
+    import deltax.graphic.scenegraph.object.SubMesh;
+	
+	/**
+	 * 模型数据组
+	 * @author lees
+	 * @data 2015/09/05
+	 */	
+	
     public class PieceGroup extends CommonFileHeader implements IResource 
 	{
         public static const VERSION_ORG:uint = 10001;
@@ -30,25 +45,37 @@
 		public static const VERSION_ScaleUVTexture:uint = 10006;
         public static const VERSION_Cur:uint = VERSION_ScaleUVTexture;
 
+		/***/
 		public var m_jointPerVertex:uint;
+		/***/
         public var m_pieceClasses:Vector.<PieceClass>;
+		/***/
 		public var m_name:String;
+		/***/
 		public var m_loaded:Boolean;
+		/***/
 		public var m_scale:Vector3D;
+		/***/
 		public var m_offset:Vector3D;
+		/***/
 		public var m_dependTextures:DependentRes;
+		/***/
 		public var m_dependMaterials:DependentRes;
+		/***/
 		public var m_stepLoadInfo:StepLoadInfo;
+		/***/
 		public var m_refCount:int = 1;
+		/***/
 		public var m_loadfailed:Boolean = false;
-		
+		/***/
 		public var meshParser:AbstMeshParser;
 
-        public function PieceGroup(){
+        public function PieceGroup()
+		{
             this.m_scale = new Vector3D(64, 64, 64);
             this.m_offset = new Vector3D();
-            super();
         }
+		
         public function get orgExtension():Vector3D{
             return (this.m_scale);
         }
@@ -275,120 +302,161 @@
                 };
             };
         }
-        public function get name():String{
-            return (this.m_name);
+		
+		public function getPieceCountOfPieceClass(_arg1:uint):uint{
+			if (!this.m_pieceClasses){
+				return (null);
+			};
+			if (_arg1 >= this.m_pieceClasses.length){
+				return (null);
+			};
+			return (this.m_pieceClasses[_arg1].m_pieces.length);
+		}
+		public function getPiece(_arg1:uint, _arg2:uint):Piece{
+			if (!this.m_pieceClasses){
+				return (null);
+			};
+			if (_arg1 >= this.m_pieceClasses.length){
+				return (null);
+			};
+			if (_arg2 >= this.m_pieceClasses[_arg1].m_pieces.length){
+				return (null);
+			};
+			return (this.m_pieceClasses[_arg1].m_pieces[_arg2]);
+		}
+		public function getPieceClassName(_arg1:uint):String{
+			if (!this.m_pieceClasses){
+				return (null);
+			};
+			if (_arg1 >= this.m_pieceClasses.length){
+				return (null);
+			};
+			return (this.m_pieceClasses[_arg1].m_name);
+		}
+		public function getPieceClassIndexByName(_arg1:String):int{
+			if (!this.m_pieceClasses){
+				return (-1);
+			};
+			var _local2:uint;
+			while (_local2 < this.m_pieceClasses.length) {
+				if (this.m_pieceClasses[_local2].m_name == _arg1){
+					return (_local2);
+				};
+				_local2++;
+			};
+			return (-1);
+		}
+		//=====================================================================================================================
+		//=====================================================================================================================
+		//
+        public function get name():String
+		{
+            return this.m_name;
         }
-        public function set name(_arg1:String):void{
-            this.m_name = _arg1;
+        public function set name(value:String):void
+		{
+            this.m_name = value;
         }
-        public function get loaded():Boolean{
-            return (this.m_loaded);
+		
+        public function get loaded():Boolean
+		{
+            return this.m_loaded;
         }
-        public function dispose():void{
-            var _local1:uint;
-            var _local2:uint;
-            _local1 = 0;
-            while (((this.m_pieceClasses) && ((_local1 < this.m_pieceClasses.length)))) {
-                if (this.m_pieceClasses[_local1] == null){
-                } else {
-                    _local2 = 0;
-                    while (_local2 < this.m_pieceClasses[_local1].m_pieces.length) {
-                        this.m_pieceClasses[_local1].m_pieces[_local2].destroy();
-                        _local2++;
-                    };
-                };
-                _local1++;
-            };
-        }
-        public function get dataFormat():String{
-            return (URLLoaderDataFormat.BINARY);
-        }
-        public function parse(_arg1:ByteArray):int {
-			//trace("PieceGroup::parse:" + this.name);
-            if (this.load(_arg1) == false){
-                return (-1);
-            };
-            if ((((this.m_pieceClasses == null)) || (!((this.m_stepLoadInfo == null))))){
-                return (0);
-            };
-            this.m_loaded = true;
-            return (1);
-        }
-        public function onDependencyRetrieve(_arg1:IResource, _arg2:Boolean):void{
-        }
-        public function onAllDependencyRetrieved():void{
-        }
-        public function get type():String{
-            return (ResourceType.PIECE_GROUP);
-        }
-        public function getPieceCountOfPieceClass(_arg1:uint):uint{
-            if (!this.m_pieceClasses){
-                return (null);
-            };
-            if (_arg1 >= this.m_pieceClasses.length){
-                return (null);
-            };
-            return (this.m_pieceClasses[_arg1].m_pieces.length);
-        }
-        public function getPiece(_arg1:uint, _arg2:uint):Piece{
-            if (!this.m_pieceClasses){
-                return (null);
-            };
-            if (_arg1 >= this.m_pieceClasses.length){
-                return (null);
-            };
-            if (_arg2 >= this.m_pieceClasses[_arg1].m_pieces.length){
-                return (null);
-            };
-            return (this.m_pieceClasses[_arg1].m_pieces[_arg2]);
-        }
-        public function getPieceClassName(_arg1:uint):String{
-            if (!this.m_pieceClasses){
-                return (null);
-            };
-            if (_arg1 >= this.m_pieceClasses.length){
-                return (null);
-            };
-            return (this.m_pieceClasses[_arg1].m_name);
-        }
-        public function getPieceClassIndexByName(_arg1:String):int{
-            if (!this.m_pieceClasses){
-                return (-1);
-            };
-            var _local2:uint;
-            while (_local2 < this.m_pieceClasses.length) {
-                if (this.m_pieceClasses[_local2].m_name == _arg1){
-                    return (_local2);
-                };
-                _local2++;
-            };
-            return (-1);
-        }
-        public function reference():void{
+		
+		public function get loadfailed():Boolean
+		{
+			return this.m_loadfailed;
+		}
+		public function set loadfailed(value:Boolean):void
+		{
+			this.m_loadfailed = value;
+		}
+		
+		public function get dataFormat():String
+		{
+			return URLLoaderDataFormat.BINARY;
+		}
+		
+		public function get type():String
+		{
+			return ResourceType.PIECE_GROUP;
+		}
+		
+		public function parse(_arg1:ByteArray):int 
+		{
+			if (this.load(_arg1) == false){
+				return (-1);
+			};
+			if ((((this.m_pieceClasses == null)) || (!((this.m_stepLoadInfo == null))))){
+				return (0);
+			};
+			this.m_loaded = true;
+			return (1);
+		}
+		
+		public function onDependencyRetrieve(_arg1:IResource, _arg2:Boolean):void
+		{
+			//
+		}
+		
+		public function onAllDependencyRetrieved():void
+		{
+			//
+		}
+		
+        public function reference():void
+		{
             this.m_refCount++;
         }
-        public function release():void{
-            if (--this.m_refCount > 0){
+		
+        public function release():void
+		{
+            if (--this.m_refCount > 0)
+			{
                 return;
-            };
-            if (this.m_refCount < 0){
-                (Exception.CreateException(((this.name + ":after release refCount == ") + this.m_refCount)));
+            }
+			
+            if (this.m_refCount < 0)
+			{
+                Exception.CreateException(this.name + ":after release refCount == " + this.m_refCount);
 				return;
-            };
+            }
+			
             ResourceManager.instance.releaseResource(this, ResourceManager.DESTROY_DELAY);
         }
-        public function get refCount():uint{
-            return (this.m_refCount);
-        }
-        public function get loadfailed():Boolean{
-            return (this.m_loadfailed);
-        }
-        public function set loadfailed(_arg1:Boolean):void{
-            this.m_loadfailed = _arg1;
+		
+        public function get refCount():uint
+		{
+            return this.m_refCount;
         }
 		
+		public function dispose():void
+		{
+			var i:uint;
+			var j:uint;
+			if(this.m_pieceClasses)
+			{
+				while (i < this.m_pieceClasses.length)
+				{
+					if (this.m_pieceClasses[i])
+					{
+						j = 0;
+						while (j < this.m_pieceClasses[i].m_pieces.length) 
+						{
+							this.m_pieceClasses[i].m_pieces[j].destroy();
+							j++;
+						}
+					}
+					i++;
+				}
+				this.m_pieceClasses = null;
+			}
+		}
+        
 		
-		override public function write(data:ByteArray):Boolean{
+		
+		override public function write(data:ByteArray):Boolean
+		{
 			m_dependantResList = new Vector.<DependentRes>();
 			m_dependantResList.push(dependMaterials);
 			m_dependantResList.push(dependTextures);
@@ -398,12 +466,14 @@
 			var j:int = 0;
 			var pieceClass:PieceClass;
 			var piece:Piece;
-			while(i<this.m_pieceClasses.length){
+			while(i<this.m_pieceClasses.length)
+			{
 				pieceClass = this.m_pieceClasses[i];
 				Util.writeStringWithCount(data,pieceClass.m_name);
 				data.writeShort(pieceClass.m_pieces.length);
 				j = 0;
-				while(j<pieceClass.m_pieces.length){
+				while(j<pieceClass.m_pieces.length)
+				{
 					piece = pieceClass.m_pieces[j];
 					piece.WriteIndexData(data,m_version);
 					j++;
@@ -413,16 +483,20 @@
 			this.writeMainData(data);
 			return true;
 		}
-		private function writeMainData(data:ByteArray):void{
+		
+		private function writeMainData(data:ByteArray):void
+		{
 			var piece:Piece;
 			var pieceClass:PieceClass;
 			var pieceClassIndex:int = 0;
 			var pieceIndex:int = 0;
-			while(pieceClassIndex<this.m_pieceClasses.length){
+			while(pieceClassIndex<this.m_pieceClasses.length)
+			{
 				pieceClass = this.m_pieceClasses[pieceClassIndex];
 				
 				pieceIndex = 0;
-				while(pieceIndex<pieceClass.m_pieces.length){
+				while(pieceIndex<pieceClass.m_pieces.length)
+				{
 					piece = pieceClass.m_pieces[pieceIndex];
 					piece.WriteMainData(data,m_version);
 					
@@ -458,7 +532,8 @@
 					subGeo.jointWeights = new Vector.<Number>();
 					subGeo.jointIndices = new Vector.<Number>();
 					
-					for each(var piece:Piece in pieceClass.m_pieces){
+					for each(var piece:Piece in pieceClass.m_pieces)
+					{
 						subGeo.m_materialInfos = piece.delta::m_materialInfos;
 							
 						var vertexData:ByteArray = new ByteArray();
@@ -466,7 +541,8 @@
 						vertexData.writeBytes(piece.vertexData,0,piece.vertexData.length);
 						vertexData.position = 0;
 						subGeo.vertexCnt = piece.getVertexCount();
-						for(var jj:int = 0;jj<piece.getVertexCount();jj++){
+						for(var jj:int = 0;jj<piece.getVertexCount();jj++)
+						{
 							subGeo.vertices.push(vertexData.readFloat());
 							subGeo.vertices.push(vertexData.readFloat());
 							subGeo.vertices.push(vertexData.readFloat());
@@ -495,7 +571,8 @@
 						indiceData.endian = Endian.LITTLE_ENDIAN;
 						indiceData.writeBytes(piece.indiceData,0,piece.indiceData.length);
 						indiceData.position = 0;						
-						while(indiceData.bytesAvailable>0){
+						while(indiceData.bytesAvailable>0)
+						{
 							subGeo.indices.push(indiceData.readShort());
 						}
 						subGeo.indiceCnt = subGeo.indices.length;
@@ -503,9 +580,11 @@
 				}				
 			}
 			
-			for(var i:int = 0;i<m_pieceClasses.length;i++){
+			for(var i:int = 0;i<m_pieceClasses.length;i++)
+			{
 				var pieceClass:PieceClass = m_pieceClasses[i];
-				for each(var piece:Piece in pieceClass.m_pieces){
+				for each(var piece:Piece in pieceClass.m_pieces)
+				{
 					meshParser.subGeometrys[i].pieceType = piece.Type;
 				}
 			}
@@ -554,10 +633,12 @@
     }
 }
 
-import flash.geom.*;
 
-class StepLoadInfo {
 
+import flash.geom.Vector3D;
+
+class StepLoadInfo 
+{
     public static const MAX_NUMBER:Number = 1.79769313486232E308;
     public static const MIN_NUMBER:Number = Number.MIN_VALUE;
 
@@ -569,11 +650,11 @@ class StepLoadInfo {
     public var pieceClassIndex:uint = 0;
     public var pieceIndex:uint = 0;
 
-    public function StepLoadInfo(){
+    public function StepLoadInfo()
+	{
         this.vMax = new Vector3D(MIN_NUMBER, MIN_NUMBER, MIN_NUMBER);
         this.vMin = new Vector3D(MAX_NUMBER, MAX_NUMBER, MAX_NUMBER);
         this.vMaxOnePiece = new Vector3D(MIN_NUMBER, MIN_NUMBER, MIN_NUMBER);
         this.vMinOnePiece = new Vector3D(MAX_NUMBER, MAX_NUMBER, MAX_NUMBER);
-        super();
     }
 }

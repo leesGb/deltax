@@ -1,39 +1,74 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.scenegraph.object {
-    import __AS3__.vec.*;
-    import deltax.*;
+﻿package deltax.graphic.scenegraph.object 
+{
+    
+    import deltax.delta;
+	
+	/**
+	 *几何体数据类
+	 *@author lees
+	 *@date 2015-8-17
+	 */
 
-    public class Geometry {
-
+    public class Geometry 
+	{
+		/**子几何体数据列表*/
         private var _subGeometries:Vector.<SubGeometry>;
+		/**网格面片类*/
         private var _mesh:Mesh;
 
-        public function Geometry(_arg1:Mesh){
-            this._mesh = _arg1;
+        public function Geometry($mesh:Mesh)
+		{
+            this._mesh = $mesh;
             this._subGeometries = new Vector.<SubGeometry>();
         }
-        public function get subGeometries():Vector.<SubGeometry>{
-            return (this._subGeometries);
+		
+		/**
+		 * 获取子几何体数据列表
+		 * @return 
+		 */		
+        public function get subGeometries():Vector.<SubGeometry>
+		{
+            return this._subGeometries;
         }
-        public function addSubGeometry(_arg1:SubGeometry):void{
-            this._subGeometries.push(_arg1);
-            _arg1.delta::parentGeometry = this;
-            this._mesh.onSubGeometryAdded(_arg1);
+		
+		/**
+		 * 添加子几何体数据
+		 * @param value
+		 */		
+        public function addSubGeometry(value:SubGeometry):void
+		{
+            this._subGeometries.push(value);
+			value.delta::parentGeometry = this;
+            this._mesh.onSubGeometryAdded(value);
         }
-        public function removeSubGeometry(_arg1:SubGeometry):void{
-            this._subGeometries.splice(this._subGeometries.indexOf(_arg1), 1);
-            _arg1.delta::parentGeometry = null;
-            this._mesh.onSubGeometryRemoved(_arg1);
+		
+		/**
+		 * 移除子几何体数据
+		 * @param value
+		 */		
+        public function removeSubGeometry(value:SubGeometry):void
+		{
+            this._subGeometries.splice(this._subGeometries.indexOf(value), 1);
+			value.delta::parentGeometry = null;
+            this._mesh.onSubGeometryRemoved(value);
         }
-        public function dispose():void{
-            var _local1:uint = this._subGeometries.length;
-            var _local2:uint;
-            while (_local2 < _local1) {
-                this._subGeometries[_local2].dispose();
-                _local2++;
-            };
+		
+		/**
+		 * 数据销毁
+		 */		
+        public function dispose():void
+		{
+            var count:uint = this._subGeometries.length;
+            var idx:uint;
+            while (idx < count) 
+			{
+                this._subGeometries[idx].dispose();
+				idx++;
+            }
+			
             this._mesh = null;
         }
 
+		
     }
-}//package deltax.graphic.scenegraph.object 
+} 

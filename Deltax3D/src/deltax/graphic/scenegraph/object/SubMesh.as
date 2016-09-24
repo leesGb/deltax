@@ -1,88 +1,145 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.scenegraph.object {
-    import deltax.common.debug.*;
-    import flash.display3D.*;
-    import flash.geom.*;
-    import deltax.graphic.material.*;
-    import deltax.graphic.animation.*;
-    import deltax.*;
+﻿package deltax.graphic.scenegraph.object 
+{
+    import flash.display3D.Context3D;
+    import flash.display3D.IndexBuffer3D;
+    import flash.display3D.VertexBuffer3D;
+    import flash.geom.Matrix3D;
+    
+    import deltax.delta;
+    import deltax.graphic.animation.AnimationStateBase;
+    import deltax.graphic.material.MaterialBase;
+	
+	/**
+	 * 网格数据渲染类
+	 * @author lees
+	 * @date 2015-8-17
+	 */	
 
-    public class SubMesh implements IRenderable {
-
+    public class SubMesh implements IRenderable 
+	{
+		/**网格材质*/
         delta var _material:MaterialBase;
+		/**父类网格*/
         private var _parentMesh:Mesh;
+		/**几何体数据*/
         private var _subGeometry:SubGeometry;
+		/**索引*/
         delta var _index:uint;
 
-        public function SubMesh(_arg1:SubGeometry, _arg2:Mesh, _arg3:MaterialBase=null){
-            this._parentMesh = _arg2;
-            this._subGeometry = _arg1;
-            this.material = _arg3;
-            ObjectCounter.add(this);
+        public function SubMesh($subGeometry:SubGeometry, $mesh:Mesh, $material:MaterialBase=null)
+		{
+            this._parentMesh = $mesh;
+            this._subGeometry = $subGeometry;
+            this.material = $material;
         }
-        public function get sourceEntity():Entity{
-            return (this._parentMesh);
+		
+		/**
+		 * 几何体数据
+		 * @return 
+		 */		
+        public function get subGeometry():SubGeometry
+		{
+            return this._subGeometry;
         }
-        public function get subGeometry():SubGeometry{
-            return (this._subGeometry);
+        public function set subGeometry(value:SubGeometry):void
+		{
+            this._subGeometry = value;
         }
-        public function set subGeometry(_arg1:SubGeometry):void{
-            this._subGeometry = _arg1;
+		
+		/**
+		 * 父类网格
+		 * @return 
+		 */		
+		delta function get parentMesh():Mesh
+		{
+			return this._parentMesh;
+		}
+		delta function set parentMesh(value:Mesh):void
+		{
+			this._parentMesh = value;
+		}
+		
+		
+		
+        public function get material():MaterialBase
+		{
+            return (this.delta::_material || this._parentMesh.material);
         }
-        public function get material():MaterialBase{
-            return (((this.delta::_material) || (this._parentMesh.material)));
-        }
-        public function set material(_arg1:MaterialBase):void{
-            if (_arg1 == this.delta::_material){
+        public function set material(value:MaterialBase):void
+		{
+            if (value == this.delta::_material)
+			{
                 return;
-            };
-            if (this.delta::_material){
+            }
+			
+            if (this.delta::_material)
+			{
                 this.delta::_material.release();
-            };
-            this.delta::_material = _arg1;
-            if (this.delta::_material){
+            }
+			
+            this.delta::_material = value;
+			
+            if (this.delta::_material)
+			{
                 this.delta::_material.reference();
-            };
+            }
         }
-        public function get zIndex():Number{
-            return (this._parentMesh.zIndex);
-        }
-        public function get sceneTransform():Matrix3D{
-            return (this._parentMesh.sceneTransform);
-        }
-        public function get inverseSceneTransform():Matrix3D{
-            return (this._parentMesh.inverseSceneTransform);
-        }
-        public function getVertexBuffer(_arg1:Context3D):VertexBuffer3D{
-            return (this._subGeometry.getVertexBuffer(_arg1));
-        }
-        public function getIndexBuffer(_arg1:Context3D):IndexBuffer3D{
-            return (this._subGeometry.getIndexBuffer(_arg1));
-        }
-        public function get modelViewProjection():Matrix3D{
-            return (this._parentMesh.modelViewProjection);
-        }
-        public function get numTriangles():uint{
-            return (this._subGeometry.numTriangles);
-        }
-        public function get animationState():AnimationStateBase{
-            return (this._parentMesh.delta::_animationState);
-        }
-        public function get mouseEnabled():Boolean{
-            return (this._parentMesh.mouseEnabled);
-        }
-        public function get mouseDetails():Boolean{
-            return (this._parentMesh.mouseDetails);
-        }
-        delta function get parentMesh():Mesh{
-            return (this._parentMesh);
-        }
-        delta function set parentMesh(_arg1:Mesh):void{
-            this._parentMesh = _arg1;
-        }
-        public function get shadowCaster():Boolean{
-            return (this._parentMesh.castsShadows);
-        }
+		
+		public function get animationState():AnimationStateBase
+		{
+			return this._parentMesh.delta::_animationState;
+		}
+		
+		public function get sceneTransform():Matrix3D
+		{
+			return this._parentMesh.sceneTransform;
+		}
+		
+		public function get inverseSceneTransform():Matrix3D
+		{
+			return this._parentMesh.inverseSceneTransform;
+		}
+		
+		public function get modelViewProjection():Matrix3D
+		{
+			return this._parentMesh.modelViewProjection;
+		}
+		
+		public function get zIndex():Number
+		{
+			return this._parentMesh.zIndex;
+		}
+		
+		public function get mouseEnabled():Boolean
+		{
+			return this._parentMesh.mouseEnabled;
+		}
+		
+		public function getVertexBuffer(context:Context3D):VertexBuffer3D
+		{
+			return this._subGeometry.getVertexBuffer(context);
+		}
+		
+		public function getIndexBuffer(context:Context3D):IndexBuffer3D
+		{
+			return this._subGeometry.getIndexBuffer(context);
+		}
+		
+		public function get numTriangles():uint
+		{
+			return this._subGeometry.numTriangles;
+		}
+		
+		public function get sourceEntity():Entity
+		{
+			return this._parentMesh;
+		}
+		
+		public function get shadowCaster():Boolean
+		{
+			return this._parentMesh.castsShadows;
+		}
 
+		
     }
-}//package deltax.graphic.scenegraph.object 
+} 
