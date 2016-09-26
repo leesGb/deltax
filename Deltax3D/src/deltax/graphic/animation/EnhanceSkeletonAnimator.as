@@ -1,160 +1,250 @@
 ﻿package deltax.graphic.animation 
 {
-    import deltax.*;
-    import deltax.graphic.model.*;
+    import deltax.delta;
+    import deltax.graphic.model.Animation;
+    import deltax.graphic.model.AnimationGroup;
+    import deltax.graphic.model.Skeletal;
 	use namespace delta;
+	
+	/**
+	 * 蒙皮动画控制器
+	 * @author lees
+	 * @date 2015/09/06 
+	 */	
 	
     public class EnhanceSkeletonAnimator extends AnimatorBase 
 	{
+		/**每帧延长或缩小的时间系数*/
+		private var m_timeScale:Number;
+		/**上一帧的时间*/
+		private var m_preTime:uint;
 
-        private var m_timeScale:Number;
-        private var m_preTime:uint;
-
-        public function EnhanceSkeletonAnimator(_arg1:AnimationGroup)
+		public function EnhanceSkeletonAnimator(ans:AnimationGroup)
 		{
-            this.m_preTime = 0;
-            this.m_timeScale = 1;
-            animationState = new EnhanceSkeletonAnimationState(_arg1);
-        }
+			this.m_preTime = 0;
+			this.m_timeScale = 1;
+			animationState = new EnhanceSkeletonAnimationState(ans);
+		}
 		
+		/**
+		 * 获取动画的渲染状态
+		 * @return 
+		 */	
         public function get skeletonAnimationState():EnhanceSkeletonAnimationState
 		{
-            return (EnhanceSkeletonAnimationState(_animationState));
+            return EnhanceSkeletonAnimationState(_animationState);
         }
 		
+		/**
+		 * 获取该动画的动作组数据
+		 * @return 
+		 */	
         public function get animationGroup():AnimationGroup
 		{
-            return (this.skeletonAnimationState.animationGroup);
+            return this.skeletonAnimationState.animationGroup;
         }
 		
+		/**
+		 * 每帧时间是否延长或缩小
+		 * @return 
+		 */	
         public function get timeScale():Number
 		{
-            return (this.m_timeScale);
+            return this.m_timeScale;
         }
-		
-        public function set timeScale(_arg1:Number):void
+        public function set timeScale(va:Number):void
 		{
-            this.m_timeScale = _arg1;
+            this.m_timeScale = va;
         }
 		
-        private function syncAnimation2ChildSkeleton(_arg1:uint, _arg2:Array):void{
-            var _local6:uint;
-            var _local7:uint;
-            var _local3:EnhanceSkeletonAnimationState = this.skeletonAnimationState;
-            var _local4:Array = _local3.animationOnSkeleton;
-            var _local5:Skeletal = this.animationGroup.getSkeletalByID(_arg1);
-            if (!_local5){
-                return;
-            };
-            _local6 = 0;
-            while (_local6 < _local5.m_childCount) {
-                _local7 = _local5.m_childIds[_local6];
-                this.syncAnimation2ChildSkeleton(_local7, _arg2);
-                if (((!(_arg2)) || (!(_arg2[_local7])))){
-                    _local4[_local7] = null;
-                };
-                _local6++;
-            };
-        }
-        public function play(aniName:String, loop:uint=0, initFrame:uint=0, startFrame:uint=1, endFrame:uint=1, skeletalId:uint=0, delayTime:uint=200, excludeSkeletalIDs:Array=null, sync:Boolean=true):void
+		/**
+		 * 更新该骨骼所相关联的骨骼
+		 * @param skeletalID
+		 * @param excludeSkeletalIDs
+		 */		
+		private function syncAnimation2ChildSkeleton(skeletalID:uint, excludeSkeletalIDs:Array):void
+		{
+			var aState:EnhanceSkeletonAnimationState = this.skeletonAnimationState;
+			var animationOnSkeleton:Array = aState.animationOnSkeleton;
+			var skeletal:Skeletal = this.animationGroup.getSkeletalByID(skeletalID);
+			if (skeletal == null)
+			{
+				return;
+			}
+			//
+			var childId:uint;			
+			var idx:uint = 0;
+			while (idx < skeletal.m_childCount) 
+			{
+				childId = skeletal.m_childIds[idx];
+				this.syncAnimation2ChildSkeleton(childId, excludeSkeletalIDs);
+				if (excludeSkeletalIDs == null || !excludeSkeletalIDs[childId])
+				{
+					animationOnSkeleton[childId] = null;
+				}
+				idx++;
+			}
+		}
+		
+		/**
+		 *  播放动画
+		 * @param aniName									动作的名字
+		 * @param aniPlayType								动画播放的类型
+		 * @param initFrame								从第几帧初始化
+		 * @param startFrame								开始播放的帧数
+		 * @param endFrame								结束播放的帧数
+		 * @param skeletalId								骨骼id
+		 * @param delayTime								动画延迟播放的时间
+		 * @param excludeSkeletalIDs					排除那些骨骼列表
+		 * @param sync										是否异步更新相关联的骨骼
+		 */		
+        public function play(aniName:String, aniPlayType:uint=0, initFrame:uint=0, startFrame:uint=1, endFrame:uint=1, skeletalId:uint=0, delayTime:uint=200, excludeSkeletalIDs:Array=null, sync:Boolean=true):void
 		{
             var animationState:EnhanceSkeletonAnimationState = this.skeletonAnimationState;
             var skeletonList:Array = animationState.animationOnSkeleton;
             var animation:Animation = this.animationGroup.getAnimationData(aniName);
 			skeletonList[skeletalId] = ((skeletonList[skeletalId]) || (new EnhanceSkeletonAnimationNode()));
             var skeletonAnimationNode:EnhanceSkeletonAnimationNode = EnhanceSkeletonAnimationNode(skeletonList[skeletalId]);
-            if ((((delayTime > 0)) && (skeletonAnimationNode.m_animation)))
+            if (delayTime > 0 && skeletonAnimationNode.m_animation)
 			{
 				animationState.initBlendInfo(skeletalId, skeletonAnimationNode.m_animation, skeletonAnimationNode.curFrame);
             }
-			skeletonAnimationNode.setAnimationInfo(animation, loop, initFrame, startFrame, endFrame, delayTime);
+			
+			skeletonAnimationNode.setAnimationInfo(animation, aniPlayType, initFrame, startFrame, endFrame, delayTime);
             if (sync)
 			{
                 this.syncAnimation2ChildSkeleton(skeletalId, excludeSkeletalIDs);
             }
+			
             this.m_preTime = 0;
         }
-        override public function updateAnimation(_arg1:uint):void{
-            var _local5:EnhanceSkeletonAnimationNode;
-            var _local6:uint;
-            var _local7:uint;
-            if (_arg1 == this.m_preTime){
-                return;
-            };
-            if ((((this.m_preTime > _arg1)) || ((this.m_preTime == 0)))){
-                this.m_preTime = (_arg1 - 1);
-            };
-            var _local2:EnhanceSkeletonAnimationState = this.skeletonAnimationState;
-            var _local3:Array = _local2.animationOnSkeleton;
-            var _local4:uint;
-            while (_local4 < _local3.length) {
-                _local5 = EnhanceSkeletonAnimationNode(_local3[_local4]);
-                if (!_local5){
-                } else {
-                    if (_local5.m_startTime == 0){
-                        _local5.m_startTime = (_arg1 + _local5.m_delayTime);
-                    };
-                    if (_arg1 < _local5.m_startTime){
-                        if (this.m_preTime == 0){
-                            _local5.m_frameOrWeight = -1E-7;
-                        } else {
-                            _local5.m_frameOrWeight = (-(Number((_local5.m_startTime - _arg1))) / Number((_local5.m_startTime - this.m_preTime)));
-                        };
-                    } else {
-                        _local6 = (_arg1 - _local5.m_startTime);
-						var frameInterval:uint;
-						if(_local5.m_animation.m_frameRate>0){
-							frameInterval = _local5.m_animation.m_frameInterval;
-						}else{
-							frameInterval = Animation.DEFAULT_FRAME_INTERVAL;
+		
+		/**
+		 * 获取当前动画节点（如果没指定骨骼id，一般骨骼id为0）
+		 * @param skeletalID		骨骼id
+		 * @return 
+		 */		
+		public function getCurAnimationNode(skeletalID:uint):EnhanceSkeletonAnimationNode
+		{
+			var ans:AnimationGroup = this.animationGroup;
+			if (skeletalID >= ans.skeletalCount)
+			{
+				return null;
+			}
+			//
+			var skeletal:Skeletal;			
+			var node:EnhanceSkeletonAnimationNode;			
+			var aState:EnhanceSkeletonAnimationState = this.skeletonAnimationState;
+			var animationOnSkeleton:Array = aState.animationOnSkeleton;
+			while (skeletalID > 0) 
+			{
+				node = EnhanceSkeletonAnimationNode(animationOnSkeleton[skeletalID]);
+				if (node && node.m_playType != AniPlayType.PARENT_SYNC)
+				{
+					break;
+				}
+				skeletal = ans.getSkeletalByID(skeletalID);
+				skeletalID = skeletal.m_parentID;
+			}
+			
+			node = EnhanceSkeletonAnimationNode(animationOnSkeleton[skeletalID]);
+			return node;
+		}
+		
+		/**
+		 * 获取当前动画的动作名
+		 * @param skeletalID
+		 * @return 
+		 */		
+		public function getCurAnimationName(skeletalID:uint):String
+		{
+			var node:EnhanceSkeletonAnimationNode = this.getCurAnimationNode(skeletalID);
+			if (node == null)
+			{
+				return null;
+			}
+			
+			return node.m_animation.RawAniName;
+		}
+		
+		/**
+		 * 获取当前动作数据
+		 * @param skeletalID
+		 * @return 
+		 */		
+		public function getCurAnimation(skeletalID:uint):Animation
+		{
+			var node:EnhanceSkeletonAnimationNode = this.getCurAnimationNode(skeletalID);
+			if (node == null)
+			{
+				return null;
+			}
+			
+			return node.m_animation;
+		}
+		
+		override public function updateAnimation(curTime:uint):void
+		{
+			if (curTime == this.m_preTime)
+			{
+				return;
+			}
+			//
+			if (this.m_preTime > curTime || this.m_preTime == 0)
+			{
+				this.m_preTime = curTime - 1;
+			}
+			var aState:EnhanceSkeletonAnimationState = this.skeletonAnimationState;
+			var animationOnSkeleton:Array = aState.animationOnSkeleton;
+			var node:EnhanceSkeletonAnimationNode;
+			var frameInterval:int;
+			var offsetTime:uint;
+			var curFrame:uint;
+			var idx:uint;
+			while (idx < animationOnSkeleton.length) 
+			{
+				node = EnhanceSkeletonAnimationNode(animationOnSkeleton[idx]);
+				if (node)
+				{
+					if (node.m_startTime == 0)
+					{
+						node.m_startTime = curTime + node.m_delayTime;
+					}
+					//
+					if (curTime < node.m_startTime)
+					{
+						node.m_frameOrWeight = (this.m_preTime == 0)?(-1E-7):(-Number(node.m_startTime - curTime) / Number(node.m_startTime - this.m_preTime)); 
+					} else
+					{
+						offsetTime = curTime - node.m_startTime;
+						frameInterval = (node.m_animation.m_frameRate>0)?(node.m_animation.m_frameInterval):(Animation.DEFAULT_FRAME_INTERVAL);
+						curFrame = (offsetTime / frameInterval + node.m_initFrame) * m_timeScale;
+						if (node.m_playType == AniPlayType.LOOP)
+						{
+							node.m_frameOrWeight = (curFrame % node.m_totalFrame + node.m_startFrame);
+						} else 
+						{
+							node.m_frameOrWeight = Math.min(curFrame, (node.m_totalFrame - 1) + node.m_startFrame);
 						}
-                        _local7 = ((_local6 / frameInterval) + _local5.m_initFrame);
-                        if (_local5.m_playType == AniPlayType.LOOP){
-                            _local5.m_frameOrWeight = ((_local7 % _local5.m_totalFrame) + _local5.m_startFrame);
-                        } else {
-                            _local5.m_frameOrWeight = (Math.min(_local7, (_local5.m_totalFrame - 1)) + _local5.m_startFrame);
-                        };
-                    };
-                };
-                _local4++;
-            };
-            this.m_preTime = _arg1;
-            _animationState.invalidateState();
-        }
-        public function getCurAnimationNode(_arg1:uint):EnhanceSkeletonAnimationNode{
-            var _local5:EnhanceSkeletonAnimationNode;
-            var _local6:Skeletal;
-            var _local2:AnimationGroup = this.animationGroup;
-            if (_arg1 >= _local2.skeletalCount){
-                return (null);
-            };
-            var _local3:EnhanceSkeletonAnimationState = this.skeletonAnimationState;
-            var _local4:Array = _local3.animationOnSkeleton;
-            while (_arg1 > 0) {
-                _local5 = EnhanceSkeletonAnimationNode(_local4[_arg1]);
-                if (((_local5) && (!((_local5.m_playType == AniPlayType.PARENT_SYNC))))){
-                    break;
-                };
-                _local6 = _local2.getSkeletalByID(_arg1);
-                _arg1 = _local6.m_parentID;
-            };
-            _local5 = EnhanceSkeletonAnimationNode(_local4[_arg1]);
-            return (_local5);
-        }
-        public function getCurAnimationName(_arg1:uint):String{
-            var _local2:EnhanceSkeletonAnimationNode = this.getCurAnimationNode(_arg1);
-            if (!_local2){
-                return (null);
-            };
-            return (_local2.m_animation.RawAniName);
-        }
-        public function getCurAnimation(_arg1:uint):Animation{
-            var _local2:EnhanceSkeletonAnimationNode = this.getCurAnimationNode(_arg1);
-            if (!_local2){
-                return (null);
-            };
-            return (_local2.m_animation);
-        }
+					}
+				}
+				idx++;
+			}
+			
+			this.m_preTime = curTime;
+			_animationState.invalidateState();
+		}
+		
+		override public function destory():void
+		{
+			if(animationState)
+			{
+				animationState.destory();
+				animationState = null;
+			}
+		}
 
+		
+		
     }
-}//package deltax.graphic.animation 
+} 

@@ -3,16 +3,35 @@
     import deltax.common.math.*;
     import deltax.graphic.model.*;
 
+	/**
+	 *骨骼动画节点信息
+	 *@author lees
+	 *@date 2015/09/06
+	 */
+	
     public class EnhanceSkeletonAnimationNode 
 	{
-        public var m_animation:Animation;
-        public var m_initFrame:uint;
-        public var m_startFrame:uint;
-        public var m_totalFrame:uint;
-        public var m_playType:uint;
-        public var m_delayTime:uint;
-        public var m_startTime:uint;
-        public var m_frameOrWeight:Number;
+		/**动作数据*/
+		public var m_animation:Animation;
+		/**初始帧*/
+		public var m_initFrame:uint;
+		/**开始帧*/
+		public var m_startFrame:uint;
+		/**总帧数*/
+		public var m_totalFrame:uint;
+		/**动画播放类型*/
+		public var m_playType:uint;
+		/**动作延迟播放的时间*/
+		public var m_delayTime:uint;
+		/**动作开始播放的时间*/
+		public var m_startTime:uint;
+		/**当前的帧或权重*/
+		public var m_frameOrWeight:Number;
+		
+		public function EnhanceSkeletonAnimationNode()
+		{
+			//
+		}
 
 		/**
 		 * 设置动画信息
@@ -51,7 +70,7 @@
 		 */		
         public function get ended():Boolean
 		{
-            return (this.m_frameOrWeight >= (this.m_startFrame + this.m_totalFrame));
+            return this.m_frameOrWeight >= (this.m_startFrame + this.m_totalFrame);
         }
 
 		
