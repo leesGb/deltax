@@ -203,7 +203,6 @@
 				{
 					resFileName = ansName + resFileName + ".ani";
 					var animation:Animation = ResourceManager.instance.getDependencyOnResource(this, resFileName, ResourceType.ANIMATION_SEQ) as Animation;
-					animation.type = ResourceType.ANIMATION_SEQ;
 					animation.m_aniGroup = this;
 					animation.RawAniName = aniName;
 					animation.delta::setHeadInfo(aniSequenceHeaderInfo);
@@ -415,7 +414,6 @@
 			var aniName:String = aniFilePath;
 			aniFilePath = ansName + aniFilePath + ".ani";
 			var ani:Animation = ResourceManager.instance.getDependencyOnResource(this, aniFilePath, ResourceType.ANIMATION_SEQ) as Animation;
-			ani.type = ResourceType.ANIMATION_SEQ;
 			ani.m_aniGroup = this;
 			ani.RawAniName = aniName;
 			ani.delta::setHeadInfo(this.m_aniSequenceHeaders[aniIndex]);
@@ -429,8 +427,6 @@
 		{
 			var index:int;
 			var name:String;
-			var resourceType:String;
-			var extendStr:String = ".ani";
 			var ansName:String;
 			var aniFileName:String;
 			var ani:Animation;
@@ -456,13 +452,11 @@
 				}
 				
 				aniFileName = dependtRes.m_resFileNames[index];
-				resourceType = ResourceType.ANIMATION_SEQ;
 				aniFileName = aniFileName.slice(2);
-				aniFileName = aniFileName.slice(0, aniFileName.indexOf(extendStr));
+				aniFileName = aniFileName.slice(0, aniFileName.indexOf(".ani"));
 				aniName = aniFileName;
-				aniFileName = ansName + aniFileName + extendStr;
-				ani = ResourceManager.instance.getResource(aniFileName,resourceType) as Animation;
-				ani.type = resourceType;
+				aniFileName = ansName + aniFileName + ".ani";
+				ani = ResourceManager.instance.getResource(aniFileName,ResourceType.ANIMATION_SEQ) as Animation;
 				ani.m_aniGroup = this;
 				ani.RawAniName = aniName;
 				ani.delta::setHeadInfo(this.m_aniSequenceHeaders[index]);
