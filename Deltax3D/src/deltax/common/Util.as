@@ -1,9 +1,13 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common {
-    import flash.utils.*;
+﻿package deltax.common 
+{
+    import flash.utils.ByteArray;
+    import flash.utils.Endian;
 
-    public final class Util {
+    public final class Util 
+	{
 
+		public static var UsingATF:Boolean = false;
+		
         public static function makeDWORD(_arg1:uint=0, _arg2:uint=0, _arg3:uint=0, _arg4:uint=0):uint{
             return ((((_arg1 | (_arg2 << 8)) | (_arg3 << 16)) | (_arg4 << 24)));
         }
@@ -102,6 +106,18 @@ package deltax.common {
             };
             return (_local2);
         }
+		
+		public static function pngToAtfFileName(url:String ):String 
+		{
+			if(UsingATF == false)
+			{
+				return url;
+			}
+				
+			url = url.replace(".jpg",".atf");
+			url = url.replace(".png",".atf");
+			return url;
+		}
 
     }
 }//package deltax.common 

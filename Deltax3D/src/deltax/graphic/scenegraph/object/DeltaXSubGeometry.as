@@ -7,19 +7,40 @@
     public class DeltaXSubGeometry extends SubGeometry 
 	{
 
-        public function DeltaXSubGeometry(_arg1:uint)
+        public function DeltaXSubGeometry($size:uint)
 		{
-            super(_arg1);
+            super($size);
             DeltaXSubGeometryManager.Instance.registerDeltaXSubGeometry(this);
         }
 		
-        public function onVisibleTest(_arg1:Boolean):void
+		/**
+		 * 可见性测试
+		 * @param va
+		 */		
+        public function onVisibleTest(va:Boolean):void
 		{
-            if (!_arg1)
+            if (!va)
 			{
                 freeBuffer();
             }
         }
+		
+		/**
+		 * 设备丢失
+		 */		
+		public function onLostDevice():void
+		{
+			freeBuffer();
+		}
+		
+		/**
+		 * 获取顶点缓冲区
+		 * @return 
+		 */		
+		public function get rawVertexBuffer():VertexBuffer3D
+		{
+			return _vertexBuffer;
+		}
 		
         override public function dispose():void
 		{
@@ -27,16 +48,6 @@
             DeltaXSubGeometryManager.Instance.unregisterDeltaXSubGeometry(this);
         }
 		
-        public function onLostDevice():void
-		{
-            freeBuffer();
-        }
-		
-        public function get rawVertexBuffer():VertexBuffer3D
-		{
-            return (_vertexBuffer);
-        }
-
 		
     }
 } 

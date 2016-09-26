@@ -1,21 +1,26 @@
 ﻿package deltax.graphic.model 
 {
-    import __AS3__.vec.*;
-    
-    import deltax.*;
-    import deltax.common.*;
-    import deltax.common.debug.*;
-    import deltax.common.log.*;
-    import deltax.common.math.VectorUtil;
-    import deltax.graphic.animation.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.util.*;
-    
-    import flash.display3D.*;
-    import flash.geom.*;
-    import flash.utils.*;
+    import flash.display3D.Context3D;
+    import flash.display3D.IndexBuffer3D;
+    import flash.display3D.VertexBuffer3D;
+    import flash.geom.Point;
+    import flash.geom.Rectangle;
+    import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
+    import flash.utils.Endian;
+    import flash.utils.getTimer;
     
     import mx.controls.Alert;
+    
+    import deltax.delta;
+    import deltax.common.LittleEndianByteArray;
+    import deltax.common.log.LogLevel;
+    import deltax.common.log.dtrace;
+    import deltax.common.math.VectorUtil;
+    import deltax.graphic.animation.EnhanceSkinnedSubGeometry;
+    import deltax.graphic.manager.StepTimeManager;
+    import deltax.graphic.util.TinyNormal;
+    import deltax.graphic.util.TinyVertex;
 
     public class Piece 
 	{
@@ -56,155 +61,206 @@
         private var m_indiceRef:uint;
         private var m_vertexRef:uint;
 		
-        public function Piece(){
-            ObjectCounter.add(this);
+        public function Piece()
+		{
+			//
         }
-        public function get Type():uint{
-            return ((this.m_pieceFlag & ePF_VertexTypeMask));
+		
+        public function get Type():uint
+		{
+            return (this.m_pieceFlag & ePF_VertexTypeMask);
         }
-        public function ConvertToSubGeometry():EnhanceSkinnedSubGeometry{
-            return (new EnhanceSkinnedSubGeometry(this, SkinVertexStride));
+		
+        public function ConvertToSubGeometry():EnhanceSkinnedSubGeometry
+		{
+            return new EnhanceSkinnedSubGeometry(this, SkinVertexStride);
         }
-        public function ReadIndexData(_arg1:ByteArray, _arg2:uint):void{
-            this.m_orgScale = ((this.m_orgScale) || (new Vector3D()));
-            this.m_orgOffset = ((this.m_orgOffset) || (new Vector3D()));
-            this.m_orgScale.x = _arg1.readFloat();
-            this.m_orgScale.y = _arg1.readFloat();
-            this.m_orgScale.z = _arg1.readFloat();
-            this.m_orgOffset.x = _arg1.readFloat();
-            this.m_orgOffset.y = _arg1.readFloat();
-            this.m_orgOffset.z = _arg1.readFloat();
-            if (_arg2 >= PieceGroup.VERSION_AddEditBox){
-                this.m_curScale = ((this.m_curScale) || (new Vector3D()));
-                this.m_curOffset = ((this.m_curOffset) || (new Vector3D()));
-                this.m_curScale.x = _arg1.readFloat();
-                this.m_curScale.y = _arg1.readFloat();
-                this.m_curScale.z = _arg1.readFloat();
-                this.m_curOffset.x = _arg1.readFloat();
-                this.m_curOffset.y = _arg1.readFloat();
-                this.m_curOffset.z = _arg1.readFloat();
-            } else {
-                this.m_orgScale = ((this.m_orgScale) || (new Vector3D(this.m_orgScale.x, this.m_orgScale.y, this.m_orgScale.z)));
-                this.m_curOffset = ((this.m_curOffset) || (new Vector3D(this.m_orgOffset.x, this.m_orgOffset.y, this.m_orgOffset.z)));
-            };
-            if (_arg2 >= PieceGroup.VERSION_MoveMatrl2Index){
-                this.ReadMaterial(_arg1, _arg2);
-            };
+		
+        public function ReadIndexData(data:ByteArray, version:uint):void
+		{
+            this.m_orgScale = (this.m_orgScale || new Vector3D());
+            this.m_orgOffset = (this.m_orgOffset || new Vector3D());
+            this.m_orgScale.x = data.readFloat();
+            this.m_orgScale.y = data.readFloat();
+            this.m_orgScale.z = data.readFloat();
+            this.m_orgOffset.x = data.readFloat();
+            this.m_orgOffset.y = data.readFloat();
+            this.m_orgOffset.z = data.readFloat();
+			
+            if (version >= PieceGroup.VERSION_AddEditBox)
+			{
+                this.m_curScale = (this.m_curScale || new Vector3D());
+                this.m_curOffset = (this.m_curOffset || new Vector3D());
+                this.m_curScale.x = data.readFloat();
+                this.m_curScale.y = data.readFloat();
+                this.m_curScale.z = data.readFloat();
+                this.m_curOffset.x = data.readFloat();
+                this.m_curOffset.y = data.readFloat();
+                this.m_curOffset.z = data.readFloat();
+            } else 
+			{
+                this.m_curScale = (this.m_curScale || new Vector3D(this.m_orgScale.x, this.m_orgScale.y, this.m_orgScale.z));
+                this.m_curOffset = (this.m_curOffset || new Vector3D(this.m_orgOffset.x, this.m_orgOffset.y, this.m_orgOffset.z));
+            }
+			
+            if (version >= PieceGroup.VERSION_MoveMatrl2Index)
+			{
+                this.ReadMaterial(data, version);
+            }
         }
-        private function ReadMaterial(_arg1:ByteArray, _arg2:uint):void{
-            var _local5:uint;
-            var _local6:uint;
-            var _local7:uint;
-            var _local8:Vector.<uint>;
-            var _local9:uint;
-            var _local10:uint;
-            var _local3:uint = _arg1.readUnsignedByte();
-            this.delta::m_materialInfos = new Vector.<PieceMaterialInfo>(_local3, false);
-            var _local4:uint;
-            while (_local4 < _local3) {
-                this.delta::m_materialInfos[_local4] = ((this.delta::m_materialInfos[_local4]) || (new PieceMaterialInfo()));
-                this.delta::m_materialInfos[_local4].m_baseMatIndex = _arg1.readUnsignedShort();
-                _local5 = _arg1.readUnsignedByte();
-                this.delta::m_materialInfos[_local4].m_texIndiceGroups = new Vector.<Vector.<uint>>(_local5);
-                _local6 = 0;
-                while (_local6 < _local5) {
-                    _local7 = 1;
-                    if (_arg2 >= PieceGroup.VERSION_AddTexList){
-                        _local7 = _arg1.readUnsignedByte();
-                    };
-                    _local8 = new Vector.<uint>(_local7, false);
-                    _local9 = 0;
-                    while (_local9 < _local7) {
-                        _local10 = _arg1.readUnsignedShort();
-						//if (_local9 == 0 || (_local9 > 0 && _local8[_local9 - 1] != _local10)) {
-							_local8[_local9] = _local10;
-						//}else {
-						//	trace("error same?");//by hmh 不能相同
-						//}
-                        _local9++;
-                    }
-					this.delta::m_materialInfos[_local4].m_texIndiceGroups[_local6] = _local8;						
-                    _local6++;
-                };
-                _local4++;
-            };
+		
+        private function ReadMaterial(data:ByteArray, version:uint):void
+		{
+			var i:uint;
+			var j:uint;
+			var k:uint;
+			var texIndex:uint;
+			var texIndiceGroupCounts:uint;
+			var texIndiceGroupListCounts:uint;
+			var texIndiceGroupList:Vector.<uint>;
+			var materialInfoCounts:uint = data.readUnsignedByte();
+			this.delta::m_materialInfos = new Vector.<PieceMaterialInfo>(materialInfoCounts, true);
+			while (i < materialInfoCounts) 
+			{
+				this.delta::m_materialInfos[i] = ((this.delta::m_materialInfos[i]) || (new PieceMaterialInfo()));
+				this.delta::m_materialInfos[i].m_baseMatIndex = data.readUnsignedShort();
+				texIndiceGroupCounts = data.readUnsignedByte();
+				this.delta::m_materialInfos[i].m_texIndiceGroups = new Vector.<Vector.<uint>>(texIndiceGroupCounts);
+				j = 0;
+				while (j < texIndiceGroupCounts) 
+				{
+					texIndiceGroupListCounts = 1;
+					if (version >= PieceGroup.VERSION_AddTexList)
+					{
+						texIndiceGroupListCounts = data.readUnsignedByte();
+					}
+					texIndiceGroupList = new Vector.<uint>(texIndiceGroupListCounts, true);
+					k = 0;
+					while (k < texIndiceGroupListCounts) 
+					{
+						texIndex = data.readUnsignedShort();
+						texIndiceGroupList[k] = texIndex;
+						k++;
+					}
+					this.delta::m_materialInfos[i].m_texIndiceGroups[j] = texIndiceGroupList;						
+					j++;
+				}
+				i++;
+			}
         }
-        public function ReadMainData(_arg1:ByteArray, _arg2:uint):Boolean{
-            if (this.m_indiceData){
-                return (true);
-            };
-            if (this.m_stepLoadInfo == null){
-                if (_arg2 < PieceGroup.VERSION_MoveMatrl2Index){
-                    this.ReadMaterial(_arg1, _arg2);
-                };
-                this.m_pieceFlag = _arg1.readUnsignedByte();
-                this.m_zBias = _arg1.readFloat();
-                this.m_texScale = _arg1.readFloat();
-            };
-            this.ReadMeshData(_arg1,_arg2);
-            return ((this.m_stepLoadInfo == null));
-        }
-        private function ReadMeshData(_arg1:ByteArray,version:uint):void{
-            var _local4:uint;
-            if (this.m_stepLoadInfo == null){
-                _arg1.readUnsignedShort();
+		
+		public function ReadMainData(data:ByteArray, version:uint):Boolean
+		{
+			if (this.m_indiceData)
+			{
+				return true;
+			}
+			//
+			if (this.m_stepLoadInfo == null)
+			{
+				if (version < PieceGroup.VERSION_MoveMatrl2Index)
+				{
+					this.ReadMaterial(data, version);
+				}
+				
+				this.m_pieceFlag = data.readUnsignedByte();
+				this.m_zBias = data.readFloat();
+				this.m_texScale = data.readFloat();
+			}
+			//
+			this.ReadMeshData(data,version);
+			
+			return this.m_stepLoadInfo == null;
+		}
+		
+        private function ReadMeshData(data:ByteArray,version:uint):void
+		{
+            if (this.m_stepLoadInfo == null)
+			{
+				data.readUnsignedShort();
                 this.m_stepLoadInfo = new StepLoadInfo();
-                this.m_stepLoadInfo.vertexCount = _arg1.readUnsignedShort();
+                this.m_stepLoadInfo.vertexCount = data.readUnsignedShort();
                 this.m_stepLoadInfo.vertexSize = this.GetVertexSize(new PieceSaveInfo(this.m_orgScale, this.m_orgOffset, this.m_texScale));
                 this.m_stepLoadInfo.vertexIndex = 0;
-                this.m_stepLoadInfo.byteArrayPosition = _arg1.position;
-            };
-            _arg1.position = this.m_stepLoadInfo.byteArrayPosition;
-            if ((((this.m_stepLoadInfo.vertexIndex < this.m_stepLoadInfo.vertexCount)) && (StepTimeManager.instance.stepBegin()))){
-                _local4 = StepTimeManager.instance.getRemainTime();
-                this.DecompressVertice(_arg1, this.m_stepLoadInfo.vertexCount, _local4,version);
+                this.m_stepLoadInfo.byteArrayPosition = data.position;
+            }
+			
+			data.position = this.m_stepLoadInfo.byteArrayPosition;
+            if (this.m_stepLoadInfo.vertexIndex < this.m_stepLoadInfo.vertexCount && StepTimeManager.instance.stepBegin())
+			{
+				var remainTime:uint = StepTimeManager.instance.getRemainTime();
+                this.DecompressVertice(data, this.m_stepLoadInfo.vertexCount, remainTime,version);
                 StepTimeManager.instance.stepEnd();
-                if (this.m_stepLoadInfo.vertexIndex < this.m_stepLoadInfo.vertexCount){
-                    this.m_stepLoadInfo.byteArrayPosition = _arg1.position;
+                if (this.m_stepLoadInfo.vertexIndex < this.m_stepLoadInfo.vertexCount)
+				{
+                    this.m_stepLoadInfo.byteArrayPosition = data.position;
                     return;
-                };
-            };
-            if (!StepTimeManager.instance.stepBegin()){
-                this.m_stepLoadInfo.byteArrayPosition = _arg1.position;
+                }
+            }
+			
+            if (!StepTimeManager.instance.stepBegin())
+			{
+                this.m_stepLoadInfo.byteArrayPosition = data.position;
                 return;
-            };
-			var indiceCount:int = _arg1.readUnsignedInt();
-            this.m_indiceData = new LittleEndianByteArray((indiceCount * 2));
-            var _local3:uint = 0;
-            while (_local3 < indiceCount) {
-                if (this.m_stepLoadInfo.vertexCount < 0x0100){
-                    this.m_indiceData.writeShort(_arg1.readUnsignedByte());
-                } else {
-                    this.m_indiceData.writeShort(_arg1.readUnsignedShort());
-                };
-                _local3++;
-            };
+            }
+			
+			var indiceCount:int = data.readUnsignedInt();
+            this.m_indiceData = new LittleEndianByteArray(indiceCount * 2);
+            var idx:uint = 0;
+            while (idx < indiceCount) 
+			{
+                if (this.m_stepLoadInfo.vertexCount < 0x0100)
+				{
+                    this.m_indiceData.writeShort(data.readUnsignedByte());
+                } else 
+				{
+                    this.m_indiceData.writeShort(data.readUnsignedShort());
+                }
+				idx++;
+            }
+			
             StepTimeManager.instance.stepEnd();
             this.m_stepLoadInfo = null;
         }
-        private function GetVertexSize(_arg1:PieceSaveInfo):uint{
-            if ((((_arg1.sPos < 0x0400)) && ((_arg1.sTex <= 1.02)))){//1024
-                return (TinyVertex.TINY_VERTEX_10_11.BufferSize);
-            };
-            if ((((_arg1.sPos < 0x1000)) && ((_arg1.sTex <= 2.04)))){//4096
-                return (TinyVertex.TINY_VERTEX_12_12.BufferSize);
-            };
-            if ((((_arg1.sPos < 0x1000)) && ((_arg1.sTex < 32.7)))){//4096
-                return (TinyVertex.TINY_VERTEX_12_16.BufferSize);
-            };
-            if ((((_arg1.sPos < 0x4000)) && ((_arg1.sTex < 32.7)))){//16384
-                return (TinyVertex.TINY_VERTEX_14_16.BufferSize);
-            };
-            if ((((_arg1.sPos < 65536)) && ((_arg1.sTex < 32.7)))){//65536
-                return (TinyVertex.TINY_VERTEX_16_16.BufferSize);
-            };
-			if ((_arg1.sPos < 65536) && (_arg1.sTex < 131)){//262144
-				return (TinyVertex.TINY_VERTEX_16_18.BufferSize);
+		
+        private function GetVertexSize(pInfo:PieceSaveInfo):uint
+		{
+			//1024
+            if (pInfo.sPos < 0x0400 && pInfo.sTex <= 1.02)
+			{
+                return TinyVertex.TINY_VERTEX_10_11.BufferSize;//8
+            }
+			//4096
+            if (pInfo.sPos < 0x1000 && pInfo.sTex <= 2.04)
+			{
+                return TinyVertex.TINY_VERTEX_12_12.BufferSize;//9
+            }
+			//4096
+            if (pInfo.sPos < 0x1000 && pInfo.sTex < 32.7)
+			{
+                return TinyVertex.TINY_VERTEX_12_16.BufferSize;//10
+            }
+			//16384
+            if (pInfo.sPos < 0x4000 && pInfo.sTex < 32.7)
+			{
+                return TinyVertex.TINY_VERTEX_14_16.BufferSize;//11
+            }
+			//65536
+            if (pInfo.sPos < 65536 && pInfo.sTex < 32.7)
+			{
+                return TinyVertex.TINY_VERTEX_16_16.BufferSize;//12
+            }
+			//262144
+			if (pInfo.sPos < 65536 && pInfo.sTex < 131)
+			{
+				return TinyVertex.TINY_VERTEX_16_18.BufferSize;//13
 			}
-            throw (new Error("Vertex values out of the compress range!"));
+			
+            throw new Error("Vertex values out of the compress range!");
         }
 		
-        private function DecompressVertice(_arg1:ByteArray, _arg2:uint, _arg3:uint,version:uint):void{
+        private function DecompressVertice(data:ByteArray, vertexCount:uint, time:uint,version:uint):void
+		{
             var _local4:uint;
             var _local5:uint;
             var _local6:Number;
@@ -219,7 +275,7 @@
             var _local21:uint;
             if (this.m_stepLoadInfo.vertexIndex == 0)
 			{
-                this.m_vertexData = new LittleEndianByteArray((SkinVertexStride * _arg2));
+                this.m_vertexData = new LittleEndianByteArray(SkinVertexStride * vertexCount);
                 this.m_stepLoadInfo.saveInfo = new PieceSaveInfo(this.m_orgScale, this.m_orgOffset, this.m_texScale);
 				var saveInfo:PieceSaveInfo = this.m_stepLoadInfo.saveInfo;
 				var tinyVertex:TinyVertex;
@@ -240,27 +296,29 @@
 					tinyVertex = new TinyVertex(16, 16);
 				}else if (saveInfo.sPos < 65536 && saveInfo.sTex < 131)
 				{
-					tinyVertex = new TinyVertex(16, 18);//262144
-				} else {
-					Alert.show("Vertex values out of the compress range");
+					tinyVertex = new TinyVertex(16, 18);
+				} else 
+				{
 					throw (new Error("Vertex values out of the compress range!"));
 				}				
 				this.m_stepLoadInfo.vertex = tinyVertex;
             }
-            var _local9:Number = (this.m_stepLoadInfo.saveInfo.xStr * 0.25);
-            var _local10:Number = (this.m_stepLoadInfo.saveInfo.yStr * 0.25);
-            var _local11:Number = (this.m_stepLoadInfo.saveInfo.zStr * 0.25);
+			
+            var _local9:Number = this.m_stepLoadInfo.saveInfo.xStr * 0.25;
+            var _local10:Number = this.m_stepLoadInfo.saveInfo.yStr * 0.25;
+            var _local11:Number = this.m_stepLoadInfo.saveInfo.zStr * 0.25;
 			var sTex:Number = this.m_stepLoadInfo.saveInfo.sTex;
             var _local12:Vector3D = new Vector3D();
             var _local14:TinyVertex = this.m_stepLoadInfo.vertex;
             var _local15:uint = getTimer();
-            while (this.m_stepLoadInfo.vertexIndex < _arg2) 
+            while (this.m_stepLoadInfo.vertexIndex < vertexCount) 
 			{
-                if (((((this.m_stepLoadInfo.vertexIndex % 20) == 0)) && (((getTimer() - _local15) > _arg3))))
+                if (((((this.m_stepLoadInfo.vertexIndex % 20) == 0)) && (((getTimer() - _local15) > time))))
 				{
                     return;
-                };
-                _local14.ReadFromBytes(_arg1);
+                }
+				
+                _local14.ReadFromBytes(data);
                 _local6 = (_local14.x + _local9);
                 _local7 = (_local14.y + _local10);
                 _local8 = (_local14.z + _local11);
@@ -273,14 +331,16 @@
                 this.m_vertexData.writeFloat(_local12.z);
                 this.m_vertexData.writeUnsignedInt(0xFF);
                 this.m_vertexData.writeUnsignedInt(0);
-				if(version<PieceGroup.VERSION_ScaleUVTexture){
+				if(version<PieceGroup.VERSION_ScaleUVTexture)
+				{
 					_local6 = _local14.u
 					_local7 = _local14.v;				
-				}else{
+				}else
+				{
 	                _local6 = sTex - _local14.u
 	                _local7 = sTex - _local14.v;
 				}
-				trace(_local6 + "," + _local7);
+				
                 this.m_vertexData.writeFloat(_local6);
                 this.m_vertexData.writeFloat(_local7);
                 this.m_stepLoadInfo.left = Math.min(_local6, this.m_stepLoadInfo.left);
@@ -288,140 +348,187 @@
                 this.m_stepLoadInfo.top = Math.min(_local7, this.m_stepLoadInfo.top);
                 this.m_stepLoadInfo.bottom = Math.max(_local7, this.m_stepLoadInfo.bottom);
                 this.m_stepLoadInfo.vertexIndex++;
-            };
+            }
+			
             this.m_rtTexCoordScale = new Rectangle();
             this.m_rtTexCoordScale.left = this.m_stepLoadInfo.left;
             this.m_rtTexCoordScale.right = this.m_stepLoadInfo.right;
             this.m_rtTexCoordScale.top = this.m_stepLoadInfo.top;
             this.m_rtTexCoordScale.bottom = this.m_stepLoadInfo.bottom;
-            if (this.Type == Piece.eVT_SkeletalVertex){
+           
+			if (this.Type == Piece.eVT_SkeletalVertex)
+			{
                 _local16 = new Vector.<int>(0x0100, true);
                 _local17 = new Vector.<uint>();
                 _local20 = 0;
                 _local21 = 0;
-                while (_local21 < 0x0100) {
+                while (_local21 < 0x0100) 
+				{
                     _local16[_local21] = -1;
                     _local21++;
-                };
+                }
                 _local4 = 0;
                 _local13 = (6 * 4);
-                while (_local4 < _arg2) {
+                while (_local4 < vertexCount) 
+				{
                     this.m_vertexData.position = _local13;
-                    this.m_vertexData.writeUnsignedInt(_arg1.readUnsignedInt());
-                    this.m_vertexData.writeUnsignedInt(_arg1.readUnsignedInt());
+                    this.m_vertexData.writeUnsignedInt(data.readUnsignedInt());
+                    this.m_vertexData.writeUnsignedInt(data.readUnsignedInt());
                     _local5 = 0;
-                    while (_local5 < MAX_JOINT_COUNT_PER_VERTEX) {
+                    while (_local5 < MAX_JOINT_COUNT_PER_VERTEX) 
+					{
                         _local19 = this.m_vertexData[(_local13 + _local5)];
                         _local18 = this.m_vertexData[((_local13 + 4) + _local5)];
-                        if ((((_local16[_local18] < 0)) && ((_local19 > 0)))){
-                            if (_local20 < MAX_USE_JOINT_PER_PIECE){
+                        if ((((_local16[_local18] < 0)) && ((_local19 > 0))))
+						{
+                            if (_local20 < MAX_USE_JOINT_PER_PIECE)
+							{
                                 _local16[_local18] = _local20;
-                                var _temp1 = _local20;
-                                _local20 = (_local20 + 1);
-                                var _local22 = _temp1;
-                                _local17[_local22] = _local18;
-                            } else {
+                                _local17[_local20++] = _local18;
+                            } else 
+							{
                                 _local16[_local18] = (_local20 - 1);
-                            };
-                        };
+                            }
+                        }
                         _local5++;
-                    };
+                    }
                     _local4++;
                     _local13 = (_local13 + SkinVertexStride);
-                };
+                }
+				
                 this.m_local2GlobalIndex = new LittleEndianByteArray(_local17.length);
                 _local4 = 0;
                 _local13 = (7 * 4);
-                while (_local4 < _arg2) {
+                while (_local4 < vertexCount) 
+				{
                     _local5 = 0;
-                    while (_local5 < MAX_JOINT_COUNT_PER_VERTEX) {
+                    while (_local5 < MAX_JOINT_COUNT_PER_VERTEX) 
+					{
                         this.m_vertexData[(_local13 + _local5)] = _local16[this.m_vertexData[(_local13 + _local5)]];
                         _local5++;
-                    };
+                    }
                     _local4++;
                     _local13 = (_local13 + SkinVertexStride);
-                };
+                }
                 _local4 = 0;
-                while (_local4 < _local17.length) {
+                while (_local4 < _local17.length) 
+				{
                     this.m_local2GlobalIndex[_local4] = _local17[_local4];
                     _local4++;
-                };
-            } else {
+                }
+            } else 
+			{
                 this.m_local2GlobalIndex = new LittleEndianByteArray(1);
                 this.m_local2GlobalIndex.writeByte(0);
-            };
+            }
         }
-        public function getVertexBuffer(_arg1:Context3D):VertexBuffer3D{
-            if (!this.m_vertexBuf){
+		
+        public function getVertexBuffer(_arg1:Context3D):VertexBuffer3D
+		{
+            if (!this.m_vertexBuf)
+			{
                 this.m_vertexRef = 0;
                 this.m_vertexBuf = _arg1.createVertexBuffer(this.getVertexCount(), (SkinVertexStride / 4));
                 this.m_vertexBuf.uploadFromByteArray(this.m_vertexData, 0, 0, this.getVertexCount());
-            };
+            }
             this.m_vertexRef++;
             return (this.m_vertexBuf);
         }
-        public function getIndexBuffer(_arg1:Context3D):IndexBuffer3D{
-            if (!this.m_indiceBuf){
+		
+        public function getIndexBuffer(_arg1:Context3D):IndexBuffer3D
+		{
+            if (!this.m_indiceBuf)
+			{
                 this.m_indiceRef = 0;
                 this.m_indiceBuf = _arg1.createIndexBuffer((this.m_indiceData.length / 2));
                 this.m_indiceBuf.uploadFromByteArray(this.m_indiceData, 0, 0, (this.m_indiceData.length / 2));
-            };
+            }
             this.m_indiceRef++;
             return (this.m_indiceBuf);
         }
-        public function get vertexBuf():VertexBuffer3D{
+		
+        public function get vertexBuf():VertexBuffer3D
+		{
             return (this.m_vertexBuf);
         }
-        public function get indiceBuf():IndexBuffer3D{
+		
+        public function get indiceBuf():IndexBuffer3D
+		{
             return (this.m_indiceBuf);
         }
-        public function disposeVertex():void{
-            if (this.m_vertexRef == 0){
+		
+        public function disposeVertex():void
+		{
+            if (this.m_vertexRef == 0)
+			{
                 throw (new Error("disposeVertex when m_indiceRef == 0."));
-            };
-            if (--this.m_vertexRef){
+            }
+			
+            if (--this.m_vertexRef)
+			{
                 return;
-            };
+            }
             this.m_vertexBuf.dispose();
             this.m_vertexBuf = null;
         }
-        public function disposeIndice():void{
-            if (this.m_indiceRef == 0){
+		
+        public function disposeIndice():void
+		{
+            if (this.m_indiceRef == 0)
+			{
                 throw (new Error("disposeVertex when m_indiceRef == 0."));
-            };
-            if (--this.m_indiceRef){
+            }
+			
+            if (--this.m_indiceRef)
+			{
                 return;
-            };
+            }
             this.m_indiceBuf.dispose();
             this.m_indiceBuf = null;
         }
-        public function destroy():void{
-            if (this.m_indiceBuf){
+		
+        public function destroy():void
+		{
+            if (this.m_indiceBuf)
+			{
                 this.m_indiceBuf.dispose();
-            };
-            if (this.m_vertexBuf){
+            }
+			
+            if (this.m_vertexBuf)
+			{
                 this.m_vertexBuf.dispose();
-            };
-            if (((this.m_vertexBuf) || (this.m_indiceBuf))){
+            }
+			
+            if (((this.m_vertexBuf) || (this.m_indiceBuf)))
+			{
                 dtrace(LogLevel.IMPORTANT, "destroy when m_indiceBuf != null or m_vertexBuf != null.");
-            };
-            if (this.delta::m_materialInfos){
+            }
+			
+            if (this.delta::m_materialInfos)
+			{
                 this.delta::m_materialInfos.fixed = false;
                 this.delta::m_materialInfos.length = 0;
                 this.delta::m_materialInfos = null;
-            };
-            if (this.m_local2GlobalIndex){
+            }
+			
+            if (this.m_local2GlobalIndex)
+			{
                 this.m_local2GlobalIndex.length = 0;
                 this.m_local2GlobalIndex = null;
-            };
-            if (this.m_indiceData){
+            }
+			
+            if (this.m_indiceData)
+			{
                 this.m_indiceData.length = 0;
                 this.m_indiceData = null;
-            };
-            if (this.m_vertexData){
+            }
+			
+            if (this.m_vertexData)
+			{
                 this.m_vertexData.length = 0;
                 this.m_vertexData = null;
-            };
+            }
+			
             this.m_orgScale = null;
             this.m_orgOffset = null;
             this.m_curScale = null;
@@ -430,6 +537,7 @@
             this.m_rtTexCoordScale = null;
             this.m_stepLoadInfo = null;
         }
+		
         public function get local2GlobalIndex():ByteArray{
             return (this.m_local2GlobalIndex);
         }
@@ -522,6 +630,7 @@
 				i++;
 			}
 		}
+		
 		private function CompressVertice(data:ByteArray):void
 		{
 			this.m_vertexData.position = 0;
@@ -624,7 +733,6 @@
 		
 		public function autoSetOrgOffsetScale():void
 		{
-			// TODO Auto Generated method stub
 			var piece:Piece = this;
 			piece.m_orgOffset = new Vector3D();
 			piece.m_orgScale = new Vector3D();
@@ -842,37 +950,41 @@
     }
 }
 
-import flash.geom.*;
-import deltax.common.math.*;
-import deltax.graphic.util.*;
+import flash.geom.Vector3D;
 
-class PieceSaveInfo {
+import deltax.common.math.MathUtl;
+import deltax.graphic.util.TinyVertex;
 
+class PieceSaveInfo 
+{
     public var xStr:int;
     public var yStr:int;
     public var zStr:int;
     public var sPos:int;
     public var sTex:Number;
 
-    public function PieceSaveInfo(_arg1:Vector3D, _arg2:Vector3D, _arg3:Number){
-        var _local4:int = int(((_arg2.x * 4) + 0.5));
-        var _local5:int = int(((_arg2.y * 4) + 0.5));
-        var _local6:int = int(((_arg2.z * 4) + 0.5));
-        var _local7:int = int(((_arg1.x * 4) + 0.5));
-        var _local8:int = int(((_arg1.y * 4) + 0.5));
-        var _local9:int = int(((_arg1.z * 4) + 0.5));
-        this.sPos = 0;
-        this.sPos = MathUtl.max(this.sPos, Math.abs(_local7));
-        this.sPos = MathUtl.max(this.sPos, Math.abs(_local8));
-        this.sPos = MathUtl.max(this.sPos, Math.abs(_local9));
-        this.xStr = (_local4 - (_local7 / 2));
-        this.yStr = (_local5 - (_local8 / 2));
-        this.zStr = (_local6 - (_local9 / 2));
-        this.sTex = _arg3;
+    public function PieceSaveInfo(extend:Vector3D, center:Vector3D, texScale:Number)
+	{
+        var cx:int = int(center.x * 4 + 0.5);
+        var cy:int = int(center.y * 4 + 0.5);
+        var cz:int = int(center.z * 4 + 0.5);
+        var ex:int = int(extend.x * 4 + 0.5);
+        var ey:int = int(extend.y * 4 + 0.5);
+        var ez:int = int(extend.z * 4 + 0.5);
+    
+		this.sPos = 0;
+        this.sPos = MathUtl.max(this.sPos, Math.abs(ex));
+        this.sPos = MathUtl.max(this.sPos, Math.abs(ey));
+        this.sPos = MathUtl.max(this.sPos, Math.abs(ez));
+        this.xStr = cx - ex * 0.5;
+        this.yStr = cy - ey * 0.5;
+        this.zStr = cz - ez * 0.5;
+        this.sTex = texScale;
     }
 }
-class StepLoadInfo {
 
+class StepLoadInfo 
+{
     public var byteArrayPosition:uint;
     public var vertexIndex:uint = 0;
     public var vertexCount:uint;
@@ -884,9 +996,9 @@ class StepLoadInfo {
     public var top:Number = 0;
     public var bottom:Number = 0;
 
-    public function StepLoadInfo(){
+    public function StepLoadInfo()
+	{
         this.right = -(Infinity);
         this.bottom = -(Infinity);
-        super();
     }
 }

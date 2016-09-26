@@ -1,14 +1,24 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.model {
-    import __AS3__.vec.*;
-    import deltax.graphic.model.*;
+﻿package deltax.graphic.model 
+{
 
-    public final class PieceClass {
-
-        public var m_name:String;
-        public var m_pieces:Vector.<Piece>;
-        public var m_pieceGroup:PieceGroup;
-        public var m_index:uint = 4294967295;
+	/**
+	 *模型面片数据组装类
+	 *@author lees
+	 *@date 2015-3-30
+	 */
+	
+    public final class PieceClass 
+	{
+		/**面片名字*/
+		public var m_name:String;
+		/**面片子对象列表*/
+		public var m_pieces:Vector.<Piece>;
+		/**面片组*/
+		public var m_pieceGroup:PieceGroup;
+		/**面片索引*/
+		public var m_index:uint = 4294967295;
+		/**面片对应的动作组*/
+		public var m_ansName:String;
 
     }
-}//package deltax.graphic.model 
+} 

@@ -45,29 +45,29 @@
 		public static const VERSION_ScaleUVTexture:uint = 10006;
         public static const VERSION_Cur:uint = VERSION_ScaleUVTexture;
 
-		/***/
+		/**每个顶点受骨骼影响的个数*/
 		public var m_jointPerVertex:uint;
-		/***/
+		/**网格面片类列表*/
         public var m_pieceClasses:Vector.<PieceClass>;
-		/***/
+		/**网格数据组名字*/
 		public var m_name:String;
-		/***/
+		/**是否已加载*/
 		public var m_loaded:Boolean;
-		/***/
+		/**缩放值*/
 		public var m_scale:Vector3D;
-		/***/
+		/**偏移值*/
 		public var m_offset:Vector3D;
-		/***/
+		/**贴图资源*/
 		public var m_dependTextures:DependentRes;
-		/***/
+		/**材质资源*/
 		public var m_dependMaterials:DependentRes;
-		/***/
+		/**分部加载信息*/
 		public var m_stepLoadInfo:StepLoadInfo;
-		/***/
+		/**引用数量*/
 		public var m_refCount:int = 1;
-		/***/
+		/**加载失败*/
 		public var m_loadfailed:Boolean = false;
-		/***/
+		/**md5解释器*/
 		public var meshParser:AbstMeshParser;
 
         public function PieceGroup()
@@ -76,104 +76,179 @@
             this.m_offset = new Vector3D();
         }
 		
-        public function get orgExtension():Vector3D{
-            return (this.m_scale);
+		/**
+		 * 获取源长度
+		 * @return 
+		 */		
+        public function get orgExtension():Vector3D
+		{
+            return this.m_scale;
         }
-        public function get orgCenter():Vector3D{
-            return (this.m_offset);
+		
+		/**
+		 * 获取源中心点
+		 * @return 
+		 */		
+        public function get orgCenter():Vector3D
+		{
+            return this.m_offset;
         }
-        public function get dependTextures():DependentRes{
-            return (this.m_dependTextures);
+		
+		/**
+		 * 获取纹理列表
+		 * @return 
+		 */		
+        public function get dependTextures():DependentRes
+		{
+            return this.m_dependTextures;
         }
-        public function get dependMaterials():DependentRes{
-            return (this.m_dependMaterials);
+		
+		/**
+		 * 获取材质列表
+		 * @return 
+		 */		
+        public function get dependMaterials():DependentRes
+		{
+            return this.m_dependMaterials;
         }
-		public function loadHead(data:ByteArray):void{
+		
+		/**
+		 * 获取动作组名
+		 * @return 
+		 */		
+		public function get ansName():String
+		{
+			var str:String = this.m_name;
+			str = str.replace("mod","ani");
+			str = str.replace("ams","ans");
+			return str;
+		}
+		
+		/**
+		 * 加载文件头
+		 * @param data
+		 */		
+		public function loadHead(data:ByteArray):void
+		{
 			super.load(data);
 		}
-		public function writeHead(data:ByteArray):void{
+		
+		/**
+		 * 文件头写入
+		 * @param data
+		 */		
+		public function writeHead(data:ByteArray):void
+		{
 			m_version = PieceGroup.VERSION_Cur;
 			m_fileType = eFT_GammaAdvanceMesh;
 			super.write(data);
 		}
-        override public function load(_arg1:ByteArray):Boolean{
-            var _local2:uint;
-            var _local3:uint;
-            var _local6:PieceClass;
-            var _local7:Piece;
-            var _local8:uint;
-            if (this.m_stepLoadInfo){
-                this.readMainData(_arg1);
-                return (true);
-            };
-            if (!StepTimeManager.instance.stepBegin()){
-                return (true);
-            };
-            if (!super.load(_arg1)){
-                return (false);
-            };
-            var _local4:uint = m_dependantResList.length;
-            _local2 = 0;
-            while (_local2 < _local4) {
-                if (m_dependantResList[_local2].m_resType == eFT_GammaTexture){
-                    this.m_dependTextures = m_dependantResList[_local2];
-                } else {
-                    if (m_dependantResList[_local2].m_resType == eFT_GammaMaterial){
-                        this.m_dependMaterials = m_dependantResList[_local2];
-                    };
-                };
-                _local2++;
-            };
-            var _local5:uint = _arg1.readUnsignedShort();
-            this.m_pieceClasses = new Vector.<PieceClass>(_local5);
-            _local2 = 0;
-            while (_local2 < _local5) {
-                _local6 = new PieceClass();
-                _local6.m_index = _local2;
-                _local6.m_pieceGroup = this;
-                this.m_pieceClasses[_local2] = _local6;
-                _local6.m_name = Util.readUcs2StringWithCount(_arg1);
-                _local8 = _arg1.readUnsignedShort();
-                _local6.m_pieces = new Vector.<Piece>(_local8);
-                _local3 = 0;
-                while (_local3 < _local8) {
-                    _local7 = new Piece();
-                    _local7.m_pieceIndex = _local3;
-                    _local7.m_pieceClass = _local6;
-                    _local6.m_pieces[_local3] = _local7;
-                    _local7.ReadIndexData(_arg1, m_version);
-                    _local3++;
-                };
-                _local2++;
-            };
+		
+        override public function load(data:ByteArray):Boolean
+		{
+            if (this.m_stepLoadInfo)
+			{
+                this.readMainData(data);
+                return true;
+            }
+			
+            if (!StepTimeManager.instance.stepBegin())
+			{
+                return true;
+            }
+			
+            if (!super.load(data))
+			{
+                return false;
+            }
+			
+            var count:uint = m_dependantResList.length;
+			var i:uint = 0;
+            while (i < count) 
+			{
+				if (m_dependantResList[i].m_resType == eFT_GammaTexture)
+				{
+					this.m_dependTextures = m_dependantResList[i];
+				} else if (m_dependantResList[i].m_resType == eFT_GammaMaterial)
+				{
+					this.m_dependMaterials = m_dependantResList[i];
+				}
+				i++;
+            }
+			
+			var pieceClassCount:uint = data.readUnsignedShort();
+			this.m_pieceClasses = new Vector.<PieceClass>(pieceClassCount);
+			
+			var j:uint;
+			var piece:Piece;
+			var pieceCount:uint;
+			var pieceClass:PieceClass;
+			i = 0;
+			while (i < pieceClassCount) 
+			{
+				pieceClass = new PieceClass();
+				pieceClass.m_index = i;
+				pieceClass.m_pieceGroup = this;
+				this.m_pieceClasses[i] = pieceClass;
+				pieceClass.m_name = Util.readUcs2StringWithCount(data);
+				pieceClass.m_ansName = ansName;
+				pieceCount = data.readUnsignedShort();
+				pieceClass.m_pieces = new Vector.<Piece>(pieceCount);
+				j = 0;
+				while (j < pieceCount) 
+				{
+					piece = new Piece();
+					piece.m_pieceIndex = j;
+					piece.m_pieceClass = pieceClass;
+					pieceClass.m_pieces[j] = piece;
+					piece.ReadIndexData(data, m_version);
+					j++;
+				}
+				i++;
+			}
+			
             StepTimeManager.instance.stepEnd();
-            this.readMainData(_arg1);
-            return (true);
+			
+            this.readMainData(data);
+			
+            return true;
         }
-        private function readMainData(_arg1:ByteArray):void{
-            var _local2:Piece;
-            var _local3:PieceClass;
-            if (this.m_stepLoadInfo == null){
+		
+		/**
+		 * 读取网格主要数据
+		 * @param data
+		 */		
+        private function readMainData(data:ByteArray):void
+		{
+            if (this.m_stepLoadInfo == null)
+			{
                 this.m_stepLoadInfo = new StepLoadInfo();
-                this.m_stepLoadInfo.byteArrayPosition = _arg1.position;
-            };
-            _arg1.position = this.m_stepLoadInfo.byteArrayPosition;
-            while (this.m_stepLoadInfo.pieceClassIndex < this.m_pieceClasses.length) {
-                _local3 = this.m_pieceClasses[this.m_stepLoadInfo.pieceClassIndex];
-                while (this.m_stepLoadInfo.pieceIndex < _local3.m_pieces.length) {
-                    _local2 = _local3.m_pieces[this.m_stepLoadInfo.pieceIndex];
-                    if (!_local2.ReadMainData(_arg1, m_version)){
+                this.m_stepLoadInfo.byteArrayPosition = data.position;
+            }
+			
+			data.position = this.m_stepLoadInfo.byteArrayPosition;
+			
+			var piece:Piece;
+			var pieceClass:PieceClass;
+            while (this.m_stepLoadInfo.pieceClassIndex < this.m_pieceClasses.length) 
+			{
+				pieceClass = this.m_pieceClasses[this.m_stepLoadInfo.pieceClassIndex];
+                while (this.m_stepLoadInfo.pieceIndex < pieceClass.m_pieces.length) 
+				{
+					piece = pieceClass.m_pieces[this.m_stepLoadInfo.pieceIndex];
+                    if (!piece.ReadMainData(data, m_version))
+					{
                         return;
-                    };
-                    this.m_stepLoadInfo.vMaxOnePiece.copyFrom(_local2.m_curScale);
+                    }
+                    this.m_stepLoadInfo.vMaxOnePiece.copyFrom(piece.m_curScale);
                     this.m_stepLoadInfo.vMaxOnePiece.scaleBy(0.5);
                     this.m_stepLoadInfo.vMinOnePiece.copyFrom(this.m_stepLoadInfo.vMaxOnePiece);
-                    this.m_stepLoadInfo.vMaxOnePiece.x = (this.m_stepLoadInfo.vMaxOnePiece.x + _local2.m_curOffset.x);
-                    this.m_stepLoadInfo.vMaxOnePiece.y = (this.m_stepLoadInfo.vMaxOnePiece.y + _local2.m_curOffset.y);
-                    this.m_stepLoadInfo.vMaxOnePiece.z = (this.m_stepLoadInfo.vMaxOnePiece.z + _local2.m_curOffset.z);
-                    this.m_stepLoadInfo.vMinOnePiece.x = (_local2.m_curOffset.x - this.m_stepLoadInfo.vMinOnePiece.x);
-                    this.m_stepLoadInfo.vMinOnePiece.y = (_local2.m_curOffset.y - this.m_stepLoadInfo.vMinOnePiece.y);
-                    this.m_stepLoadInfo.vMinOnePiece.z = (_local2.m_curOffset.z - this.m_stepLoadInfo.vMinOnePiece.z);
+                    this.m_stepLoadInfo.vMaxOnePiece.x += piece.m_curOffset.x;
+                    this.m_stepLoadInfo.vMaxOnePiece.y += piece.m_curOffset.y;
+                    this.m_stepLoadInfo.vMaxOnePiece.z += piece.m_curOffset.z;
+                    this.m_stepLoadInfo.vMinOnePiece.x = piece.m_curOffset.x - this.m_stepLoadInfo.vMinOnePiece.x;
+                    this.m_stepLoadInfo.vMinOnePiece.y = piece.m_curOffset.y - this.m_stepLoadInfo.vMinOnePiece.y;
+                    this.m_stepLoadInfo.vMinOnePiece.z = piece.m_curOffset.z - this.m_stepLoadInfo.vMinOnePiece.z;
                     this.m_stepLoadInfo.vMax.x = Math.max(this.m_stepLoadInfo.vMaxOnePiece.x, this.m_stepLoadInfo.vMax.x);
                     this.m_stepLoadInfo.vMax.y = Math.max(this.m_stepLoadInfo.vMaxOnePiece.y, this.m_stepLoadInfo.vMax.y);
                     this.m_stepLoadInfo.vMax.z = Math.max(this.m_stepLoadInfo.vMaxOnePiece.z, this.m_stepLoadInfo.vMax.z);
@@ -187,10 +262,11 @@
                     this.m_stepLoadInfo.vMin.y = Math.min(this.m_stepLoadInfo.vMaxOnePiece.y, this.m_stepLoadInfo.vMin.y);
                     this.m_stepLoadInfo.vMin.z = Math.min(this.m_stepLoadInfo.vMaxOnePiece.z, this.m_stepLoadInfo.vMin.z);
                     this.m_stepLoadInfo.pieceIndex++;
-                };
+                }
                 this.m_stepLoadInfo.pieceClassIndex++;
                 this.m_stepLoadInfo.pieceIndex = 0;
-            };
+            }
+			
             this.m_scale.copyFrom(this.m_stepLoadInfo.vMax);
             this.m_scale.decrementBy(this.m_stepLoadInfo.vMin);
             this.m_scale.x = Math.abs(this.m_scale.x);
@@ -199,152 +275,237 @@
             this.m_offset.copyFrom(this.m_stepLoadInfo.vMax);
             this.m_offset.incrementBy(this.m_stepLoadInfo.vMin);
             this.m_offset.scaleBy(0.5);
+			
             this.m_stepLoadInfo = null;
         }
-        private function addPieceClassToMesh(_arg1:RenderObject, _arg2:PieceClass, _arg3:uint, _arg4:RenderObjectMaterialInfo):void
-		{
-            var _local5:SubMesh;
-            var _local6:Piece;
-            var _local7:MaterialBase;
-            var _local8:uint;
-            var _local9:EnhanceSkinnedSubGeometry;
-            var _local10:uint;
-            while (_local10 < _arg2.m_pieces.length) 
-			{
-                _local6 = _arg2.m_pieces[_local10];
-                _local8 = _arg1.subMeshes.length;
-                _local9 = _local6.ConvertToSubGeometry();
-                _local9.m_materialIndex = _arg3;
-                _arg1.geometry.addSubGeometry(_local9);
-                var _temp1 = _local8;
-                _local8 = (_local8 + 1);
-                _local5 = _arg1.subMeshes[_temp1];
-                _local7 = this.generateSubMeshMaterial(_local6, _arg3, _arg4);
-                _local5.material = _local7;
-                _local7.release();
-                _arg1.delta::onSubMeshAdded(_arg2.m_name, _local5);
-                _local10++;
-            };
-        }
-        private function generateSubMeshMaterial(_arg1:Piece, _arg2:uint, _arg3:RenderObjectMaterialInfo):SkinnedMeshMaterial{
-            var _local4:PieceMaterialInfo;
-            var _local5:uint;
-            var _local8:Vector.<uint>;
-            var _local9:uint;
-            var _local10:uint;
-            var _local12:String;
-            var _local6:uint = (this.m_dependTextures) ? this.m_dependTextures.FileCount : 0;
-            if (_arg1.delta::m_materialInfos.length){
-                _arg2 = MathUtl.min(_arg2, (_arg1.delta::m_materialInfos.length - 1));
-                _local4 = _arg1.delta::m_materialInfos[_arg2];
-                _local5 = _local4.m_texIndiceGroups.length;
-            };
-            var _local7:uint;
-            var _local11:Boolean;
-            var _local13:Vector.<Vector.<BitmapMergeInfo>> = new Vector.<Vector.<BitmapMergeInfo>>();
-            var _local14:String = Enviroment.ResourceRootPath;
-            _local9 = 0;
-            while (_local9 < _local5) {
-                _local8 = _local4.m_texIndiceGroups[_local9];
-                if (_local8.length == 0){
-                } else {
-                    _local10 = 0;
-                    while (_local10 < _local8.length) {
-                        if (_local8[_local10] >= _local6){
-                        } else {
-                            _local12 = this.dependTextures.m_resFileNames[_local8[_local10]];
-                            if (_local9 >= _local13.length){
-                                _local13.length = (_local9 + 1);
-                            };
-                            if (!_local13[_local9]){
-                                _local13[_local9] = new Vector.<BitmapMergeInfo>();
-                            };
-                            _local12 = (_local14 + Util.convertOldTextureFileName(_local12));
-                            _local13[_local9].push(new BitmapMergeInfo(_arg1.m_rtTexCoordScale, _local12));
-                        };
-                        _local10++;
-                    };
-                };
-                _local9++;
-            };
-            var _local15 = "";
-            var _local16:uint = (_local4) ? _local4.m_baseMatIndex : 0;
-            if (_local16 < this.m_dependMaterials.FileCount){
-                _local15 = this.m_dependMaterials.m_resFileNames[_local16];
-            };
-            if (_local13.length == 0){
-                _local13.push(null);
-            };
-            return (MaterialManager.Instance.createMaterial(_local13, _local15, _arg3));
-        }
-        public function fillRenderObject(_arg1:RenderObject, _arg2:String=null, _arg3:uint=0, _arg4:RenderObjectMaterialInfo=null):void
-		{
-            var _local5:uint;
-            if (_arg2)
-			{
-                _local5 = 0;
-                while (_local5 < this.m_pieceClasses.length) 
-				{
-                    if (this.m_pieceClasses[_local5].m_name == _arg2)
-					{
-                        this.addPieceClassToMesh(_arg1, this.m_pieceClasses[_local5], _arg3, _arg4);
-                        break;
-                    };
-                    _local5++;
-                };
-            } else
-			{
-                _local5 = 0;
-                while (_local5 < this.m_pieceClasses.length) 
-				{
-                    this.addPieceClassToMesh(_arg1, this.m_pieceClasses[_local5], _arg3, _arg4);
-                    _local5++;
-                };
-            };
-        }
 		
-		public function getPieceCountOfPieceClass(_arg1:uint):uint{
-			if (!this.m_pieceClasses){
-				return (null);
-			};
-			if (_arg1 >= this.m_pieceClasses.length){
-				return (null);
-			};
-			return (this.m_pieceClasses[_arg1].m_pieces.length);
+		/**
+		 * 添加模型面片到网格里
+		 * @param renderObject
+		 * @param pieceClass
+		 * @param materialIndex
+		 * @param materialInfo
+		 */		
+		private function addPieceClassToMesh(renderObject:RenderObject, pieceClass:PieceClass, materialIndex:uint, materialInfo:RenderObjectMaterialInfo,isUseAtf:Boolean = true):void
+		{
+			var subMesh:SubMesh;
+			var piece:Piece;
+			var material:MaterialBase;
+			var subMeshCounts:uint;
+			var esSubGeometry:EnhanceSkinnedSubGeometry;
+			var i:uint;
+			while (i < pieceClass.m_pieces.length) 
+			{
+				piece = pieceClass.m_pieces[i];
+				subMeshCounts = renderObject.subMeshes.length;
+				esSubGeometry = piece.ConvertToSubGeometry();
+				esSubGeometry.m_materialIndex = materialIndex;
+				renderObject.geometry.addSubGeometry(esSubGeometry);
+				subMesh = renderObject.subMeshes[subMeshCounts++];
+				material = this.generateSubMeshMaterial(piece, materialIndex, materialInfo,isUseAtf);
+				subMesh.material = material;
+				material.release();
+				renderObject.delta::onSubMeshAdded(pieceClass.m_name, subMesh);
+				i++;
+			}
 		}
-		public function getPiece(_arg1:uint, _arg2:uint):Piece{
-			if (!this.m_pieceClasses){
-				return (null);
-			};
-			if (_arg1 >= this.m_pieceClasses.length){
-				return (null);
-			};
-			if (_arg2 >= this.m_pieceClasses[_arg1].m_pieces.length){
-				return (null);
-			};
-			return (this.m_pieceClasses[_arg1].m_pieces[_arg2]);
+		
+		/**
+		 * 生成网格材质
+		 * @param piece
+		 * @param materialIndex
+		 * @param materialInfo
+		 * @return 
+		 */		
+		private function generateSubMeshMaterial(piece:Piece, materialIndex:uint, materialInfo:RenderObjectMaterialInfo,isUseAtf:Boolean = true):SkinnedMeshMaterial
+		{
+			var index:uint;
+			var texFileName:String;
+			var pieceMaterialInfo:PieceMaterialInfo;
+			var texIndexGroupCounts:uint;
+			var texIndexGroupList:Vector.<uint>;
+			var texIndex:uint = 0;
+			var textureCounts:uint = (this.m_dependTextures) ? this.m_dependTextures.FileCount : 0;
+			var bitmapMergeInfoList:Vector.<Vector.<BitmapMergeInfo>> = new Vector.<Vector.<BitmapMergeInfo>>();
+			//
+			if (piece.delta::m_materialInfos.length)
+			{
+				materialIndex = MathUtl.min(materialIndex, (piece.delta::m_materialInfos.length - 1));
+				pieceMaterialInfo = piece.delta::m_materialInfos[materialIndex];
+				texIndexGroupCounts = pieceMaterialInfo.m_texIndiceGroups.length;
+			}
+			//贴图
+			while (texIndex < texIndexGroupCounts) 
+			{
+				texIndexGroupList = pieceMaterialInfo.m_texIndiceGroups[texIndex];
+				if (texIndexGroupList.length > 0)
+				{
+					index = 0;
+					while (index < texIndexGroupList.length) 
+					{
+						if(texIndexGroupList[index] < textureCounts)
+						{
+							texFileName = this.dependTextures.m_resFileNames[texIndexGroupList[index]];
+							if (texIndex >= bitmapMergeInfoList.length)
+							{
+								bitmapMergeInfoList.length = texIndex + 1;
+							}
+							
+							if (!bitmapMergeInfoList[texIndex])
+							{
+								bitmapMergeInfoList[texIndex] = new Vector.<BitmapMergeInfo>();
+							}
+							
+							if(isUseAtf)//模型特效不支持atf格式（暂时）
+							{
+								texFileName = Util.pngToAtfFileName(texFileName);
+							}
+							texFileName = Enviroment.ResourceRootPath+texFileName;
+							bitmapMergeInfoList[texIndex].push(new BitmapMergeInfo(piece.m_rtTexCoordScale, texFileName));
+						}
+						index++;
+					}
+				}
+				texIndex++;
+			}
+			//
+			var matUrl:String = "";
+			var matIndex:uint = (pieceMaterialInfo) ? pieceMaterialInfo.m_baseMatIndex : 0;
+			if (matIndex < this.m_dependMaterials.FileCount)
+			{
+				matUrl = this.m_dependMaterials.m_resFileNames[matIndex];
+			}
+			
+			if (bitmapMergeInfoList.length == 0)
+			{
+				bitmapMergeInfoList.push(null);
+			}
+			
+			return MaterialManager.Instance.createMaterial(bitmapMergeInfoList, matUrl, materialInfo);
 		}
-		public function getPieceClassName(_arg1:uint):String{
-			if (!this.m_pieceClasses){
-				return (null);
-			};
-			if (_arg1 >= this.m_pieceClasses.length){
-				return (null);
-			};
-			return (this.m_pieceClasses[_arg1].m_name);
+		
+		/**
+		 * 填充渲染对象的模型面片与材质贴图相关
+		 * @param renderObj
+		 * @param pieceClassName
+		 * @param materialIndex
+		 * @param materialInfo
+		 */		
+		public function fillRenderObject(renderObj:RenderObject, pieceClassName:String=null, materialIndex:uint=0, materialInfo:RenderObjectMaterialInfo=null,isUseAtf:Boolean = true):void
+		{
+			var index:uint;
+			if (pieceClassName)
+			{
+				index = 0;
+				while (index < this.m_pieceClasses.length) 
+				{
+					if (this.m_pieceClasses[index].m_name == pieceClassName)
+					{
+						this.addPieceClassToMesh(renderObj, this.m_pieceClasses[index], materialIndex, materialInfo,isUseAtf);
+						break;
+					}
+					index++;
+				}
+			} else 
+			{
+				index = 0;
+				while (index < this.m_pieceClasses.length) 
+				{
+					this.addPieceClassToMesh(renderObj, this.m_pieceClasses[index], materialIndex, materialInfo,isUseAtf);
+					index++;
+				}
+			}
 		}
-		public function getPieceClassIndexByName(_arg1:String):int{
-			if (!this.m_pieceClasses){
-				return (-1);
-			};
-			var _local2:uint;
-			while (_local2 < this.m_pieceClasses.length) {
-				if (this.m_pieceClasses[_local2].m_name == _arg1){
-					return (_local2);
-				};
-				_local2++;
-			};
-			return (-1);
+		
+		/**
+		 * 获取面片模型类的数量
+		 * @param pieceClassIndex
+		 * @return 
+		 */		
+		public function getPieceCountOfPieceClass(pieceClassIndex:uint):uint
+		{
+			if (!this.m_pieceClasses)
+			{
+				return null;
+			}
+			
+			if (pieceClassIndex >= this.m_pieceClasses.length)
+			{
+				return null;
+			}
+			
+			return this.m_pieceClasses[pieceClassIndex].m_pieces.length;
+		}
+		
+		/**
+		 * 获取面片数据
+		 * @param pieceClassIndex
+		 * @param pieceIndex
+		 * @return 
+		 */		
+		public function getPiece(pieceClassIndex:uint, pieceIndex:uint):Piece
+		{
+			if (!this.m_pieceClasses)
+			{
+				return null;
+			}
+			
+			if (pieceClassIndex >= this.m_pieceClasses.length)
+			{
+				return null;
+			}
+			
+			if (pieceIndex >= this.m_pieceClasses[pieceClassIndex].m_pieces.length)
+			{
+				return null;
+			}
+			
+			return this.m_pieceClasses[pieceClassIndex].m_pieces[pieceIndex];
+		}
+		
+		/**
+		 * 获取面片模型类的名字
+		 * @param pieceClassIndex
+		 * @return 
+		 */		
+		public function getPieceClassName(pieceClassIndex:uint):String
+		{
+			if (!this.m_pieceClasses)
+			{
+				return null;
+			}
+			
+			if (pieceClassIndex >= this.m_pieceClasses.length)
+			{
+				return null;
+			}
+			
+			return this.m_pieceClasses[pieceClassIndex].m_name;
+		}
+		
+		/**
+		 * 通过名字获取面片模型类的索引
+		 * @param name
+		 * @return 
+		 */		
+		public function getPieceClassIndexByName(name:String):int
+		{
+			if (!this.m_pieceClasses)
+			{
+				return -1;
+			}
+			//
+			var index:uint;
+			while (index < this.m_pieceClasses.length) 
+			{
+				if (this.m_pieceClasses[index].m_name == name)
+				{
+					return index;
+				}
+				index++;
+			}
+			
+			return -1;
 		}
 		//=====================================================================================================================
 		//=====================================================================================================================
@@ -382,19 +543,23 @@
 			return ResourceType.PIECE_GROUP;
 		}
 		
-		public function parse(_arg1:ByteArray):int 
+		public function parse(data:ByteArray):int 
 		{
-			if (this.load(_arg1) == false){
-				return (-1);
-			};
-			if ((((this.m_pieceClasses == null)) || (!((this.m_stepLoadInfo == null))))){
-				return (0);
-			};
+			if (this.load(data) == false)
+			{
+				return -1;
+			}
+			
+			if (this.m_pieceClasses == null || this.m_stepLoadInfo != null)
+			{
+				return 0;
+			}
+			
 			this.m_loaded = true;
-			return (1);
+			return 1;
 		}
 		
-		public function onDependencyRetrieve(_arg1:IResource, _arg2:Boolean):void
+		public function onDependencyRetrieve(res:IResource, isSuccess:Boolean):void
 		{
 			//
 		}
@@ -513,6 +678,10 @@
 			m_dependantResList = new Vector.<DependentRes>();
 			m_dependantResList.push(dependMaterials);
 			m_dependantResList.push(dependTextures);
+			
+			var pieceClass:PieceClass;
+			var subGeo:SubGeometryVo;
+			var piece:Piece;
 			if(meshParser == null)
 			{
 				meshParser = new BJMeshParser();
@@ -522,8 +691,8 @@
 				{
 					meshParser.subGeometrys[i] = new SubGeometryVo();
 					
-					var pieceClass:PieceClass = m_pieceClasses[i];
-					var subGeo:SubGeometryVo = meshParser.subGeometrys[i];
+					pieceClass = m_pieceClasses[i];
+					subGeo = meshParser.subGeometrys[i];
 					subGeo.name = pieceClass.m_name;
 					subGeo.vertices = new Vector.<Number>();
 					subGeo.uvs = new Vector.<Number>();
@@ -532,7 +701,7 @@
 					subGeo.jointWeights = new Vector.<Number>();
 					subGeo.jointIndices = new Vector.<Number>();
 					
-					for each(var piece:Piece in pieceClass.m_pieces)
+					for each(piece in pieceClass.m_pieces)
 					{
 						subGeo.m_materialInfos = piece.delta::m_materialInfos;
 							
@@ -580,12 +749,12 @@
 				}				
 			}
 			
-			for(var i:int = 0;i<m_pieceClasses.length;i++)
+			for(var ii:int = 0;ii<m_pieceClasses.length;ii++)
 			{
-				var pieceClass:PieceClass = m_pieceClasses[i];
-				for each(var piece:Piece in pieceClass.m_pieces)
+				pieceClass = m_pieceClasses[ii];
+				for each(piece in pieceClass.m_pieces)
 				{
-					meshParser.subGeometrys[i].pieceType = piece.Type;
+					meshParser.subGeometrys[ii].pieceType = piece.Type;
 				}
 			}
 			
