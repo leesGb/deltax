@@ -1,15 +1,16 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.model {
-    import deltax.common.debug.*;
-    import flash.geom.*;
+﻿package deltax.graphic.model 
+{
+    import flash.geom.Vector3D;
 
-    public class FigureUnit {
+    public class FigureUnit 
+	{
 
         public var m_scale:Vector3D;
         public var m_offset:Vector3D;
 
-        public function FigureUnit(){
-            ObjectCounter.add(this);
+        public function FigureUnit()
+		{
+        	//
         }
     }
-}//package deltax.graphic.model 
+} 

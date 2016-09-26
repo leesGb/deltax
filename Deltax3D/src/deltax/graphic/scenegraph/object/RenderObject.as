@@ -565,13 +565,8 @@
             };
             this._onAniGroupRemoved();
             if (_arg1){
-				if(_arg1.split(".").pop() == "agp")
-					this.m_aniGroup = (ResourceManager.instance.getDependencyOnResource(this, _arg1, ResourceType.SKELETON_GROUP) as AnimationGroup);
-				else if(_arg1.split(".").pop() == "ans"){
-	                this.m_aniGroup = (ResourceManager.instance.getDependencyOnResource(this, _arg1, ResourceType.ANI_GROUP) as AnimationGroup);
-				}
+				this.m_aniGroup = (ResourceManager.instance.getDependencyOnResource(this, _arg1, ResourceType.ANI_GROUP) as AnimationGroup);
 				if(m_aniGroup){
-					this.m_aniGroup.type = _arg1.split(".").pop();
 					this.m_aniGroup.addAniLoadHandler(this);
 				}
             };

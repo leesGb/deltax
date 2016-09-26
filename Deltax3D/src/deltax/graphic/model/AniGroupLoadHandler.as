@@ -1,9 +1,10 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.model {
+﻿package deltax.graphic.model 
+{
 
-    public interface AniGroupLoadHandler {
+    public interface AniGroupLoadHandler 
+	{
 
-        function onAniLoaded(_arg1:String):void;
+        function onAniLoaded(aniName:String):void;
 
     }
-}//package deltax.graphic.model 
+} 

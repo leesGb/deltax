@@ -1,8 +1,8 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.manager {
+﻿package deltax.graphic.manager 
+{
 
-    public final class ResourceType {
-
+    public final class ResourceType 
+	{
         public static const ANI_GROUP:String = "ans";
         public static const PIECE_GROUP:String = "ams";
         public static const ANI_SEQUENCE:String = "anf";
@@ -22,5 +22,6 @@ package deltax.graphic.manager {
 		public static const BMS_GROUP:String = "bms";
 		public static const SKELETON_GROUP:String = "agp";
 		public static const ANIMATION_SEQ:String = "ani";
+		
     }
-}//package deltax.graphic.manager 
+} 
