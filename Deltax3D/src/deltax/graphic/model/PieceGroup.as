@@ -1,13 +1,8 @@
 ﻿package deltax.graphic.model 
 {
-    import com.hmh.loaders.parsers.AbstMeshParser;
-    import com.hmh.loaders.parsers.BJMeshParser;
-    import com.hmh.loaders.parsers.SubGeometryVo;
-    
     import flash.geom.Vector3D;
     import flash.net.URLLoaderDataFormat;
     import flash.utils.ByteArray;
-    import flash.utils.Endian;
     
     import deltax.delta;
     import deltax.common.Util;
@@ -67,8 +62,6 @@
 		public var m_refCount:int = 1;
 		/**加载失败*/
 		public var m_loadfailed:Boolean = false;
-		/**md5解释器*/
-		public var meshParser:AbstMeshParser;
 
         public function PieceGroup()
 		{
@@ -671,98 +664,6 @@
 				pieceClassIndex++;
 			}
 		}
-		
-		
-		public function writeBms(data:ByteArray):Boolean
-		{
-			m_dependantResList = new Vector.<DependentRes>();
-			m_dependantResList.push(dependMaterials);
-			m_dependantResList.push(dependTextures);
-			
-			var pieceClass:PieceClass;
-			var subGeo:SubGeometryVo;
-			var piece:Piece;
-			if(meshParser == null)
-			{
-				meshParser = new BJMeshParser();
-				meshParser.meshName = this.name;
-				meshParser.subGeometrys = new Vector.<SubGeometryVo>(m_pieceClasses.length);
-				for(var i:int = 0;i<m_pieceClasses.length;i++)
-				{
-					meshParser.subGeometrys[i] = new SubGeometryVo();
-					
-					pieceClass = m_pieceClasses[i];
-					subGeo = meshParser.subGeometrys[i];
-					subGeo.name = pieceClass.m_name;
-					subGeo.vertices = new Vector.<Number>();
-					subGeo.uvs = new Vector.<Number>();
-					subGeo.normals = new Vector.<Number>();
-					subGeo.indices = new Vector.<uint>();
-					subGeo.jointWeights = new Vector.<Number>();
-					subGeo.jointIndices = new Vector.<Number>();
-					
-					for each(piece in pieceClass.m_pieces)
-					{
-						subGeo.m_materialInfos = piece.delta::m_materialInfos;
-							
-						var vertexData:ByteArray = new ByteArray();
-						vertexData.endian = Endian.LITTLE_ENDIAN;
-						vertexData.writeBytes(piece.vertexData,0,piece.vertexData.length);
-						vertexData.position = 0;
-						subGeo.vertexCnt = piece.getVertexCount();
-						for(var jj:int = 0;jj<piece.getVertexCount();jj++)
-						{
-							subGeo.vertices.push(vertexData.readFloat());
-							subGeo.vertices.push(vertexData.readFloat());
-							subGeo.vertices.push(vertexData.readFloat());
-							subGeo.normals.push(vertexData.readFloat());
-							subGeo.normals.push(vertexData.readFloat());
-							subGeo.normals.push(vertexData.readFloat());
-							var jointWeightData:uint = vertexData.readUnsignedInt();
-							var jointIndicesData:uint = vertexData.readUnsignedInt();
-							var ba:ByteArray = new ByteArray();
-							ba.endian = Endian.LITTLE_ENDIAN;
-							ba.writeUnsignedInt(jointWeightData);
-							subGeo.jointWeights.push(ba[0]/255);
-							subGeo.jointWeights.push(ba[1]/255);
-							subGeo.jointWeights.push(ba[2]/255);
-							subGeo.jointWeights.push(ba[3]/255);
-							ba.writeUnsignedInt(jointIndicesData);
-							subGeo.jointIndices.push(ba[0]);
-							subGeo.jointIndices.push(ba[1]);
-							subGeo.jointIndices.push(ba[2]);
-							subGeo.jointIndices.push(ba[3]);
-							subGeo.uvs.push(vertexData.readFloat());
-							subGeo.uvs.push(vertexData.readFloat());
-						}
-						
-						var indiceData:ByteArray = new ByteArray();
-						indiceData.endian = Endian.LITTLE_ENDIAN;
-						indiceData.writeBytes(piece.indiceData,0,piece.indiceData.length);
-						indiceData.position = 0;						
-						while(indiceData.bytesAvailable>0)
-						{
-							subGeo.indices.push(indiceData.readShort());
-						}
-						subGeo.indiceCnt = subGeo.indices.length;
-					}
-				}				
-			}
-			
-			for(var ii:int = 0;ii<m_pieceClasses.length;ii++)
-			{
-				pieceClass = m_pieceClasses[ii];
-				for each(piece in pieceClass.m_pieces)
-				{
-					meshParser.subGeometrys[ii].pieceType = piece.Type;
-				}
-			}
-			
-			writeHead(data);
-			meshParser.write(data);
-			return true;
-		}
-		
 		
 		/**
 		 *计算法线 

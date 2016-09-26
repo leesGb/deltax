@@ -5,22 +5,19 @@ package deltax.graphic.model
 	import com.hmh.loaders.parsers.MD5MeshParser;
 	import com.hmh.loaders.parsers.OgreMeshParser;
 	import com.hmh.loaders.parsers.SubGeometryVo;
-	import com.hmh.utils.ByteArrayUtil;
-	
-	import deltax.common.LittleEndianByteArray;
-	import deltax.common.resource.DependentRes;
-	import deltax.delta;
-	import deltax.graphic.manager.ResourceType;
 	
 	import flash.events.Event;
 	import flash.geom.Rectangle;
 	import flash.geom.Vector3D;
 	import flash.utils.ByteArray;
-	import flash.utils.Dictionary;
 	import flash.utils.Endian;
-	import flash.utils.setTimeout;
 	
 	import mx.controls.Alert;
+	
+	import deltax.delta;
+	import deltax.common.LittleEndianByteArray;
+	import deltax.common.resource.DependentRes;
+	import deltax.graphic.manager.ResourceType;
 	
 	/**
 	 * ...
@@ -35,6 +32,8 @@ package deltax.graphic.model
 		private var m_parsering:Boolean = false;
 		private var m_parsered:Boolean = false;
 		private var _type:String;
+		
+		private var meshParser:AbstMeshParser;
 		
 		public function HPieceGroup() 
 		{

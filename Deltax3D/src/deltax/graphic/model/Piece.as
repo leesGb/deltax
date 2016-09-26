@@ -21,6 +21,12 @@
     import deltax.graphic.manager.StepTimeManager;
     import deltax.graphic.util.TinyNormal;
     import deltax.graphic.util.TinyVertex;
+	
+	/**
+	 * 网格面片模型数据
+	 * @author lees
+	 * @date 2015/09/07
+	 */	
 
     public class Piece 
 	{
@@ -41,24 +47,43 @@
         private static var SampleDefaultJointIndice:Vector.<Number> = Vector.<Number>([0]);
         private static var SampleDefaultJointWeights:Vector.<Number> = Vector.<Number>([1]);
 
+		/**网格面片材质信息列表*/
 		delta var m_materialInfos:Vector.<PieceMaterialInfo>;
+		/**源长度*/
         public var m_orgScale:Vector3D;
+		/**源偏移点*/
         public var m_orgOffset:Vector3D;
+		/**当前长度*/
         public var m_curScale:Vector3D;
+		/**当前偏移点*/
         public var m_curOffset:Vector3D;
+		/**标识*/
         public var m_pieceFlag:uint;
+		/**索引*/
         public var m_pieceIndex:uint;
+		/**网格类*/
         public var m_pieceClass:PieceClass;
+		/**z基础值*/
         public var m_zBias:Number;
+		/**纹理缩放值*/
         public var m_texScale:Number;
+		/**纹理uv范围*/
         public var m_rtTexCoordScale:Rectangle;
+		/**分步加载信息*/
         public var m_stepLoadInfo:StepLoadInfo;
+		/**本地关联全局的索引数据*/
 		public var m_local2GlobalIndex:ByteArray;
+		/**索引数据*/
         public var m_indiceData:ByteArray;
+		/**定点数据*/
         public var m_vertexData:ByteArray;
+		/**索引缓冲区*/
         private var m_indiceBuf:IndexBuffer3D;
+		/**顶点缓冲区*/
         private var m_vertexBuf:VertexBuffer3D;
+		/**索引引用次数*/
         private var m_indiceRef:uint;
+		/**顶点引用次数*/
         private var m_vertexRef:uint;
 		
         public function Piece()
@@ -180,7 +205,7 @@
 				data.readUnsignedShort();
                 this.m_stepLoadInfo = new StepLoadInfo();
                 this.m_stepLoadInfo.vertexCount = data.readUnsignedShort();
-                this.m_stepLoadInfo.vertexSize = this.GetVertexSize(new PieceSaveInfo(this.m_orgScale, this.m_orgOffset, this.m_texScale));
+//                this.m_stepLoadInfo.vertexSize = this.GetVertexSize(new PieceSaveInfo(this.m_orgScale, this.m_orgOffset, this.m_texScale));
                 this.m_stepLoadInfo.vertexIndex = 0;
                 this.m_stepLoadInfo.byteArrayPosition = data.position;
             }
@@ -261,18 +286,6 @@
 		
         private function DecompressVertice(data:ByteArray, vertexCount:uint, time:uint,version:uint):void
 		{
-            var _local4:uint;
-            var _local5:uint;
-            var _local6:Number;
-            var _local7:Number;
-            var _local8:Number;
-            var _local13:uint;
-            var _local16:Vector.<int>;
-            var _local17:Vector.<uint>;
-            var _local18:uint;
-            var _local19:uint;
-            var _local20:int;
-            var _local21:uint;
             if (this.m_stepLoadInfo.vertexIndex == 0)
 			{
                 this.m_vertexData = new LittleEndianByteArray(SkinVertexStride * vertexCount);
@@ -304,49 +317,52 @@
 				this.m_stepLoadInfo.vertex = tinyVertex;
             }
 			
-            var _local9:Number = this.m_stepLoadInfo.saveInfo.xStr * 0.25;
-            var _local10:Number = this.m_stepLoadInfo.saveInfo.yStr * 0.25;
-            var _local11:Number = this.m_stepLoadInfo.saveInfo.zStr * 0.25;
+			var tx:Number;
+			var ty:Number;
+			var tz:Number;
+            var ox:Number = this.m_stepLoadInfo.saveInfo.xStr * 0.25;
+            var oy:Number = this.m_stepLoadInfo.saveInfo.yStr * 0.25;
+            var oz:Number = this.m_stepLoadInfo.saveInfo.zStr * 0.25;
 			var sTex:Number = this.m_stepLoadInfo.saveInfo.sTex;
-            var _local12:Vector3D = new Vector3D();
-            var _local14:TinyVertex = this.m_stepLoadInfo.vertex;
-            var _local15:uint = getTimer();
+            var nor:Vector3D = new Vector3D();
+			tinyVertex = this.m_stepLoadInfo.vertex;
+            var startTime:uint = getTimer();
             while (this.m_stepLoadInfo.vertexIndex < vertexCount) 
 			{
-                if (((((this.m_stepLoadInfo.vertexIndex % 20) == 0)) && (((getTimer() - _local15) > time))))
+                if (this.m_stepLoadInfo.vertexIndex % 20 == 0 && (getTimer() - startTime) > time)
 				{
                     return;
                 }
 				
-                _local14.ReadFromBytes(data);
-                _local6 = (_local14.x + _local9);
-                _local7 = (_local14.y + _local10);
-                _local8 = (_local14.z + _local11);
-                this.m_vertexData.writeFloat(_local6);
-                this.m_vertexData.writeFloat(_local7);
-                this.m_vertexData.writeFloat(_local8);
-                TinyNormal.TINY_NORMAL_12.Decompress1(_local14.N, _local12);
-                this.m_vertexData.writeFloat(_local12.x);
-                this.m_vertexData.writeFloat(_local12.y);
-                this.m_vertexData.writeFloat(_local12.z);
+				tinyVertex.ReadFromBytes(data);
+				tx = tinyVertex.x + ox;
+				ty = tinyVertex.y + oy;
+				tz = tinyVertex.z + oz;
+                this.m_vertexData.writeFloat(tx);
+                this.m_vertexData.writeFloat(ty);
+                this.m_vertexData.writeFloat(tz);
+                TinyNormal.TINY_NORMAL_12.Decompress1(tinyVertex.N, nor);
+                this.m_vertexData.writeFloat(nor.x);
+                this.m_vertexData.writeFloat(nor.y);
+                this.m_vertexData.writeFloat(nor.z);
                 this.m_vertexData.writeUnsignedInt(0xFF);
                 this.m_vertexData.writeUnsignedInt(0);
 				if(version<PieceGroup.VERSION_ScaleUVTexture)
 				{
-					_local6 = _local14.u
-					_local7 = _local14.v;				
+					tx = tinyVertex.u
+					ty = tinyVertex.v;				
 				}else
 				{
-	                _local6 = sTex - _local14.u
-	                _local7 = sTex - _local14.v;
+					tx = sTex - tinyVertex.u
+					ty = sTex - tinyVertex.v;
 				}
 				
-                this.m_vertexData.writeFloat(_local6);
-                this.m_vertexData.writeFloat(_local7);
-                this.m_stepLoadInfo.left = Math.min(_local6, this.m_stepLoadInfo.left);
-                this.m_stepLoadInfo.right = Math.max(_local6, this.m_stepLoadInfo.right);
-                this.m_stepLoadInfo.top = Math.min(_local7, this.m_stepLoadInfo.top);
-                this.m_stepLoadInfo.bottom = Math.max(_local7, this.m_stepLoadInfo.bottom);
+                this.m_vertexData.writeFloat(tx);
+                this.m_vertexData.writeFloat(ty);
+                this.m_stepLoadInfo.left = Math.min(tx, this.m_stepLoadInfo.left);
+                this.m_stepLoadInfo.right = Math.max(tx, this.m_stepLoadInfo.right);
+                this.m_stepLoadInfo.top = Math.min(ty, this.m_stepLoadInfo.top);
+                this.m_stepLoadInfo.bottom = Math.max(ty, this.m_stepLoadInfo.bottom);
                 this.m_stepLoadInfo.vertexIndex++;
             }
 			
@@ -358,63 +374,71 @@
            
 			if (this.Type == Piece.eVT_SkeletalVertex)
 			{
-                _local16 = new Vector.<int>(0x0100, true);
-                _local17 = new Vector.<uint>();
-                _local20 = 0;
-                _local21 = 0;
-                while (_local21 < 0x0100) 
+				var globalIndexList:Vector.<int> = new Vector.<int>(0x0100, true);//全局骨骼索引对应本piece骨骼索引
+				var localIndexList:Vector.<uint> = new Vector.<uint>();//本地骨骼索引对应本局索引
+				var gIdx:uint = 0;
+                while (gIdx < 0x0100) 
 				{
-                    _local16[_local21] = -1;
-                    _local21++;
-                }
-                _local4 = 0;
-                _local13 = (6 * 4);
-                while (_local4 < vertexCount) 
-				{
-                    this.m_vertexData.position = _local13;
-                    this.m_vertexData.writeUnsignedInt(data.readUnsignedInt());
-                    this.m_vertexData.writeUnsignedInt(data.readUnsignedInt());
-                    _local5 = 0;
-                    while (_local5 < MAX_JOINT_COUNT_PER_VERTEX) 
-					{
-                        _local19 = this.m_vertexData[(_local13 + _local5)];
-                        _local18 = this.m_vertexData[((_local13 + 4) + _local5)];
-                        if ((((_local16[_local18] < 0)) && ((_local19 > 0))))
-						{
-                            if (_local20 < MAX_USE_JOINT_PER_PIECE)
-							{
-                                _local16[_local18] = _local20;
-                                _local17[_local20++] = _local18;
-                            } else 
-							{
-                                _local16[_local18] = (_local20 - 1);
-                            }
-                        }
-                        _local5++;
-                    }
-                    _local4++;
-                    _local13 = (_local13 + SkinVertexStride);
+					globalIndexList[gIdx] = -1;
+					gIdx++;
                 }
 				
-                this.m_local2GlobalIndex = new LittleEndianByteArray(_local17.length);
-                _local4 = 0;
-                _local13 = (7 * 4);
-                while (_local4 < vertexCount) 
+				var i:uint = 0;
+				var j:uint;
+				var k:int;
+				var weiValue:uint;
+				var skeletalIndex:uint;
+				var position:uint = 24;//(6 * 4);用四位表示相近的四个顶点权值,保存在一个32位的数值里
+                while (i < vertexCount) 
 				{
-                    _local5 = 0;
-                    while (_local5 < MAX_JOINT_COUNT_PER_VERTEX) 
+                    this.m_vertexData.position = position;
+                    this.m_vertexData.writeUnsignedInt(data.readUnsignedInt());
+                    this.m_vertexData.writeUnsignedInt(data.readUnsignedInt());
+					j = 0;
+                    while (j < MAX_JOINT_COUNT_PER_VERTEX) 
 					{
-                        this.m_vertexData[(_local13 + _local5)] = _local16[this.m_vertexData[(_local13 + _local5)]];
-                        _local5++;
+						weiValue = this.m_vertexData[(position + j)];//权值
+						skeletalIndex = this.m_vertexData[((position + 4) + j)];//骨骼索引
+                        if (globalIndexList[skeletalIndex] < 0 && weiValue > 0)
+						{
+                            if (k < MAX_USE_JOINT_PER_PIECE)
+							{
+								globalIndexList[skeletalIndex] = k;
+								localIndexList[k++] = skeletalIndex;
+                            } else 
+							{
+								globalIndexList[skeletalIndex] = k - 1;
+                            }
+                        }
+						
+						this.m_vertexData[position+4+j] = globalIndexList[skeletalIndex];
+						
+						j++;
                     }
-                    _local4++;
-                    _local13 = (_local13 + SkinVertexStride);
+					i++;
+					position += SkinVertexStride;
                 }
-                _local4 = 0;
-                while (_local4 < _local17.length) 
+				
+                this.m_local2GlobalIndex = new LittleEndianByteArray(localIndexList.length);
+//				i = 0;
+//				position = 28;//(7 * 4);
+//                while (i < vertexCount) 
+//				{
+//					j = 0;
+//                    while (j < MAX_JOINT_COUNT_PER_VERTEX) 
+//					{
+//                        this.m_vertexData[(position + j)] = globalIndexList[this.m_vertexData[(position + j)]];
+//						j++;
+//                    }
+//					i++;
+//					position += SkinVertexStride;
+//                }
+				
+				i = 0;
+                while (i < localIndexList.length) 
 				{
-                    this.m_local2GlobalIndex[_local4] = _local17[_local4];
-                    _local4++;
+                    this.m_local2GlobalIndex[i] = localIndexList[i];
+					i++;
                 }
             } else 
 			{
@@ -423,51 +447,56 @@
             }
         }
 		
-        public function getVertexBuffer(_arg1:Context3D):VertexBuffer3D
+        public function getVertexBuffer(context:Context3D):VertexBuffer3D
 		{
             if (!this.m_vertexBuf)
 			{
                 this.m_vertexRef = 0;
-                this.m_vertexBuf = _arg1.createVertexBuffer(this.getVertexCount(), (SkinVertexStride / 4));
+                this.m_vertexBuf = context.createVertexBuffer(this.getVertexCount(), (SkinVertexStride / 4));
                 this.m_vertexBuf.uploadFromByteArray(this.m_vertexData, 0, 0, this.getVertexCount());
             }
+			
             this.m_vertexRef++;
-            return (this.m_vertexBuf);
+			
+            return this.m_vertexBuf;
         }
 		
-        public function getIndexBuffer(_arg1:Context3D):IndexBuffer3D
+        public function getIndexBuffer(context:Context3D):IndexBuffer3D
 		{
             if (!this.m_indiceBuf)
 			{
                 this.m_indiceRef = 0;
-                this.m_indiceBuf = _arg1.createIndexBuffer((this.m_indiceData.length / 2));
-                this.m_indiceBuf.uploadFromByteArray(this.m_indiceData, 0, 0, (this.m_indiceData.length / 2));
+                this.m_indiceBuf = context.createIndexBuffer(this.m_indiceData.length * 0.5);
+                this.m_indiceBuf.uploadFromByteArray(this.m_indiceData, 0, 0, this.m_indiceData.length * 0.5);
             }
+			
             this.m_indiceRef++;
-            return (this.m_indiceBuf);
+			
+            return this.m_indiceBuf;
         }
 		
         public function get vertexBuf():VertexBuffer3D
 		{
-            return (this.m_vertexBuf);
+            return this.m_vertexBuf;
         }
 		
         public function get indiceBuf():IndexBuffer3D
 		{
-            return (this.m_indiceBuf);
+            return this.m_indiceBuf;
         }
 		
         public function disposeVertex():void
 		{
             if (this.m_vertexRef == 0)
 			{
-                throw (new Error("disposeVertex when m_indiceRef == 0."));
+                throw new Error("disposeVertex when m_indiceRef == 0.");
             }
 			
             if (--this.m_vertexRef)
 			{
                 return;
             }
+			
             this.m_vertexBuf.dispose();
             this.m_vertexBuf = null;
         }
@@ -476,7 +505,7 @@
 		{
             if (this.m_indiceRef == 0)
 			{
-                throw (new Error("disposeVertex when m_indiceRef == 0."));
+                throw new Error("disposeVertex when m_indiceRef == 0.");
             }
 			
             if (--this.m_indiceRef)
@@ -499,7 +528,7 @@
                 this.m_vertexBuf.dispose();
             }
 			
-            if (((this.m_vertexBuf) || (this.m_indiceBuf)))
+            if (this.m_vertexBuf || this.m_indiceBuf)
 			{
                 dtrace(LogLevel.IMPORTANT, "destroy when m_indiceBuf != null or m_vertexBuf != null.");
             }
@@ -538,33 +567,46 @@
             this.m_stepLoadInfo = null;
         }
 		
-        public function get local2GlobalIndex():ByteArray{
-            return (this.m_local2GlobalIndex);
-        }
-        public function get indiceData():ByteArray{
-            return (this.m_indiceData);
-        }
-        public function get vertexData():ByteArray{
-            return (this.m_vertexData);
-        }
-        public function getVertexCount():uint{
-            return ((this.m_vertexData.length / SkinVertexStride));
+        public function get local2GlobalIndex():ByteArray
+		{
+            return this.m_local2GlobalIndex;
         }
 		
+        public function get indiceData():ByteArray
+		{
+            return this.m_indiceData;
+        }
 		
-		public function WriteIndexData(data:ByteArray,version:int):void{
+        public function get vertexData():ByteArray
+		{
+            return this.m_vertexData;
+        }
+		
+        public function getVertexCount():uint
+		{
+            return this.m_vertexData.length / SkinVertexStride;
+        }
+		
+		//======================================================================================================================
+		//======================================================================================================================
+		//
+		public function WriteIndexData(data:ByteArray,version:int):void
+		{
 			VectorUtil.writeVector3D(data,this.m_orgScale);
 			VectorUtil.writeVector3D(data,this.m_orgOffset);
-			if(version>=PieceGroup.VERSION_AddEditBox){
+			if(version>=PieceGroup.VERSION_AddEditBox)
+			{
 				VectorUtil.writeVector3D(data,this.m_curScale);
 				VectorUtil.writeVector3D(data,this.m_curOffset);
 			}
-			if(version>=PieceGroup.VERSION_MoveMatrl2Index){
+			if(version>=PieceGroup.VERSION_MoveMatrl2Index)
+			{
 				this.WriteMaterial(data,version);
 			}
 		}
 		
-		private function WriteMaterial(data:ByteArray,version:int):void{
+		private function WriteMaterial(data:ByteArray,version:int):void
+		{
 			data.writeByte(this.delta::m_materialInfos.length);
 			var i:int = 0;
 			var j:int = 0;
@@ -577,7 +619,6 @@
 				j = 0;
 				while(j<this.delta::m_materialInfos[i].m_texIndiceGroups.length)
 				{
-					
 					k = 1;
 					if(version>=PieceGroup.VERSION_AddTexList)
 					{
@@ -621,10 +662,13 @@
 			var indiceLen:int = this.indiceData.length/2;
 			data.writeUnsignedInt(indiceLen);
 			var i:uint;
-			while (i < indiceLen) {
-				if (getVertexCount() < 0x0100){
+			while (i < indiceLen) 
+			{
+				if (getVertexCount() < 0x0100)
+				{
 					data.writeByte(this.indiceData.readShort());
-				} else {
+				} else 
+				{
 					data.writeShort(this.indiceData.readShort());
 				}
 				i++;
@@ -660,12 +704,12 @@
 			} else 
 			{
 				Alert.show("Vertex values out of the compress range");
-				throw (new Error("Vertex values out of the compress range!"));
+				throw new Error("Vertex values out of the compress range!");
 			}
 			
-			var _local9:Number = (saveInfo.xStr * 0.25);
-			var _local10:Number = (saveInfo.yStr * 0.25);
-			var _local11:Number = (saveInfo.zStr * 0.25);
+			var ox:Number = (saveInfo.xStr * 0.25);
+			var oy:Number = (saveInfo.yStr * 0.25);
+			var oz:Number = (saveInfo.zStr * 0.25);
 			var sTex:Number = saveInfo.sTex;
 			var vertexIndex:int = 0;
 			var uvMax:Number = 0;
@@ -674,9 +718,9 @@
 			while(vertexIndex<getVertexCount())
 			{
 				vertexVec = new Vector3D();
-				vertexVec.x = m_vertexData.readFloat() - _local9;
-				vertexVec.y = m_vertexData.readFloat() - _local10;
-				vertexVec.z = m_vertexData.readFloat() - _local11;
+				vertexVec.x = m_vertexData.readFloat() - ox;
+				vertexVec.y = m_vertexData.readFloat() - oy;
+				vertexVec.z = m_vertexData.readFloat() - oz;
 				normalVec = new Vector3D();
 				normalVec.x = m_vertexData.readFloat();
 				normalVec.y = m_vertexData.readFloat();
@@ -688,12 +732,15 @@
 				uvPoint = new Point();
 				uvPoint.x =  sTex - u;
 				uvPoint.y = sTex - v;
-				if(uvPoint.x<0 || uvPoint.y<0 || uvPoint.x>=131 || uvPoint.y>=131){
+				if(uvPoint.x<0 || uvPoint.y<0 || uvPoint.x>=131 || uvPoint.y>=131)
+				{
 					Alert.show("uv error,跟程序说 " + uvPoint.x.toString() + "," + uvPoint.y.toString());
 					throw new Error("uv error");
 					break;
 				}
-				if(vertexVec.x<0 || vertexVec.y<0 || vertexVec.z<0){
+				
+				if(vertexVec.x<0 || vertexVec.y<0 || vertexVec.z<0)
+				{
 					Alert.show("uv error,跟程序说 " + vertexVec.x.toString() + "," + vertexVec.y.toString() + "," + vertexVec.z.toString());
 					throw new Error("vertexVec error");
 					break;
@@ -706,18 +753,21 @@
 				vertexIndex++;
 			}
 			
-			if (this.Type == Piece.eVT_SkeletalVertex){
+			if (this.Type == Piece.eVT_SkeletalVertex)
+			{
 				var i:int = 0;
 				var j:int = 0;				
 				var vp:int = (6 * 4);
-				while(i<getVertexCount()){
+				while(i<getVertexCount())
+				{
 					this.m_vertexData.position = vp;
 					var wei:int = this.m_vertexData.readUnsignedInt();
 					var boneId:int = this.m_vertexData.readUnsignedInt();
 					var boneIdBa:ByteArray = new ByteArray();
 					boneIdBa.endian = Endian.LITTLE_ENDIAN;
 					boneIdBa.writeUnsignedInt(boneId);
-					for(j = 0;j<Piece.MAX_JOINT_COUNT_PER_VERTEX;j++){
+					for(j = 0;j<Piece.MAX_JOINT_COUNT_PER_VERTEX;j++)
+					{
 						boneIdBa[j] = m_local2GlobalIndex[boneIdBa[j]];
 					}
 					boneIdBa.position = 0;
@@ -731,88 +781,10 @@
 			}
 		}
 		
-		public function autoSetOrgOffsetScale():void
-		{
-			var piece:Piece = this;
-			piece.m_orgOffset = new Vector3D();
-			piece.m_orgScale = new Vector3D();
-			piece.m_curOffset = new Vector3D();
-			piece.m_curScale = new Vector3D();
-			
-			var min:Vector3D = new Vector3D();
-			var max:Vector3D = new Vector3D();
-			var tx:Number;
-			var ty:Number
-			var tz:Number;
-			var u:Number;
-			var v:Number;
-			var minuv:Number;
-			var maxuv:Number;
-			var tempuv:Number;			
-			piece.vertexData.position = 0;
-			for(var i:int = 0;i<piece.getVertexCount();i++){
-				tx = piece.vertexData.readFloat();
-				ty = piece.vertexData.readFloat();
-				tz = piece.vertexData.readFloat();
-				piece.vertexData.position += 20;
-				u = piece.vertexData.readFloat();
-				v = piece.vertexData.readFloat();		
-				if(i == 0){
-					max.x = tx;
-					max.y = ty;
-					max.z = tz;
-					min = max.clone();
-					minuv = (u<v?u:v);;
-					maxuv = (u>v?u:v);							
-				}else{
-					max.x = (tx>max.x?tx:max.x);
-					max.y = (ty>max.y?ty:max.y);
-					max.z = (tz>max.z?tz:max.z);					
-					
-					min.x = (tx<min.x?tx:min.x);
-					min.y = (ty<min.y?ty:min.y);
-					min.z = (tz<min.z?tz:min.z);					
-					
-					tempuv = (u<v?u:v);;
-					minuv = (tempuv<minuv?tempuv:minuv);
-					tempuv = (u>v?u:v);				
-					maxuv = (tempuv>maxuv?tempuv:maxuv);					
-				}
-				
-				piece.vertexData.position = i * Piece.SkinVertexStride;
-			}
-			
-			piece.m_orgScale.x = max.x - min.x + 1;
-			piece.m_orgScale.y = max.y - min.y + 1;
-			piece.m_orgScale.z = max.z - min.z + 1;
-			
-			piece.m_orgOffset.x = (max.x + min.x)/2;
-			piece.m_orgOffset.y = (max.y + min.y)/2;
-			piece.m_orgOffset.z = (max.z + min.z)/2;
-			
-			piece.m_texScale = 	(maxuv - minuv + 0.01);//int((maxuv - minuv) * 2000)/2000;
-			if(piece.m_texScale<=1.02){
-				if(piece.m_texScale - minuv > 1.02)
-					piece.m_texScale = piece.m_texScale - minuv;			
-			}else if(piece.m_texScale<=2.04){
-				if(piece.m_texScale - minuv > 2.04)
-					piece.m_texScale = piece.m_texScale - minuv;
-			}
-			
-			piece.m_orgScale.x = Math.ceil(piece.m_orgScale.x * 4)/4;
-			piece.m_orgScale.y = Math.ceil(piece.m_orgScale.y * 4)/4;
-			piece.m_orgScale.z = Math.ceil(piece.m_orgScale.z * 4)/4;
-			piece.m_orgOffset.x = Math.floor(piece.m_orgOffset.x * 4)/4;
-			piece.m_orgOffset.y = Math.floor(piece.m_orgOffset.y * 4)/4;
-			piece.m_orgOffset.z = Math.floor(piece.m_orgOffset.z * 4)/4;
-			
-			piece.m_curOffset = piece.m_orgOffset.clone();
-			piece.m_curScale = piece.m_orgScale.clone();			
-		}
-		
 		public function reBuildNormal(verVec:Vector.<Vector3D>,norVec:Vector.<Vector3D>,saveVec:Vector.<int>):void
 		{
 			var i:int = 0;
+			var j:int = 0;
 			var ip:int = 0;
 			var vp:int = 0;
 			var idice0:int = 0;
@@ -823,7 +795,7 @@
 			var normals2:Number = 0;			
 			var indiceLen:int = this.indiceData.length/2;
 			
-			for (var j:int = 0; j < getVertexCount(); j++) 
+			for (j=0; j < getVertexCount(); j++) 
 			{
 				vertexData.position = Piece.SkinVertexStride * j + 3*4;
 				vertexData.writeFloat(0);
@@ -831,7 +803,7 @@
 				vertexData.writeFloat(0);					
 			}
 			
-			for(var j:int = 0;j<indiceLen/3;++j)
+			for(j=0;j<indiceLen/3;++j)
 			{
 				ip = (2*3)*j;
 				indiceData.position = ip;
@@ -885,7 +857,7 @@
 			}
 			
 			
-			for (var j:int = 0; j < getVertexCount(); j++) 
+			for (j=0; j < getVertexCount(); j++) 
 			{
 				vertexData.position = Piece.SkinVertexStride * j;
 				var ve:Vector3D = new Vector3D(vertexData.readFloat(),vertexData.readFloat(),vertexData.readFloat());
@@ -907,27 +879,32 @@
 						 break;
 					}
 				}
-				if(has == false){
+				
+				if(has == false)
+				{
 					verVec.push(ve);
 					norVec.push(normalvec);				
 				}
 			}
 		}
 		
-		public function rebuildSaveVerNormal(verVec:Vector.<Vector3D>,norVec:Vector.<Vector3D>,saveVec:Vector.<int>):void{
-			for (var j:int = 0; j < getVertexCount(); j++) {
+		public function rebuildSaveVerNormal(verVec:Vector.<Vector3D>,norVec:Vector.<Vector3D>,saveVec:Vector.<int>):void
+		{
+			for (var j:int = 0; j < getVertexCount(); j++) 
+			{
 				vertexData.position = Piece.SkinVertexStride * j;
 				var ve:Vector3D = new Vector3D(vertexData.readFloat(),vertexData.readFloat(),vertexData.readFloat());
 				var normalvec:Vector3D = new Vector3D(vertexData.readFloat(),vertexData.readFloat(),vertexData.readFloat());
-				for each(var saveIdx:int in saveVec){
-					if(verVec[saveIdx].equals(ve)){
+				for each(var saveIdx:int in saveVec)
+				{
+					if(verVec[saveIdx].equals(ve))
+					{
 						var norTemp:Vector3D = norVec[saveIdx];
 						norTemp.normalize();
 						vertexData.position = Piece.SkinVertexStride * j + 3 * 4;
 						vertexData.writeFloat(norTemp.x);
 						vertexData.writeFloat(norTemp.y);
 						vertexData.writeFloat(norTemp.z);	
-						//trace(norTemp);
 						break;
 					}
 				}	
@@ -936,17 +913,20 @@
 		
 		public function normalizeNor():void
 		{
-			for (var j:int = 0; j < getVertexCount(); j++) {
+			for (var j:int = 0; j < getVertexCount(); j++) 
+			{
 				vertexData.position = Piece.SkinVertexStride * j + 3 * 4;
 				var normalvec:Vector3D = new Vector3D(vertexData.readFloat(),vertexData.readFloat(),vertexData.readFloat());
 				normalvec.normalize();
 				vertexData.position = Piece.SkinVertexStride * j + 3 * 4;
-				//normalvec.x = normalvec.y = normalvec.z = 1;
 				vertexData.writeFloat(normalvec.x);
 				vertexData.writeFloat(normalvec.y);
 				vertexData.writeFloat(normalvec.z);
 			}
 		}
+		
+		
+		
     }
 }
 
