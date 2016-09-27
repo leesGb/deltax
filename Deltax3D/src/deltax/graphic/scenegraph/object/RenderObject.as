@@ -1410,11 +1410,14 @@
             };
             return (this.m_isFirstLoaded);
         }
-        public function onAniLoaded(_arg1:String):void{
-            if (_arg1 == this.m_absentAniPlayParam.aniName){
+        public function onAniLoaded(_arg1:String):void
+		{
+            if (_arg1 == this.m_absentAniPlayParam.aniName)
+			{
                 this.playAni(this.m_absentAniPlayParam.aniName, this.m_absentAniPlayParam.loop, this.m_absentAniPlayParam.initFrame, this.m_absentAniPlayParam.startFrame, this.m_absentAniPlayParam.endFrame, this.m_absentAniPlayParam.skeletalID, this.m_absentAniPlayParam.delayTime, this.m_absentAniPlayParam.excludeSkeletalIDs);
-            };
+            }
         }
+		
         public function addAniGroupLoadHandler(_arg1:Function):void{
             this.m_aniGroupLoadHandlers = ((this.m_aniGroupLoadHandlers) || (new Vector.<Function>()));
             if (this.m_aniGroupLoadHandlers.indexOf(_arg1) < 0){
