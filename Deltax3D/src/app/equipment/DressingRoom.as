@@ -61,21 +61,25 @@
                 _local3++;
             };
         }
-        public function putOnAll(_arg1:RenderObject, _arg2:EquipsInUse, _arg3:EquipParams, _arg4:uint=0):Boolean
+		
+        public function putOnAll($renderObject:RenderObject, $equipsInUse:EquipsInUse, $equipParams:EquipParams, $combatActionType:uint=0):Boolean
 		{
-            var _local5:uint;
+            
             var _local8:EquipItemParam;
             var _local6:Boolean = true;
-            var _local7:uint = _arg3.itemCount;
-            _local5 = 0;
-            this.takeOffWeapon(_arg1, _arg2);
-            _local5 = 0;
-            while (_local5 < _local7) {
-                _local8 = _arg3.getEquipParam(_local5);
-                if ((((_local8.equipName.length == 0)) || ((_local8.equipType.length == 0)))){
-                } else {
-                    this.putOn(_arg1, _arg2, _local8.equipType, _local8.equipName, _local8.parentLinkNames[_arg4]);
-                };
+            var _local7:uint = $equipParams.itemCount;
+            this.takeOffWeapon($renderObject, $equipsInUse);
+			var _local5:uint = 0;
+            while (_local5 < _local7) 
+			{
+                _local8 = $equipParams.getEquipParam(_local5);
+                if ((((_local8.equipName.length == 0)) || ((_local8.equipType.length == 0))))
+				{
+					
+                } else 
+				{
+                    this.putOn($renderObject, $equipsInUse, _local8.equipType, _local8.equipName, _local8.parentLinkNames[$combatActionType]);
+                }
                 _local5++;
             };
             return (true);
@@ -97,7 +101,9 @@
             };
             _arg2.clear();
         }
-        public function putOn(_arg1:RenderObject, _arg2:EquipsInUse, _arg3:String, _arg4:String, _arg5:String):Boolean{
+		
+        public function putOn(_arg1:RenderObject, _arg2:EquipsInUse, _arg3:String, _arg4:String, _arg5:String):Boolean
+		{
             var linkNames:* = null;
             var nodeAndSocketID:* = null;
             var equippedItem:* = null;
@@ -122,81 +128,76 @@
             var tempTypeForWeapon:* = equipType.concat();
             var linkName:* = linkNameWithFx;
             var linkNameWithFxValid:* = (linkNameWithFx) ? true : false;
-            if (linkNameWithFxValid){
+            if (linkNameWithFxValid)
+			{
                 linkNames = linkNameWithFx.split(";");
                 linkName = linkNames[0];
                 tempTypeForWeapon = (tempTypeForWeapon + linkName);
-            };
-            if (linkName){
-                if (((renderObject.aniGroup) && (!(renderObject.aniGroup.loaded)))){
-                    var delayPutOn:* = function ():Boolean{
+            }
+			
+            if (linkName)
+			{
+                if (((renderObject.aniGroup) && (!(renderObject.aniGroup.loaded))))
+				{
+                    var delayPutOn:* = function ():Boolean
+					{
                         return (putOn(renderObject, equipInUse, equipType, equipName, linkNameWithFx));
-                    };
+                    }
                     renderObject.addAniGroupLoadHandler(delayPutOn);
                     return (true);
-                };
+                }
                 nodeAndSocketID = renderObject.getIDsByLinkName(linkName);
-                if (nodeAndSocketID[0] < 0){
+                if (nodeAndSocketID[0] < 0)
+				{
                     return (false);
-                };
-            };
-            if ((((equipType == "weapon")) && (!(linkNameWithFxValid)))){
+                }
+            }
+			
+            if ((((equipType == "weapon")) && (!(linkNameWithFxValid))))
+			{
                 return (false);
-            };
-            if (((equipInUse.checkEquipHide(equipType)) && (!(equipInUse.checkIsNudeType(equipType, equipName))))){
+            }
+			
+            if (((equipInUse.checkEquipHide(equipType)) && (!(equipInUse.checkIsNudeType(equipType, equipName)))))
+			{
                 equipInUse.markEquipPartHidden(equipType, equipName);
                 return (true);
-            };
+            }
+			
             var equipGroupClass:* = ((equipType == "weapon")) ? EquipClassType.WEAPON : equipInUse.type;
             var equipGroupWeapon:* = this.m_equipGroups[equipGroupClass];
             var equipGroupOrg:* = this.m_equipGroups[equipInUse.type];
             var equipConfigInfo:* = equipGroupWeapon.getEquipment(equipType, equipName);
-            if (!equipConfigInfo){
+            if (!equipConfigInfo)
+			{
                 return (false);
-            };
+            }
+			
             this.takeOff(renderObject, equipInUse, equipType, linkName);
-            if (!DictionaryUtil.isDictionaryEmpty(equipConfigInfo.hideTypeDict)){
-                for (hideTypeName in equipConfigInfo.hideTypeDict) {
+			
+            if (!DictionaryUtil.isDictionaryEmpty(equipConfigInfo.hideTypeDict))
+			{
+                for (hideTypeName in equipConfigInfo.hideTypeDict) 
+				{
                     equippedItem = equipInUse.equipedItems[hideTypeName];
-                    if (equippedItem){
+                    if (equippedItem)
+					{
                         this.takeOff(renderObject, equipInUse, hideTypeName, null);
                         this.putOnNudePart(renderObject, equipInUse, hideTypeName);
                         equipInUse.markEquipPartHidden(hideTypeName, equippedItem.equipName);
-                    };
-                };
+                    }
+                }
                 equipInUse.addEquipTypesToHide(equipConfigInfo.hideTypeDict);
-            };
+            }
+			
             var preEquippedItem:EquipItemInUse = equipInUse.equipedItems[tempTypeForWeapon];
-            if (!preEquippedItem){
+            if (!preEquippedItem)
+			{
                 preEquippedItem = new EquipItemInUse();
                 equipInUse.equipedItems[tempTypeForWeapon] = preEquippedItem;
-            };
+            }
             preEquippedItem.equipName = equipName;
             var skinTextureInfo:SkinTextureInfo = new SkinTextureInfo();
-			/*
-            if ((((equipInUse.type == EquipClassType.MALE)) || ((equipInUse.type == EquipClassType.FEMALE)))){
-                decorateType = DecorateType.COUNT;
-                if (NudeParams.NUDE_PART_TYPE_NAMES[NudePartType.HEAD] == equipType){
-                    decorateType = DecorateType.HAIR;
-                } else {
-                    if (NudeParams.NUDE_PART_TYPE_NAMES[NudePartType.FACE] == equipType){
-                        decorateType = DecorateType.FACE;
-                    } else {
-                        if (!equipConfigInfo.hideSkin){
-                            decorateType = DecorateType.SKIN;
-                        };
-                    };
-                };
-				
-                if (decorateType != DecorateType.COUNT){
-                    skinTexID = equipInUse.getDecorateTextureID(decorateType);
-                    sex = EquipClassType.ToSex(equipInUse.type);
-                    decorateInfo = NewRoleConfig.instance.getDecorateInfo(sex, decorateType, skinTexID);
-                    if (decorateInfo){
-                        skinTextureInfo.textureName = decorateInfo.texFilePath;
-                    };
-                };
-            };*/
 			var socket:Socket;
             if (linkName)
 			{
@@ -205,15 +206,18 @@
                 preEquippedItem.renderObject.occlusionEffect = renderObject.occlusionEffect;
                 weight = 1;
                 this.addMeshPart(preEquippedItem.renderObject, equipConfigInfo, equipGroupWeapon, skinTextureInfo);
-				if(equipConfigInfo.aniGroupFileName){
+				if(equipConfigInfo.aniGroupFileName)
+				{
 					preEquippedItem.renderObject.setAniGroupByName((Enviroment.ResourceRootPath + equipConfigInfo.aniGroupFileName));
 				}
                 preEquippedItem.renderObject.setFigure(Vector.<uint>([equipConfigInfo.figureID]), Vector.<Number>([1]));
                 renderObject.addChildByLinkID(preEquippedItem.renderObject, nodeAndSocketID[0], nodeAndSocketID[1]);
                 renderObject = preEquippedItem.renderObject;
-            } else {
+            } else 
+			{
                 this.addMeshPart(renderObject, equipConfigInfo, equipGroupWeapon, skinTextureInfo);
-            };
+            }
+			
             if (!this.addAniPart(renderObject, equipInUse, equipGroupWeapon, equipGroupOrg, equipConfigInfo, linkName))
 			{
 				if(socket)
@@ -226,40 +230,52 @@
 					renderObject.scaleX = renderObject.scaleY = renderObject.scaleZ = equipConfigInfo.scale;
 				}
             }
-            if (equipConfigInfo.effectGroupFileName){
+			
+            if (equipConfigInfo.effectGroupFileName)
+			{
                 effectLinkName = (equipConfigInfo.meshParts.length) ? equipConfigInfo.meshParts[0].pieceClassName : equipName;
                 renderObject.addEffect((Enviroment.ResourceRootPath + equipConfigInfo.effectGroupFileName), equipConfigInfo.effectName, effectLinkName, RenderObjLinkType.CENTER, false);
                 preEquippedItem.fxIDs.push(effectLinkName);
-            };
-            if (equipConfigInfo.stateEffectFileName){
+            }
+			
+            if (equipConfigInfo.stateEffectFileName)
+			{
                 renderObject.addStateEffect((Enviroment.ResourceRootPath + equipConfigInfo.stateEffectFileName), null, null);
-            };
-            if (linkNames){
+            }
+			
+            if (linkNames)
+			{
                 fxFileNameSet = new Dictionary();
                 i = 1;
-                while (i < linkNames.length) {
+                while (i < linkNames.length) 
+				{
                     extraFxFileName = linkNames[i];
-                    if (!fxFileNameSet[extraFxFileName]){
+                    if (!fxFileNameSet[extraFxFileName])
+					{
                         fxFileNameSet[extraFxFileName] = true;
                         specialFxNamePair = extraFxFileName.split(":");
                         fxFileName = extraFxFileName;
                         fxName = EffectNames.FX_LOOP;
-                        if (specialFxNamePair.length == 2){
+                        if (specialFxNamePair.length == 2)
+						{
                             fxFileName = specialFxNamePair[0];
                             fxName = specialFxNamePair[1];
-                        };
+                        }
                         effectLinkName = ((fxFileName + "/") + fxName);
                         renderObject.addEffect((Enviroment.ResourceRootPath + fxFileName), fxName, effectLinkName, RenderObjLinkType.CENTER, false);
                         preEquippedItem.fxIDs.push(effectLinkName);
-                    };
+                    }
                     i = (i + 1);
-                };
-            };
-            if ((((renderObject.renderObjType == RenderObjectType.MESH)) && (equipConfigInfo.checkHasFlag(EquipRenderFlag.PETRIFIED)))){
+                }
+            }
+			
+            if ((((renderObject.renderObjType == RenderObjectType.MESH)) && (equipConfigInfo.checkHasFlag(EquipRenderFlag.PETRIFIED))))
+			{
                 renderObject.convertToStatue(true);
-            };
+            }
             return (true);
         }
+		
         private function putOnNudePart(_arg1:RenderObject, _arg2:EquipsInUse, _arg3:String):void{
             var _local4:String = _arg2.nudeEquipInfos[_arg3];
             if (_local4 != null){
