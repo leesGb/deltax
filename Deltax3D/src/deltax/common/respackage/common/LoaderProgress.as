@@ -1,107 +1,191 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common.respackage.common {
-    import flash.events.*;
-    import flash.utils.*;
+﻿package deltax.common.respackage.common 
+{
+    import flash.events.TimerEvent;
+    import flash.utils.Timer;
+	
+	/**
+	 * 资源加载进度管理
+	 * @author lees
+	 * @date 2015/10/09
+	 */	
 
-    public class LoaderProgress {
-
+    public class LoaderProgress 
+	{
         private static var m_instance:LoaderProgress;
 
+		/**数据总字节的近似值*/
         private var m_approxTotalBytes:uint = 10000000;
+		/**当前进度的步数*/
         private var m_curProgressStep:uint = 100;
+		/**已加载的总字节数*/
         private var m_totalLoadedBytes:uint;
+		/**时间递增的个数*/
         private var m_timeAddCount:uint;
+		/**加载进度条*/
         private var m_loadingUI:ILoading;
+		/**计时器*/
         private var m_timer:Timer;
+		/**进度条显示的文本*/
         private var m_text:String = "";
+		/**是否延时隐藏*/
         private var m_delayHide:Boolean = false;
 
-        public function LoaderProgress(_arg1:SingletonEnforcer){
+        public function LoaderProgress(s:SingletonEnforcer)
+		{
             this.m_timer = new Timer(5);
             this.m_timer.addEventListener(TimerEvent.TIMER, this.onTimer);
         }
-        public static function get instance():LoaderProgress{
+		
+        public static function get instance():LoaderProgress
+		{
             return ((m_instance = ((m_instance) || (new LoaderProgress(new SingletonEnforcer())))));
         }
 
-        public function set loadingUI(_arg1:ILoading):void{
-            this.m_loadingUI = _arg1;
+		/**
+		 * 设置加载显示条的ui
+		 * @param value
+		 */		
+        public function set loadingUI(value:ILoading):void
+		{
+            this.m_loadingUI = value;
         }
-        public function get loadingUICreated():Boolean{
-            return (!((this.m_loadingUI == null)));
+		
+		/**
+		 * 加载条ui是否已经创建
+		 * @return 
+		 */		
+        public function get loadingUICreated():Boolean
+		{
+            return this.m_loadingUI != null;
         }
-        public function show(_arg1:Boolean):void{
-            if (!this.m_loadingUI){
+		
+		/**
+		 * 显示进度条
+		 * @param value
+		 */		
+        public function show(value:Boolean):void
+		{
+            if (!this.m_loadingUI)
+			{
                 return;
-            };
-            if (_arg1){
-                if (((this.visible) && (this.m_timer.running))){
+            }
+			
+            if (value)
+			{
+                if (this.visible && this.m_timer.running)
+				{
                     return;
-                };
+                }
+				
                 this.m_timeAddCount = 0;
                 this.m_delayHide = false;
                 this.m_timer.start();
                 this.m_loadingUI.showUI(true);
-            } else {
-                if (!this.visible){
+            } else 
+			{
+                if (!this.visible)
+				{
                     return;
-                };
+                }
+				
                 this.m_delayHide = true;
-            };
+            }
         }
-        public function get visible():Boolean{
-            return (((this.m_loadingUI) && (this.m_loadingUI.isVisible)));
+		
+		/**
+		 * 进度条是否可见
+		 * @return 
+		 */		
+        public function get visible():Boolean
+		{
+            return this.m_loadingUI && this.m_loadingUI.isVisible;
         }
-        public function set visible(_arg1:Boolean):void{
-            if (this.m_loadingUI){
-                this.m_loadingUI.showUI(_arg1);
-            };
+        public function set visible(value:Boolean):void
+		{
+            if (this.m_loadingUI)
+			{
+                this.m_loadingUI.showUI(value);
+            }
         }
-        public function disposeUI():void{
-            if (!this.m_loadingUI){
+		
+		/**
+		 * 进度条销毁
+		 */		
+        public function disposeUI():void
+		{
+            if (!this.m_loadingUI)
+			{
                 return;
-            };
+            }
+			
             this.m_loadingUI.dispose();
             this.m_loadingUI = null;
         }
-        private function onTimer(_arg1:TimerEvent):void{
-            var _local4:Number;
-            if (this.m_timeAddCount >= this.m_curProgressStep){
-                if (this.m_delayHide){
+		
+		/**
+		 * 计时器工作
+		 * @param evt
+		 */		
+        private function onTimer(evt:TimerEvent):void
+		{
+            if (this.m_timeAddCount >= this.m_curProgressStep)
+			{
+                if (this.m_delayHide)
+				{
                     this.m_loadingUI.showUI(false);
                     this.m_timer.stop();
                     return;
-                };
+                }
+				
                 this.m_timeAddCount = 0;
-            } else {
-                if (this.m_delayHide){
-                    _local4 = (this.m_approxTotalBytes - this.m_totalLoadedBytes);
-                    this.m_totalLoadedBytes = (this.m_totalLoadedBytes + (_local4 / (this.m_curProgressStep - this.m_timeAddCount)));
-                };
+            } else 
+			{
+                if (this.m_delayHide)
+				{
+                    this.m_totalLoadedBytes += (this.m_approxTotalBytes - this.m_totalLoadedBytes) / (this.m_curProgressStep - this.m_timeAddCount);
+                }
                 this.m_timeAddCount++;
-            };
+            }
+			
 			 this.m_loadingUI.showUI(false);
-            var _local2:Number = (this.m_totalLoadedBytes / Number(this.m_approxTotalBytes));
-            var _local3:Number = (this.m_timeAddCount / Number(this.m_curProgressStep));
-            this.m_loadingUI.setProgress((_local2 * 100), (_local3 * 100), this.m_text);
+			 
+            var dataPercent:Number = this.m_totalLoadedBytes / this.m_approxTotalBytes;
+            var countPercent:Number = this.m_timeAddCount / this.m_curProgressStep;
+            this.m_loadingUI.setProgress((dataPercent * 100), (countPercent * 100), this.m_text);
         }
-        public function increaseProgress(_arg1:uint, _arg2:String=""):void{
-            if (!this.m_loadingUI){
+		
+		/**
+		 * 增加进度条的进度值
+		 * @param dataSize
+		 * @param text
+		 */		
+        public function increaseProgress(dataSize:uint, text:String=""):void
+		{
+            if (!this.m_loadingUI)
+			{
                 return;
-            };
-            this.m_totalLoadedBytes = (this.m_totalLoadedBytes + _arg1);
-            if (this.m_totalLoadedBytes >= this.m_approxTotalBytes){
-                this.m_approxTotalBytes = (this.m_totalLoadedBytes + _arg1);
-            };
-            this.m_text = (_arg2) ? _arg2 : this.m_text;
+            }
+			
+            this.m_totalLoadedBytes += dataSize;
+            if (this.m_totalLoadedBytes >= this.m_approxTotalBytes)
+			{
+                this.m_approxTotalBytes = this.m_totalLoadedBytes + dataSize;
+            }
+			
+            this.m_text = text ? text : this.m_text;
             this.onTimer(null);
         }
 
+		
+		
     }
-}//package deltax.common.respackage.common 
+} 
 
-class SingletonEnforcer {
+class SingletonEnforcer 
+{
 
-    public function SingletonEnforcer(){
+    public function SingletonEnforcer()
+	{
+		//
     }
 }

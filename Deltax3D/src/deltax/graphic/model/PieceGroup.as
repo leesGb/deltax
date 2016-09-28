@@ -1,16 +1,14 @@
 ﻿package deltax.graphic.model 
 {
-    import flash.geom.Vector3D;
-    import flash.net.URLLoaderDataFormat;
-    import flash.utils.ByteArray;
+    import com.hmh.loaders.parsers.AbstMeshParser;
     
-    import deltax.delta;
     import deltax.common.Util;
     import deltax.common.error.Exception;
     import deltax.common.math.MathUtl;
     import deltax.common.resource.CommonFileHeader;
     import deltax.common.resource.DependentRes;
     import deltax.common.resource.Enviroment;
+    import deltax.delta;
     import deltax.graphic.animation.EnhanceSkinnedSubGeometry;
     import deltax.graphic.manager.BitmapMergeInfo;
     import deltax.graphic.manager.IResource;
@@ -23,6 +21,10 @@
     import deltax.graphic.material.SkinnedMeshMaterial;
     import deltax.graphic.scenegraph.object.RenderObject;
     import deltax.graphic.scenegraph.object.SubMesh;
+    
+    import flash.geom.Vector3D;
+    import flash.net.URLLoaderDataFormat;
+    import flash.utils.ByteArray;
 	
 	/**
 	 * 模型数据组
@@ -62,6 +64,8 @@
 		public var m_refCount:int = 1;
 		/**加载失败*/
 		public var m_loadfailed:Boolean = false;
+		
+		public var meshParser:AbstMeshParser;
 
         public function PieceGroup()
 		{

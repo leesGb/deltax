@@ -1,6 +1,5 @@
 package deltax.graphic.model 
 {
-	import com.hmh.loaders.parsers.AbstMeshParser;
 	import com.hmh.loaders.parsers.BJMeshParser;
 	import com.hmh.loaders.parsers.MD5MeshParser;
 	import com.hmh.loaders.parsers.OgreMeshParser;
@@ -33,7 +32,6 @@ package deltax.graphic.model
 		private var m_parsered:Boolean = false;
 		private var _type:String;
 		
-		private var meshParser:AbstMeshParser;
 		
 		public function HPieceGroup() 
 		{

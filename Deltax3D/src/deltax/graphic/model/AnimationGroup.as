@@ -1,5 +1,8 @@
 ﻿package deltax.graphic.model 
 {
+	import com.hmh.loaders.parsers.BJSkeletonGroupParser;
+	import com.hmh.loaders.parsers.SkeletonJoint;
+	
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
 	import flash.net.URLLoaderDataFormat;
@@ -27,81 +30,89 @@
 	 * @author lees
 	 * @date 2015/09/05
 	 */	
-
-    public class AnimationGroup extends CommonFileHeader implements IResource 
+	
+	public class AnimationGroup extends CommonFileHeader implements IResource 
 	{
-        public static const VERSION_ORG:uint = 10001;
-        public static const VERSION_MOVE_FIGURE_TO_INDEX:uint = 10002;
-        public static const VERSION_ADD_ANI_FLAG:uint = 10003;
-        public static const VERSION_ADD_FIGURE_ID:uint = 10004;
-        public static const VERSION_COUNT:uint = 10005;
-        public static const VERSION_CUR:uint = 10004;
-
+		public static const VERSION_ORG:uint = 10001;
+		public static const VERSION_MOVE_FIGURE_TO_INDEX:uint = 10002;
+		public static const VERSION_ADD_ANI_FLAG:uint = 10003;
+		public static const VERSION_ADD_FIGURE_ID:uint = 10004;
+		public static const VERSION_COUNT:uint = 10005;
+		public static const VERSION_CUR:uint = 10004;
+		
 		/**动作数据列表*/
 		public var m_sequences:Vector.<Animation>;
 		/***/
-        private var m_figures:Vector.<Figure>;
+		private var m_figures:Vector.<Figure>;
 		/**骨骼数据列表*/
-        public var m_gammaSkeletals:Vector.<Skeletal>;
+		public var m_gammaSkeletals:Vector.<Skeletal>;
 		/**文件名*/
-        private var m_fileName:String;
+		private var m_fileName:String;
 		/**是否加载完*/
-        private var m_loaded:Boolean;
+		private var m_loaded:Boolean;
 		/**骨骼名关联的ID列表*/
-        private var m_jointNameToIDMap:Dictionary;
+		private var m_jointNameToIDMap:Dictionary;
 		/**动作文件头数据*/
 		public var m_aniSequenceHeaders:Vector.<AniSequenceHeaderInfo>;
 		/**动作名关联的索引列表*/
-        public var m_aniNameToIndexMap:Dictionary;
+		public var m_aniNameToIndexMap:Dictionary;
 		/**用来计算的骨骼ID列表*/
-        private var m_skeletonInfoforCalculate:Vector.<uint>;
+		private var m_skeletonInfoforCalculate:Vector.<uint>;
 		/**自身加载完的处理方法列表*/
-        private var m_selfLoadCompleteHandlers:Vector.<Function>;
+		private var m_selfLoadCompleteHandlers:Vector.<Function>;
 		/**动作加载完的处理方法列表*/
-        private var m_aniLoadHandlers:Vector.<AniGroupLoadHandler>;
+		private var m_aniLoadHandlers:Vector.<AniGroupLoadHandler>;
 		/**引用个数*/
-        private var m_refCount:int = 1;
+		private var m_refCount:int = 1;
 		/**加载失败*/
-        private var m_loadfailed:Boolean = false;
+		private var m_loadfailed:Boolean = false;
 		
-        public function AnimationGroup()
-		{
-            this.m_aniNameToIndexMap = new Dictionary();
-            this.m_skeletonInfoforCalculate = new Vector.<uint>();
-        }
+		private var _resourceType:String;
 		
-        public function get pureName():String
+		public function AnimationGroup()
 		{
-            var aName:String = Util.makeGammaString(this.m_fileName).split("/").pop();
-            return aName.substring(0, aName.indexOf("."));
-        }
-        
-        public function get skeletonInfoforCalculate():Vector.<uint>
+			this.m_aniNameToIndexMap = new Dictionary();
+			this.m_skeletonInfoforCalculate = new Vector.<uint>();
+		}
+		
+		public function get pureName():String
 		{
-            return this.m_skeletonInfoforCalculate;
-        }
-        
-        override public function load(data:ByteArray):Boolean 
+			var aName:String = Util.makeGammaString(this.m_fileName).split("/").pop();
+			return aName.substring(0, aName.indexOf("."));
+		}
+		
+		public function get skeletonInfoforCalculate():Vector.<uint>
 		{
-            if (!super.load(data))
+			return this.m_skeletonInfoforCalculate;
+		}
+		
+		override public function load(data:ByteArray):Boolean 
+		{
+			if(this.type == ResourceType.SKELETON_GROUP)
 			{
-                return false;
-            }
+				loadSkeletonGroup(data);
+				return true;
+			}
 			
-            var skeletonCounts:uint = data.readUnsignedShort();
-            if (skeletonCounts == 0)
+			if (!super.load(data))
 			{
-                throw new Error("AnimationGroup.Load Error: skeleton has no joints!");
-            }
+				return false;
+			}
 			
-            this.m_gammaSkeletals = (this.m_gammaSkeletals || new Vector.<Skeletal>(skeletonCounts));
-            this.m_jointNameToIDMap = (this.m_jointNameToIDMap || new Dictionary());
+			var skeletonCounts:uint = data.readUnsignedShort();
+			if (skeletonCounts == 0)
+			{
+				throw new Error("AnimationGroup.Load Error: skeleton has no joints!");
+			}
+			
+			this.m_gammaSkeletals = (this.m_gammaSkeletals || new Vector.<Skeletal>(skeletonCounts));
+			this.m_jointNameToIDMap = (this.m_jointNameToIDMap || new Dictionary());
 			var index:uint = 0;
-            while (index < skeletonCounts) 
+			while (index < skeletonCounts) 
 			{
-                this.m_gammaSkeletals[index] = new Skeletal();
+				this.m_gammaSkeletals[index] = new Skeletal();
 				index++;
-            }
+			}
 			
 			var jointName:String;
 			var jointId:uint;
@@ -112,17 +123,17 @@
 			var socket:Socket;
 			var socketMatrixRaw:Vector.<Number>;
 			index = 0;
-            while (index < skeletonCounts) 
+			while (index < skeletonCounts) 
 			{
 				jointName = Util.readUcs2StringWithCount(data);
 				jointName = jointName.replace(/\s/g,"");
 				jointId = data.readUnsignedByte();
-                if (jointId >= skeletonCounts)
+				if (jointId >= skeletonCounts)
 				{
-                    throw new Error("AnimationGroup.Load Error: skeletalID >= skeletalCount");
-                }
+					throw new Error("AnimationGroup.Load Error: skeletalID >= skeletalCount");
+				}
 				
-                this.m_jointNameToIDMap[jointName] = jointId;
+				this.m_jointNameToIDMap[jointName] = jointId;
 				skeletal = this.m_gammaSkeletals[index];
 				skeletal.m_name = jointName;
 				skeletal.m_id = jointId;
@@ -131,19 +142,19 @@
 				skeletal.m_childIds = new Vector.<uint>();
 				
 				skeletalChileIndex = 0;
-                while (skeletalChileIndex < skeletal.m_childCount) 
+				while (skeletalChileIndex < skeletal.m_childCount) 
 				{
 					skeletalId = data.readUnsignedByte();
 					skeletal.m_childIds[skeletalChileIndex] = skeletalId;
-                    this.m_gammaSkeletals[skeletalId].m_parentID = jointId;
+					this.m_gammaSkeletals[skeletalId].m_parentID = jointId;
 					skeletalChileIndex++;
-                }
+				}
 				
-                if (skeletal.m_socketCount)
+				if (skeletal.m_socketCount)
 				{
 					skeletal.m_sockets = new Vector.<Socket>(skeletal.m_socketCount);
 					socketIndex = 0;
-                    while (socketIndex < skeletal.m_socketCount) 
+					while (socketIndex < skeletal.m_socketCount) 
 					{
 						socket = new Socket();
 						skeletal.m_sockets[socketIndex] = socket;
@@ -170,73 +181,73 @@
 						socketMatrixRaw[14] = data.readFloat();
 						socket.m_matrix = new Matrix3D(socketMatrixRaw);
 						socketIndex++;
-                    }
-                }
+					}
+				}
 				index++;
-            }
+			}
 			
 			var ansName:String;
-            var dependtRes:DependentRes = m_dependantResList[0];
-            this.m_sequences = new Vector.<Animation>(dependtRes.FileCount);
-            this.m_aniSequenceHeaders = new Vector.<AniSequenceHeaderInfo>(dependtRes.FileCount);
-            if (dependtRes.FileCount)
+			var dependtRes:DependentRes = m_dependantResList[0];
+			this.m_sequences = new Vector.<Animation>(dependtRes.FileCount);
+			this.m_aniSequenceHeaders = new Vector.<AniSequenceHeaderInfo>(dependtRes.FileCount);
+			if (dependtRes.FileCount)
 			{
 				ansName = this.m_fileName.substring(0, this.m_fileName.indexOf(".ans")) + "_";
-            }
+			}
 			
 			var aniSequenceHeaderInfo:AniSequenceHeaderInfo;
 			var resFileName:String;
 			var aniName:String;
 			index = 0;
-            while (index < dependtRes.FileCount) 
+			while (index < dependtRes.FileCount) 
 			{
 				aniSequenceHeaderInfo = new AniSequenceHeaderInfo();
-                this.m_aniSequenceHeaders[index] = aniSequenceHeaderInfo;
+				this.m_aniSequenceHeaders[index] = aniSequenceHeaderInfo;
 				aniSequenceHeaderInfo.load(data, m_version);
 				resFileName = dependtRes.m_resFileNames[index];
 				resFileName = resFileName.slice(2);
 				resFileName = resFileName.slice(0, resFileName.indexOf(".ani"));
 				aniName = resFileName;
 				aniSequenceHeaderInfo.rawAniName = aniName;
-                this.m_aniNameToIndexMap[aniName] = index;
-                if (aniName == "stand")
+				this.m_aniNameToIndexMap[aniName] = index;
+				if (aniName == "stand")
 				{
 					resFileName = ansName + resFileName + ".ani";
 					var animation:Animation = ResourceManager.instance.getDependencyOnResource(this, resFileName, ResourceType.ANIMATION_SEQ) as Animation;
 					animation.m_aniGroup = this;
 					animation.RawAniName = aniName;
 					animation.delta::setHeadInfo(aniSequenceHeaderInfo);
-                    this.m_sequences[index] = animation;
-                }
+					this.m_sequences[index] = animation;
+				}
 				index++;
-            }
+			}
 			
 			//-------------用不上，设置骨骼肥瘦，长短的
 			var figure:Figure;
-            var count:uint = data.readUnsignedShort();
-            this.m_figures = new Vector.<Figure>(count);
+			var count:uint = data.readUnsignedShort();
+			this.m_figures = new Vector.<Figure>(count);
 			index = 0;
-            while (index < count) 
+			while (index < count) 
 			{
 				figure = new Figure();
-                if (m_version >= VERSION_ADD_FIGURE_ID)
+				if (m_version >= VERSION_ADD_FIGURE_ID)
 				{
 					figure.m_id = data.readUnsignedShort();
-                } else 
+				} else 
 				{
 					figure.m_id = index + 1;
-                }
+				}
 				figure.m_figureUnits = new Vector.<FigureUnit>(skeletonCounts, true);
-                this.m_figures[index] = figure;
+				this.m_figures[index] = figure;
 				index++;
-            }
+			}
 			//--------
-            this.readMainData(data);
+			this.readMainData(data);
 			
-            this.buildCalculateSkeletonID(0);
+			this.buildCalculateSkeletonID(0);
 			
-            return true;
-        }
+			return true;
+		}
 		
 		private function readMainData(data:ByteArray):void
 		{
@@ -301,10 +312,10 @@
 			}
 		}
 		
-        private function buildCalculateSkeletonID(curSkeletalID:uint, parentID:uint=0, idx:uint=0):void 
+		private function buildCalculateSkeletonID(curSkeletalID:uint, parentID:uint=0, idx:uint=0):void 
 		{
-            this.m_skeletonInfoforCalculate.push(((idx << 16) | (parentID << 8) | curSkeletalID));
-            var childIds:Vector.<uint> = this.getSkeletalByID(curSkeletalID).m_childIds;
+			this.m_skeletonInfoforCalculate.push(((idx << 16) | (parentID << 8) | curSkeletalID));
+			var childIds:Vector.<uint> = this.getSkeletalByID(curSkeletalID).m_childIds;
 			if(childIds)
 			{
 				var i:uint;
@@ -314,7 +325,7 @@
 					i++;
 				}
 			}
-        }
+		}
 		
 		/**
 		 * 获取指定动作名处的动作索引
@@ -403,9 +414,19 @@
 			//
 			var ansName:String;
 			var dependtRes:DependentRes = m_dependantResList[0];
-			if (dependtRes.FileCount)
+			
+			if(type == ResourceType.SKELETON_GROUP)
 			{
-				ansName = (this.m_fileName.substring(0, this.m_fileName.indexOf(".ans")) + "_");
+				if (dependtRes.FileCount)
+				{
+					ansName = this.m_fileName.substring(0, this.m_fileName.indexOf(".agp")) + "_";
+				}
+			}else
+			{
+				if (dependtRes.FileCount)
+				{
+					ansName = this.m_fileName.substring(0, this.m_fileName.indexOf(".ans")) + "_";
+				}
 			}
 			
 			var aniFilePath:String = dependtRes.m_resFileNames[aniIndex];
@@ -700,62 +721,173 @@
 		 * 获取骨骼数量
 		 * @return 
 		 */	
-        public function get skeletalCount():uint
+		public function get skeletalCount():uint
 		{
-            return this.m_gammaSkeletals.length;
-        }
+			return this.m_gammaSkeletals.length;
+		}
 		
 		/**
 		 * 获取指定骨骼名的骨骼ID
 		 * @param jointName
 		 * @return 
 		 */		
-        public function getJointIDByName(jointName:String):int 
+		public function getJointIDByName(jointName:String):int 
 		{
 			if (m_jointNameToIDMap == null) 
 			{
 				trace("m_jointNameToIDMap is null");
 				return -1;
 			}
-            var jID:int = this.m_jointNameToIDMap[jointName];
-            return (jID) ? jID : -1;
-        }
-        
-        public function getFigureIndexByID(id:uint):uint
+			var jID:int = this.m_jointNameToIDMap[jointName];
+			return (jID) ? jID : -1;
+		}
+		
+		public function getFigureIndexByID(id:uint):uint
 		{
-            if (id == 0)
+			if (id == 0)
 			{
-                return 0;
-            }
+				return 0;
+			}
 			
-            var idx:uint;
-            while (idx < this.m_figures.length) 
+			var idx:uint;
+			while (idx < this.m_figures.length) 
 			{
-                if (this.m_figures[idx].m_id == id)
+				if (this.m_figures[idx].m_id == id)
 				{
-                    return idx + 1;
-                }
+					return idx + 1;
+				}
 				idx++;
-            }
+			}
 			
-            return Constants.INVALID_16BIT;
-        }
+			return Constants.INVALID_16BIT;
+		}
 		
-        public function getFigureIDByIndex(idx:uint):uint
+		public function getFigureIDByIndex(idx:uint):uint
 		{
-            return idx > 0 ? this.m_figures[(idx - 1)].m_id : 0;
-        }
+			return idx > 0 ? this.m_figures[(idx - 1)].m_id : 0;
+		}
 		
-        public function getFigureByIndex(idx:uint, subIdx:uint):FigureUnit
+		public function getFigureByIndex(idx:uint, subIdx:uint):FigureUnit
 		{
-            return idx > 0 ? this.m_figures[(idx - 1)].m_figureUnits[subIdx] : null;
-        }
+			return idx > 0 ? this.m_figures[(idx - 1)].m_figureUnits[subIdx] : null;
+		}
 		
-        public function get figureCount():uint
+		public function get figureCount():uint
 		{
-            return this.m_figures.length + 1;
-        }
-        
+			return this.m_figures.length + 1;
+		}
+		
+		public function loadSkeletonGroup(data:ByteArray):void
+		{
+			var skeParser:BJSkeletonGroupParser = new BJSkeletonGroupParser();
+			skeParser.parseAsync(data);
+			
+			var numJoints:uint = skeParser.jointsNum;
+			this.m_gammaSkeletals = ((this.m_gammaSkeletals) || (new Vector.<Skeletal>(numJoints)));
+			this.m_jointNameToIDMap = ((this.m_jointNameToIDMap) || (new Dictionary()));
+			var i:int = 0;
+			while (i < numJoints) 
+			{
+				this.m_gammaSkeletals[i] = new Skeletal();
+				i++;
+			}
+			
+			i = 0;
+			var j:int = 0;
+			var z:int = 0;
+			var joint:SkeletonJoint;
+			var skeletal:Skeletal;
+			var socket:Socket;
+			while (i < numJoints) 
+			{
+				joint = skeParser.skeleton.joints[i];
+				if (joint.index >= numJoints)
+				{
+					throw (new Error("AnimationGroup.Load Error: skeletalID >= skeletalCount"));
+				}
+				
+				this.m_jointNameToIDMap[joint.name] = joint.index;
+				skeletal = this.m_gammaSkeletals[i];
+				skeletal.m_name = joint.name;
+				skeletal.m_id = joint.index;
+				skeletal.m_socketCount = joint.m_socketCount;//挂载点数量
+				skeletal.m_childCount = joint.m_childCount;
+				skeletal.m_childIds = new Vector.<uint>();
+				skeletal.m_parentID = joint.parentIndex;
+				j = 0;
+				while (j < skeletal.m_childCount) 
+				{
+					skeletal.m_childIds[j] = joint.m_childIndexs[j];
+					j++;
+				}
+				
+				if (skeletal.m_socketCount>0)
+				{
+					skeletal.m_sockets = joint.sockets;
+				}
+				i++;
+			}
+			
+			
+			m_dependantResList = new Vector.<DependentRes>(1,true);
+			m_dependantResList[0] = new DependentRes();
+			m_dependantResList[0].m_resFileNames = new Vector.<String>();
+			for(i=0;i<skeParser.animationNum;++i)
+			{
+				m_dependantResList[0].m_resFileNames.push(skeParser.animationFiles[i]);
+			}
+			
+			var dependentRes:DependentRes = m_dependantResList[0];
+			this.m_sequences = new Vector.<Animation>(dependentRes.FileCount,false);
+			this.m_aniSequenceHeaders = new Vector.<AniSequenceHeaderInfo>();
+			var str:String;
+			if (dependentRes.FileCount)
+			{
+				str = this.m_fileName.substring(0, this.m_fileName.indexOf(".agp")) + "_";
+			}
+			i = 0;
+			var anihinfo:AniSequenceHeaderInfo;
+			var _local6:String;
+			var _local8:String;
+			var animation:Animation;
+			while (i < dependentRes.FileCount)
+			{
+				anihinfo = new AniSequenceHeaderInfo();
+				this.m_aniSequenceHeaders[i] = anihinfo;
+				anihinfo.load2();
+				_local6 = dependentRes.m_resFileNames[i];
+				_local8 = _local6;
+				anihinfo.rawAniName = _local8;
+				this.m_aniNameToIndexMap[_local8] = i;
+				if (_local8 != "bind" && (i == 0 || _local8 == "run_w"))
+				{
+					_local6 = ((str + _local6) + ".ani");
+					animation = (ResourceManager.instance.getDependencyOnResource(this, _local6, ResourceType.ANIMATION_SEQ) as Animation);
+					//					animation.type = ResourceType.ANIMATION_SEQ;
+					animation.m_aniGroup = this;
+					animation.RawAniName = _local8;
+					animation.delta::setHeadInfo(anihinfo);
+					this.m_sequences[i] = animation;
+				}
+				i++;
+			}
+			var _local10:uint = 0;
+			this.m_figures = new Vector.<Figure>(_local10);
+			
+			var jointCnt:uint = this.m_gammaSkeletals.length;
+			i = 0;
+			while (i < jointCnt) 
+			{
+				joint = skeParser.skeleton.joints[i];
+				this.m_gammaSkeletals[i].m_orgUniformScale = 1;
+				this.m_gammaSkeletals[i].m_orgOffset = new Vector3D();
+				this.m_gammaSkeletals[i].m_inverseBindPose = new Matrix3D(joint.inverseBindPose);
+				i++;
+			}
+			
+			this.buildCalculateSkeletonID(0);
+		}
+		
 		//==========================================================================================================================
 		//==========================================================================================================================
 		//
@@ -789,7 +921,17 @@
 		
 		public function get type():String
 		{
-			return ResourceType.ANI_GROUP;
+			if(_resourceType == ResourceType.SKELETON_GROUP)
+			{
+				return ResourceType.SKELETON_GROUP;
+			}else
+			{
+				return ResourceType.ANI_GROUP;
+			}
+		}
+		public function set type(value:String):void
+		{
+			this._resourceType = value;
 		}
 		
 		public function parse(data:ByteArray):int
@@ -823,7 +965,8 @@
 					var name:String="";
 					while (index < this.m_aniLoadHandlers.length) 
 					{
-						name = this.pureName+"@@"+(res as Animation).RawAniName;
+						//						name = this.pureName+"@@"+(res as Animation).RawAniName;
+						name = (res as Animation).RawAniName;
 						this.m_aniLoadHandlers[index].onAniLoaded(name);
 						index++;
 					}
@@ -836,30 +979,30 @@
 			//
 		}
 		
-        public function reference():void
+		public function reference():void
 		{
-            this.m_refCount++;
-        }
+			this.m_refCount++;
+		}
 		
-        public function release():void
+		public function release():void
 		{
-            if (--this.m_refCount > 0)
+			if (--this.m_refCount > 0)
 			{
-                return;
-            }
-			
-            if (this.m_refCount < 0)
-			{
-                Exception.CreateException(this.name + ":after release refCount == " + this.m_refCount);
 				return;
-            }
-            ResourceManager.instance.releaseResource(this, ResourceManager.DESTROY_DELAY);
-        }
+			}
+			
+			if (this.m_refCount < 0)
+			{
+				Exception.CreateException(this.name + ":after release refCount == " + this.m_refCount);
+				return;
+			}
+			ResourceManager.instance.releaseResource(this, ResourceManager.DESTROY_DELAY);
+		}
 		
-        public function get refCount():uint
+		public function get refCount():uint
 		{
-            return this.m_refCount;
-        }
+			return this.m_refCount;
+		}
 		
 		public function dispose():void
 		{
@@ -998,5 +1141,5 @@
 		
 		
 		
-    }
+	}
 }

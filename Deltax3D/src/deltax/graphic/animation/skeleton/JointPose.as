@@ -1,46 +1,81 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.animation.skeleton {
-    import flash.geom.*;
-    import deltax.common.math.*;
+﻿package deltax.graphic.animation.skeleton 
+{
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    
+    import deltax.common.math.Quaternion;
 
-    public class JointPose {
-
-        private static var UNITY_SCALE:Vector3D = new Vector3D(1, 1, 1);
-
-		public var name : String; // intention is that this should be used only at load time, not in the main loop
-		
+	/**
+	 * 关节姿势信息
+	 * @author lees
+	 * @date 2015/09/09
+	 */
+	
+    public class JointPose 
+	{
+		/**关节名*/
+		public var name : String; 
+		/**索引*/
 		public var jointIndex:int;
-		
+		/**四元数*/
         public var orientation:Quaternion;
+		/**平移*/
         public var translation:Vector3D;
+		/**缩放*/
         public var uniformScale:Number = 1;
 
-        public function JointPose(){
+        public function JointPose()
+		{
             this.orientation = new Quaternion();
             this.translation = new Vector3D();
-            super();
         }
-        public function toMatrix3D(_arg1:Matrix3D=null):Matrix3D{
-            _arg1 = ((_arg1) || (new Matrix3D()));
-            this.orientation.toMatrix3D(_arg1);
-            if (this.uniformScale != 1){
-                _arg1.appendScale(this.uniformScale, this.uniformScale, this.uniformScale);
-            };
-            _arg1.appendTranslation(this.translation.x, this.translation.y, this.translation.z);
-            return (_arg1);
-        }
-        public function copyFrom(_arg1:JointPose):void{
-            var _local2:Quaternion = _arg1.orientation;
-            var _local3:Vector3D = _arg1.translation;
-            this.orientation.x = _local2.x;
-            this.orientation.y = _local2.y;
-            this.orientation.z = _local2.z;
-            this.orientation.w = _local2.w;
-            this.translation.x = _local3.x;
-            this.translation.y = _local3.y;
-            this.translation.z = _local3.z;
-            this.uniformScale = _arg1.uniformScale;
-        }
+		
+		/**
+		 * 生成关节矩阵数据
+		 * @param mat
+		 * @return 
+		 */		
+		public function toMatrix3D(mat:Matrix3D=null):Matrix3D
+		{
+			if(mat==null)
+			{
+				mat = new Matrix3D();
+			}
+			this.orientation.toMatrix3D(mat);
+			if (this.uniformScale != 1)
+			{
+				mat.appendScale(this.uniformScale, this.uniformScale, this.uniformScale);
+			}
+			mat.appendTranslation(this.translation.x, this.translation.y, this.translation.z);
+			return mat;
+		}
+		
+		/**
+		 * 复制
+		 * @param pose
+		 */		
+		public function copyFrom(pose:JointPose):void
+		{
+			var q:Quaternion = pose.orientation;
+			var pos:Vector3D = pose.translation;
+			this.orientation.x = q.x;
+			this.orientation.y = q.y;
+			this.orientation.z = q.z;
+			this.orientation.w = q.w;
+			this.translation.x = pos.x;
+			this.translation.y = pos.y;
+			this.translation.z = pos.z;
+			this.uniformScale = pose.uniformScale;
+		}
+		
+		/**
+		 * 数据销毁
+		 */		
+		public function destory():void
+		{
+			this.orientation = null;
+			this.translation = null;
+		}
 
     }
-}//package deltax.graphic.animation.skeleton 
+} 

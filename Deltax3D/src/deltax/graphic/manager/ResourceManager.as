@@ -1,5 +1,4 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.manager {
+﻿package deltax.graphic.manager {
     import deltax.common.*;
     import deltax.common.error.*;
     import deltax.common.log.*;
@@ -455,7 +454,7 @@ package deltax.graphic.manager {
             };
         }
         private function queuedResourceDataRetrieved(_arg1:Object = null):void {
-			//trace("loadcomplete:" + (_arg1["resource"] as IResource).name);
+			trace("loadcomplete:" + (_arg1["resource"] as IResource).name);
             DownloadStatistic.instance.addDownloadedBytes((_arg1["data"] as ByteArray).length, (_arg1["resource"] as IResource).name);
             this.addParseData(_arg1["resource"], _arg1["resourceInfo"], (_arg1["data"] as ByteArray));
             this.m_completeResourcCount++;
@@ -464,7 +463,9 @@ package deltax.graphic.manager {
             this.checkResourceLoadState(_arg1["resource"], false);
             dtrace(LogLevel.FATAL, "queuedResourceDataRetrieveError ", _arg1.resource.name, _arg1["extra"]);
         }
-        private function checkResourceLoadState(_arg1:IResource, _arg2:Boolean):void{
+		
+        private function checkResourceLoadState(_arg1:IResource, _arg2:Boolean):void
+		{
             var _local5:Function;
             var _local6:IResource;
             if (_arg2){
@@ -472,6 +473,12 @@ package deltax.graphic.manager {
             } else {
                 _arg1.loadfailed = true;
             };
+			
+			if(_arg1.name.indexOf(".rgn")>-1)
+			{
+				trace("=======================");
+			}
+			
             var _local3:Dictionary = this.m_extraCompleteHandlers[_arg1];
             if (_local3){
                 this.m_extraCompleteHandlers[_arg1] = null;
@@ -574,9 +581,10 @@ package deltax.graphic.manager {
     }
 }//package deltax.graphic.manager 
 
+import deltax.common.resource.*;
+
 import flash.events.*;
 import flash.net.*;
-import deltax.common.resource.*;
 
 class SingletonEnforcer {
 

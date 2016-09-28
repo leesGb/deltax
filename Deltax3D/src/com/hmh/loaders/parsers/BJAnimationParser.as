@@ -9,6 +9,7 @@ package com.hmh.loaders.parsers
 	import flash.events.Event;
 	import flash.geom.Vector3D;
 	import flash.utils.ByteArray;
+	import deltax.graphic.animation.skeleton.SkeletonPose;
 
 	public class BJAnimationParser extends AbstMeshParser
 	{

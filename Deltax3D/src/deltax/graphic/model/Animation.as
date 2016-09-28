@@ -1,6 +1,6 @@
 ﻿package deltax.graphic.model 
 {
-	import com.hmh.loaders.parsers.SkeletonPose;
+	import deltax.graphic.animation.skeleton.SkeletonPose;
 	
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;

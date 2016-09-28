@@ -8,6 +8,7 @@ package com.hmh.loaders.parsers
 	import flash.geom.Vector3D;
 	
 	import mx.utils.object_proxy;
+	import deltax.graphic.animation.skeleton.SkeletonPose;
 	
 	// todo: create animation system, parse skeleton
 	

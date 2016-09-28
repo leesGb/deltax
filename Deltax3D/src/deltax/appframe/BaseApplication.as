@@ -359,9 +359,12 @@
 		public function get view():View3D{
 			return (this.m_view3D);
 		}
-		public function createRenderScene(_arg1:uint, _arg2:SceneGrid, _arg3:Function=null):RenderScene{
+		
+		public function createRenderScene(_arg1:uint, _arg2:SceneGrid, _arg3:Function=null):RenderScene
+		{
 			return (this.m_sceneManager.createRenderScene(_arg1, _arg2, _arg3));
 		}
+		
 		public function get curLogicScene():LogicScene{
 			return (this.m_sceneManager.curLogicScene);
 		}

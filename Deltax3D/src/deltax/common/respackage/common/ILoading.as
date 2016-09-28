@@ -1,12 +1,22 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common.respackage.common {
+﻿package deltax.common.respackage.common 
+{
 
-    public interface ILoading {
-
-        function setProgress(_arg1:Number, _arg2:Number, _arg3:String=""):void;
-        function dispose():void;
-        function showUI(_arg1:Boolean):void;
-        function get isVisible():Boolean;
+	/**
+	 * 资源加载接口
+	 * @author lees
+	 * @date 2015/09/20
+	 */	
+	
+    public interface ILoading 
+	{
+		/**设置进度条数值*/
+        function setProgress(loadedByte:Number, totalByte:Number, showText:String=""):void;
+		/**数据销毁*/
+		function dispose():void;
+		/**显示UI*/
+		function showUI(value:Boolean):void;
+		/**是否可见*/
+		function get isVisible():Boolean;
 
     }
-}//package deltax.common.respackage.common 
+} 

@@ -542,6 +542,7 @@ package deltax.graphic.map {
             var _local8:Vector.<uint> = Vector.<uint>([(_local4 / 10), (_local4 % 10)]);
             var _local9:Vector.<uint> = Vector.<uint>([(_local3 / 10), (_local3 % 10)]);
             _local5 = new String((((((((_local6 + "/ter/") + _local8[0]) + _local8[1]) + "_") + _local9[0]) + _local9[1]) + ".rgn"));
+			trace("=================",_local5);
 			//_local5 = new String(Enviroment.ResourceRootPath + Game.instance.sceneManager.getSceneInfo(m_sceneID).m_fileFullPath + "ter/" + _local8[0] + _local8[1] + "_" + _local9[0] + _local9[1] + ".rgn");			
             _local7 = (ResourceManager.instance.getDependencyOnResource(this, _local5, ResourceType.REGION) as MetaRegion);
             _local7.delta::regionID = _arg1;
@@ -818,7 +819,6 @@ package deltax.graphic.map {
             if (--this.m_refCount > 0){
                 return;
             };
-            PackedResSetting.instance.checkAndReleaseAllLoadedPackages();
             if (this.m_refCount < 0){
                 (Exception.CreateException(((this.name + ":after release refCount == ") + this.m_refCount)));
 				return;

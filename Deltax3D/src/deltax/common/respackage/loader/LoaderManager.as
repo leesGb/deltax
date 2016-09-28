@@ -1,170 +1,299 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common.respackage.loader {
-    import flash.events.*;
-    import __AS3__.vec.*;
-    import flash.utils.*;
-    import deltax.common.respackage.*;
-    import deltax.common.resource.*;
-    import deltax.common.respackage.res.*;
-    import deltax.common.respackage.common.*;
+﻿package deltax.common.respackage.loader 
+{
+    import flash.events.Event;
+    import flash.events.EventDispatcher;
+    import flash.events.TimerEvent;
+    import flash.utils.Timer;
+    
+    import deltax.common.respackage.common.LoaderCommon;
+    import deltax.common.respackage.common.LoaderProgress;
+    import deltax.common.respackage.res.ResLoaderObject;
+    import deltax.common.respackage.res.ResObject;
+    import deltax.common.respackage.res.ResURLLoaderObject;
 
-    public class LoaderManager extends EventDispatcher {
-
+	/**
+	 * 资源下载管理器
+	 * @author lees
+	 * @data 2014.03.25 
+	 */	
+	
+    public class LoaderManager extends EventDispatcher 
+	{
         private static var instance:LoaderManager;
 
+		/**下载过的对象数量*/
         private var m_objectCountInHistory:uint;
+		/**等待下载列表*/
         private var m_arrWaitingObject:Vector.<ResObject>;
+		/**顺序下载对象列表，也就是说先到先排队*/
         private var m_arrSerialObject:Vector.<ResObject>;
+		/**插入对象下载列表*/
         private var m_arrParallelFinishObject:Vector.<ResObject>;
+		/**顺序下载对象序列号*/
         private var m_curSerialID:int = 0;
+		/**下载器列表*/
         private var m_arrLoaders:Vector.<ResLoader>;
+		/**检测计时器*/
         private var m_restartTimer:Timer;
 
-        public function LoaderManager(_arg1:SingletonEnforcer){
+        public function LoaderManager(s:SingletonEnforcer)
+		{
             this.m_arrSerialObject = new Vector.<ResObject>();
             this.m_arrParallelFinishObject = new Vector.<ResObject>();
             this.m_arrWaitingObject = new Vector.<ResObject>();
             this.m_arrLoaders = new Vector.<ResLoader>(5, true);
-            var _local2:uint;
-            while (_local2 < this.m_arrLoaders.length) {
-                this.m_arrLoaders[_local2] = new ResLoader(this.onLoaderFinished);
-                _local2++;
-            };
+            
+			var idx:uint;
+            while (idx < this.m_arrLoaders.length) 
+			{
+                this.m_arrLoaders[idx] = new ResLoader(this.onLoaderFinished);
+				idx++;
+            }
+			
             this.m_restartTimer = new Timer(1);
             this.m_restartTimer.addEventListener(TimerEvent.TIMER, this.onTimerHandler);
         }
-        public static function getInstance():LoaderManager{
+		
+        public static function getInstance():LoaderManager
+		{
             return ((instance = ((instance) || (new LoaderManager(new SingletonEnforcer())))));
         }
 
-        public function get resWaitingCount():uint{
-            return (this.m_arrWaitingObject.length);
+		/**
+		 * 等待加载的资源数目
+		 * @return 
+		 */	
+        public function get resWaitingCount():uint
+		{
+            return this.m_arrWaitingObject.length;
         }
-        public function get objectCountInHistory():uint{
-            return (this.m_objectCountInHistory);
+		
+		/**
+		 * 添加过到加载列表的数量
+		 * @return 
+		 */	
+        public function get objectCountInHistory():uint
+		{
+            return this.m_objectCountInHistory;
         }
-        private function addObject(_arg1:String, _arg2:Boolean, _arg3:Object, _arg4:uint, _arg5:Boolean, _arg6:Object):void{
-            var _local7:ResObject;
-//            _arg1 = Enviroment.convertToLocalizedUrl(_arg1);
-            //if (((Enviroment.LoadFromPackageFirst) && (!((PackedResSetting.instance.getSwfUrl(_arg1) == null))))){
-            //    _local7 = new ResPackObject();
-            //} else {
-                if (_arg4 == LoaderCommon.LOADER_URL){
-                    _local7 = new ResURLLoaderObject();
-                } else {
-                    if (_arg4 == LoaderCommon.LOADER_NORMAL){
-                        _local7 = new ResLoaderObject();
-                    } else {
-                        return;
-                    };
-                };
-            //};
-            var _local8:int = (_arg2) ? this.m_curSerialID++ : -1;
-            _local7.init(_arg1, _local8, _arg3, _arg6);
-            if ((((_local8 < 0)) && (_arg5))){
-                this.m_arrWaitingObject.unshift(_local7);
-            } else {
-                this.m_arrWaitingObject.push(_local7);
-            };
+		
+		/**
+		 * 开始连续加载
+		 */		
+		public function startSerialLoad():void
+		{
+			if (this.m_restartTimer.running)
+			{
+				return;
+			}
+			this.m_restartTimer.start();
+		}
+		
+		/**
+		 * 计时器触发
+		 * @param evt
+		 */		
+		private function onTimerHandler(evt:TimerEvent):void
+		{
+			this.m_restartTimer.stop();
+			this.onLoaderFinished();
+		}
+		
+		/**
+		 * 并行加载
+		 * @param resUrl
+		 * @param callbackobj
+		 * @param loadType
+		 * @param isInFirst
+		 * @param loaderparam
+		 */		
+		public function parallelLoad(resUrl:String, callbackobj:Object, loadType:uint, isInFirst:Boolean, loaderparam:Object):void
+		{
+			this.addObject(resUrl, false, callbackobj, loadType, isInFirst, loaderparam);
+			this.m_objectCountInHistory++;
+			this.startSerialLoad();
+		}
+		
+		/**
+		 * 序列加载
+		 * @param resUrl
+		 * @param callbackobj
+		 * @param loadType
+		 * @param isInFirst
+		 * @param loaderparam
+		 */		
+		public function load(resUrl:String, callbackobj:Object, loadType:uint, isInFirst:Boolean, loaderparam:Object):void
+		{
+			this.addObject(resUrl, true, callbackobj, loadType, isInFirst, loaderparam);
+			this.m_objectCountInHistory++;
+			this.startSerialLoad();
+		}
+		
+		/**
+		 * 添加加载对象
+		 * @param resUrl
+		 * @param loadserial
+		 * @param callbackobj
+		 * @param loadType
+		 * @param isInFirst
+		 * @param loaderparam
+		 */		
+        private function addObject(resUrl:String, loadserial:Boolean, callbackobj:Object, loadType:uint, isInFirst:Boolean, loaderparam:Object):void
+		{
+            var res:ResObject;
+			if (loadType == LoaderCommon.LOADER_URL)
+			{
+				res = new ResURLLoaderObject();
+			} else 
+			{
+				if (loadType == LoaderCommon.LOADER_NORMAL)
+				{
+					res = new ResLoaderObject();
+				} else 
+				{
+					return;
+				}
+			}
+            var serialID:int = loadserial ? this.m_curSerialID++ : -1;
+			res.init(resUrl, serialID, callbackobj, loaderparam);
+            if (serialID < 0 && isInFirst)
+			{
+                this.m_arrWaitingObject.unshift(res);
+            } else 
+			{
+                this.m_arrWaitingObject.push(res);
+            }
         }
-        private function onTimerHandler(_arg1:TimerEvent):void{
-            this.m_restartTimer.stop();
-            this.onLoaderFinished();
-        }
-        private function applyAllLoaded():void{
-            while ((((this.m_arrSerialObject.length > 0)) && ((this.m_arrSerialObject[0].loadstate >= LoaderCommon.LOADSTATE_LOADED)))) {
+		
+		/**
+		 * 所有资源加载完后应用（调用一次onFinish方法后的）
+		 */		
+        private function applyAllLoaded():void
+		{
+            while (this.m_arrSerialObject.length > 0 && this.m_arrSerialObject[0].loadstate >= LoaderCommon.LOADSTATE_LOADED) 
+			{
                 this.m_arrSerialObject.shift().onComplete();
-            };
-            while (this.m_arrParallelFinishObject.length > 0) {
+            }
+			
+            while (this.m_arrParallelFinishObject.length > 0) 
+			{
                 this.m_arrParallelFinishObject.shift().onComplete();
-            };
+            }
         }
-        private function moveToSerialQueue(_arg1:int):void{
-            this.m_arrSerialObject.push(this.m_arrWaitingObject[_arg1]);
-            this.m_arrWaitingObject.splice(_arg1, 1);
+		
+		/**
+		 * 把资源移动到串行队列
+		 * @param idx
+		 */		
+        private function moveToSerialQueue(idx:int):void
+		{
+            this.m_arrSerialObject.push(this.m_arrWaitingObject[idx]);
+            this.m_arrWaitingObject.splice(idx, 1);
         }
-        private function moveToParallelQueue(_arg1:ResObject, _arg2:int):void{
-            if ((((_arg2 >= 0)) && ((_arg2 < this.m_arrWaitingObject.length)))){
-                this.m_arrWaitingObject.splice(_arg2, 1);
-            };
-            this.m_arrParallelFinishObject.push(_arg1);
+		
+		/**
+		 * 把资源移动到并行队列
+		 * @param res
+		 * @param idx
+		 */		
+        private function moveToParallelQueue(res:ResObject, idx:int):void
+		{
+            if (idx >= 0 && idx < this.m_arrWaitingObject.length)
+			{
+                this.m_arrWaitingObject.splice(idx, 1);
+            }
+			
+            this.m_arrParallelFinishObject.push(res);
         }
-        private function onLoaderFinished():void{
-            var _local4:ResObject;
-            var _local5:uint;
-            var _local1:uint;
-            var _local2:Boolean = true;
-            var _local3:uint;
-            while (_local3 < this.m_arrLoaders.length) {
-                if (this.m_arrLoaders[_local3].loading){
-                    _local2 = false;
-                } else {
-                    _local4 = this.m_arrLoaders[_local3].pop();
-                    _local5 = 0;
-                    if (_local4){
-                        _local5 = _local4.dataSize;
-                        if (_local4.serialID < 0){
-                            this.moveToParallelQueue(_local4, -1);
-                        };
-                        LoaderProgress.instance.increaseProgress(_local5);
-                    };
-                    while (_local1 < this.m_arrWaitingObject.length) {
-                        _local4 = this.m_arrWaitingObject[_local1];
-                        if (_local4.loadstate == LoaderCommon.LOADSTATE_LOADING){
-                            if (_local4.serialID >= 0){
-                                this.moveToSerialQueue(_local1);
-                            } else {
-                                _local1++;
-                            };
-                        } else {
-                            if (_local4.loadstate != LoaderCommon.LOADSTATE_LOADED){
-                                this.m_arrLoaders[_local3].load(_local4);
-                                if (_local4.serialID >= 0){
-                                    this.moveToSerialQueue(_local1);
-                                } else {
-                                    this.m_arrWaitingObject.splice(_local1, 1);
-                                };
+		
+		/**
+		 * 加载器加载资源完成
+		 */		
+        private function onLoaderFinished():void
+		{
+            var res:ResObject;
+            var dataSize:uint;
+            var waitIdx:uint;
+            var isLoading:Boolean = true;
+            var idx:uint;
+            while (idx < this.m_arrLoaders.length) 
+			{
+                if (this.m_arrLoaders[idx].loading)
+				{
+					isLoading = false;
+                } else 
+				{
+					res = this.m_arrLoaders[idx].pop();
+					dataSize = 0;
+                    if (res)
+					{
+						dataSize = res.dataSize;
+                        if (res.serialID < 0)
+						{
+                            this.moveToParallelQueue(res, -1);
+                        }
+                        LoaderProgress.instance.increaseProgress(dataSize);
+                    }
+					
+                    while (waitIdx < this.m_arrWaitingObject.length) 
+					{
+						res = this.m_arrWaitingObject[waitIdx];
+                        if (res.loadstate == LoaderCommon.LOADSTATE_LOADING)
+						{
+                            if (res.serialID >= 0)
+							{
+                                this.moveToSerialQueue(waitIdx);
+                            } else 
+							{
+								waitIdx++;
+                            }
+                        } else 
+						{
+                            if (res.loadstate != LoaderCommon.LOADSTATE_LOADED)
+							{
+                                this.m_arrLoaders[idx].load(res);
+                                if (res.serialID >= 0)
+								{
+                                    this.moveToSerialQueue(waitIdx);
+                                } else 
+								{
+                                    this.m_arrWaitingObject.splice(waitIdx, 1);
+                                }
                                 break;
-                            };
-                            _local5 = _local4.dataSize;
-                            if (_local4.serialID >= 0){
-                                this.moveToSerialQueue(_local1);
-                            } else {
-                                this.moveToParallelQueue(_local4, _local1);
-                            };
-                            LoaderProgress.instance.increaseProgress(_local5);
-                        };
-                    };
-                };
-                _local3++;
-            };
+                            }
+							
+							dataSize = res.dataSize;
+                            if (res.serialID >= 0)
+							{
+                                this.moveToSerialQueue(waitIdx);
+                            } else 
+							{
+                                this.moveToParallelQueue(res, waitIdx);
+                            }
+                            LoaderProgress.instance.increaseProgress(dataSize);
+                        }
+                    }
+                }
+				idx++;
+            }
+			
             this.applyAllLoaded();
-            if (((_local2) && ((this.m_arrWaitingObject.length == 0)))){
+            if (isLoading && this.m_arrWaitingObject.length == 0)
+			{
                 dispatchEvent(new Event(LoaderCommon.COMPLETE_EVENT));
-            };
+            }
         }
-        public function startSerialLoad():void{
-            if (this.m_restartTimer.running){
-                return;
-            };
-            this.m_restartTimer.start();
-        }
-        public function parallelLoad(_arg1:String, _arg2:Object, _arg3:uint, _arg4:Boolean, _arg5:Object):void{
-            this.addObject(_arg1, false, _arg2, _arg3, _arg4, _arg5);
-            this.m_objectCountInHistory++;
-            this.startSerialLoad();
-        }
-        public function load(_arg1:String, _arg2:Object, _arg3:uint, _arg4:Boolean, _arg5:Object):void{
-            this.addObject(_arg1, true, _arg2, _arg3, _arg4, _arg5);
-            this.m_objectCountInHistory++;
-            this.startSerialLoad();
-        }
+		
+        
 
     }
-}//package deltax.common.respackage.loader 
+}
 
-class SingletonEnforcer {
+class SingletonEnforcer
+{
 
-    public function SingletonEnforcer(){
+    public function SingletonEnforcer()
+	{
+		//
     }
 }

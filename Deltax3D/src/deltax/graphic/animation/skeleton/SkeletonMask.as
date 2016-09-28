@@ -1,47 +1,100 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.animation.skeleton {
-    import __AS3__.vec.*;
+﻿package deltax.graphic.animation.skeleton 
+{
 
-    public class SkeletonMask {
+    public class SkeletonMask 
+	{
+		private static const MAX_MASK_NUM:uint = 8;
+		private static const BIT_NUM:uint = 5;
+		private static const MAX_BIT_NUM:uint = 31;
+		
+		/**遮罩列表*/
+		private var m_vecMask:Vector.<uint>;
+		
+		public function SkeletonMask()
+		{
+			this.m_vecMask = new Vector.<uint>(MAX_MASK_NUM, true);
+		}
+		
+		/**
+		 * 添加遮罩
+		 * @param mask
+		 */		
+		public function AddMask(mask:SkeletonMask):void
+		{
+			var index:uint;
+			while (index < MAX_MASK_NUM) 
+			{
+				this.m_vecMask[index] = (this.m_vecMask[index] | mask.m_vecMask[index]);
+				index++;
+			}
+		}
+		
+		/**
+		 * 复制
+		 * @param mask
+		 */		
+		public function Copy(mask:SkeletonMask):void
+		{
+			var index:uint;
+			while (index < MAX_MASK_NUM) 
+			{
+				this.m_vecMask[index] = mask.m_vecMask[index];
+				index++;
+			}
+		}
+		
+		/**
+		 * 清理
+		 */		
+		public function Clear():void
+		{
+			var index:uint;
+			while (index < MAX_MASK_NUM) 
+			{
+				this.m_vecMask[index] = 0;
+				index++;
+			}
+		}
+		
+		/**
+		 * 添加遮罩值
+		 * @param value
+		 */		
+		public function Add(value:uint):void
+		{
+			this.m_vecMask[(value >> BIT_NUM)] = (this.m_vecMask[(value >> BIT_NUM)] | (1 << (value & MAX_BIT_NUM)));
+		}
+		
+		/**
+		 * 删除遮罩值
+		 * @param value
+		 */		
+		public function Delete(value:uint):void
+		{
+			this.m_vecMask[(value >> BIT_NUM)] = (this.m_vecMask[(value >> BIT_NUM)] & ~((1 << (value & MAX_BIT_NUM))));
+		}
+		
+		/**
+		 * 是否已有这个遮罩值
+		 * @param value
+		 * @return 
+		 */		
+		public function HaveSkeletal(value:uint):Boolean
+		{
+			return (!(((this.m_vecMask[(value >> BIT_NUM)] & (1 << (value & MAX_BIT_NUM))) == 0)));
+		}
+		
+		/**
+		 * 数据销毁
+		 */		
+		public function destory():void
+		{
+			this.m_vecMask.fixed = false;
+			this.m_vecMask.length = 0;
+			this.m_vecMask = null;
+		}
 
-        private var m_vecMask:Vector.<uint>;
-
-        public function SkeletonMask(){
-            this.m_vecMask = new Vector.<uint>(8, true);
-            super();
-        }
-        public function AddMask(_arg1:SkeletonMask):void{
-            var _local2:uint;
-            while (_local2 < 8) {
-                this.m_vecMask[_local2] = (this.m_vecMask[_local2] | _arg1.m_vecMask[_local2]);
-                _local2++;
-            };
-        }
-        public function Copy(_arg1:SkeletonMask):void{
-            var _local2:uint;
-            while (_local2 < 8) {
-                this.m_vecMask[_local2] = _arg1.m_vecMask[_local2];
-                _local2++;
-            };
-        }
-        public function Clear():void{
-            var _local1:uint;
-            while (_local1 < 8) {
-                this.m_vecMask[_local1] = 0;
-                _local1++;
-            };
-        }
-        public function Add(_arg1:uint):void{
-			//if(_arg1 == uint(-1))return;
-            this.m_vecMask[(_arg1 >> 5)] = (this.m_vecMask[(_arg1 >> 5)] | (1 << (_arg1 & 31)));
-        }
-        public function Delete(_arg1:uint):void{
-            this.m_vecMask[(_arg1 >> 5)] = (this.m_vecMask[(_arg1 >> 5)] & ~((1 << (_arg1 & 31))));
-        }
-        public function HaveSkeletal(_arg1:uint):Boolean { return true;
-			//if(_arg1 == uint(-1))return true;
-            return (!(((this.m_vecMask[(_arg1 >> 5)] & (1 << (_arg1 & 31))) == 0)));
-        }
-
+		
+		
     }
-}//package deltax.graphic.animation.skeleton 
+} 

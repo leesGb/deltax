@@ -12,7 +12,7 @@ package app.manager
 	import com.hmh.loaders.parsers.MD5MeshParser;
 	import com.hmh.loaders.parsers.Skeleton;
 	import com.hmh.loaders.parsers.SkeletonJoint;
-	import com.hmh.loaders.parsers.SkeletonPose;
+	import deltax.graphic.animation.skeleton.SkeletonPose;
 	import com.hmh.utils.ByteArrayUtil;
 	import com.hmh.utils.FileHelper;
 	
@@ -743,6 +743,11 @@ package app.manager
 		
 		public function setPosition(pos:Vector3D=null):void
 		{
+			if(!coordRenderObject)
+			{
+				return;
+			}
+			
 			if(renderScene)
 			{
 				if(!renderScene.containChild(coordRenderObject))

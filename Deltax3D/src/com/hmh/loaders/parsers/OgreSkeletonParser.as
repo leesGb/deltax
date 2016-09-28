@@ -10,6 +10,7 @@ package com.hmh.loaders.parsers
 	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
 	import flash.utils.Endian;
+	import deltax.graphic.animation.skeleton.SkeletonPose;
 
 	public class OgreSkeletonParser extends AbstMeshParser
 	{
