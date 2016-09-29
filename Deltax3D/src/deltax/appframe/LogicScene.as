@@ -1,17 +1,25 @@
 ﻿//Created by Action Script Viewer - http://www.buraks.com/asv
 package deltax.appframe {
-    import deltax.graphic.map.*;
-    import deltax.common.debug.*;
-    import deltax.network.coreconn.*;
-    import deltax.graphic.scenegraph.object.*;
-    import deltax.common.*;
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import flash.utils.*;
-    import deltax.common.math.*;
-    import deltax.appframe.syncronize.*;
-    import deltax.network.coreconn.protocal.togameserver.*;
-    import deltax.*;
+    import flash.geom.Matrix3D;
+    import flash.geom.Point;
+    import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
+    
+    import __AS3__.vec.Vector;
+    
+    import deltax.delta;
+    import deltax.appframe.syncronize.ObjectSyncData;
+    import deltax.appframe.syncronize.ObjectSyncDataPool;
+    import deltax.common.TickFuncWrapper;
+    import deltax.common.debug.ObjectCounter;
+    import deltax.common.math.MathUtl;
+    import deltax.graphic.map.MapConstants;
+    import deltax.graphic.map.MetaRegion;
+    import deltax.graphic.map.MetaScene;
+    import deltax.graphic.scenegraph.object.RenderObject;
+    import deltax.graphic.scenegraph.object.RenderScene;
+    import deltax.network.coreconn.ConnectionToGameServer;
+    import deltax.network.coreconn.protocal.togameserver.ProtocalToGameServer_QueryDiffVersionData;
 
     public class LogicScene {
 
@@ -262,7 +270,7 @@ package deltax.appframe {
             var _local10:Matrix3D = new Matrix3D();
             var _local11:Number = (-1 + (_arg1 * 2));
             var _local12:Number = (-1 + ((1 - _arg2) * 2));
-            var _local13:Matrix3D = _local3.view.camera.inverseSceneTransform;
+            var _local13:Matrix3D = BaseApplication.instance.camera.inverseSceneTransform;
             _local13.copyRowTo(0, _local8);
             _local13.copyRowTo(2, _local9);
             _local8.y = 0;
@@ -271,7 +279,7 @@ package deltax.appframe {
             _local9.normalize();
             var _local14:Vector3D = new Vector3D((_local8.x + _local9.x), 0, (_local8.z + _local9.z));
             _local10.copyFrom(_local13);
-            _local10.append(_local3.view.camera.lens.matrix);
+            _local10.append(BaseApplication.instance.camera.lens.matrix);
             for each (_local15 in LogicObject.m_allObjects) {
                 if (((!(_local15.shellObject)) || (!((_local15.scene == this))))){
                 } else {

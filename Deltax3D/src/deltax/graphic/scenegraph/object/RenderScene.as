@@ -1,26 +1,56 @@
 ﻿//Created by Action Script Viewer - http://www.buraks.com/asv
 package deltax.graphic.scenegraph.object {
-    import flash.display.*;
-    import deltax.graphic.map.*;
-    import deltax.graphic.camera.*;
-    import flash.display3D.*;
-    import deltax.graphic.manager.*;
-    import deltax.common.*;
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import deltax.graphic.effect.render.*;
-    import flash.utils.*;
-    import deltax.graphic.light.*;
-    import deltax.graphic.material.*;
-    import deltax.graphic.scenegraph.partition.*;
-    import deltax.graphic.bounds.*;
-    import deltax.common.math.*;
-    import deltax.graphic.render.*;
-    import flash.display3D.textures.*;
-    import deltax.graphic.camera.lenses.*;
-    import deltax.common.error.*;
-    import deltax.*;
-    import flash.filters.*;
+    import flash.display.BitmapData;
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DTextureFormat;
+    import flash.display3D.textures.Texture;
+    import flash.filters.ConvolutionFilter;
+    import flash.geom.Matrix3D;
+    import flash.geom.Point;
+    import flash.geom.Rectangle;
+    import flash.geom.Vector3D;
+    import flash.utils.Dictionary;
+    import flash.utils.getTimer;
+    
+    import __AS3__.vec.Vector;
+    
+    import deltax.delta;
+    import deltax.appframe.BaseApplication;
+    import deltax.common.DictionaryUtil;
+    import deltax.common.error.Exception;
+    import deltax.common.math.MathConsts;
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.VectorUtil;
+    import deltax.graphic.bounds.InfinityBounds;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.camera.DeltaXCamera3D;
+    import deltax.graphic.camera.lenses.LensBase;
+    import deltax.graphic.camera.lenses.PerspectiveLens;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.light.DeltaXDirectionalLight;
+    import deltax.graphic.light.DeltaXPointLight;
+    import deltax.graphic.light.DeltaXScenePointLight;
+    import deltax.graphic.light.DirectionalLight;
+    import deltax.graphic.light.LightBase;
+    import deltax.graphic.light.PointLight;
+    import deltax.graphic.manager.IEntityCollectorClearHandler;
+    import deltax.graphic.map.MapConstants;
+    import deltax.graphic.map.MetaRegion;
+    import deltax.graphic.map.MetaScene;
+    import deltax.graphic.map.MetaSceneInfo;
+    import deltax.graphic.map.RegionFlag;
+    import deltax.graphic.map.RegionLightInfo;
+    import deltax.graphic.map.RegionModelInfo;
+    import deltax.graphic.map.SceneCameraInfo;
+    import deltax.graphic.map.SceneEnv;
+    import deltax.graphic.map.StaticNormalTable;
+    import deltax.graphic.map.TerrainTileSetUnit;
+    import deltax.graphic.material.TerrainMaterial;
+    import deltax.graphic.material.WaterMaterial;
+    import deltax.graphic.render.DeltaXRenderer;
+    import deltax.graphic.render.RenderConstants;
+    import deltax.graphic.scenegraph.partition.EntityNode;
+    import deltax.graphic.scenegraph.partition.QuadTree;
 
     public class RenderScene extends Entity implements IEntityCollectorClearHandler {
 
@@ -30,7 +60,6 @@ package deltax.graphic.scenegraph.object {
 
         private var m_regions:Vector.<RenderRegion>;
         private var m_metaScene:MetaScene;
-        private var m_view:View3D;
         private var m_curEnv:SceneEnv;
         private var m_sunLight:DirectionalLight;
         private var m_materialWater:WaterMaterial;
@@ -52,8 +81,11 @@ package deltax.graphic.scenegraph.object {
         private var m_preCheckedIntersectPos:Vector3D;
         private var m_preHeightOnViewRay:Number;
         private var m_selectGridPos:Point;
+		
+		private var m_app:BaseApplication = BaseApplication.instance;
 
-        public function RenderScene(_arg1:MetaScene, _arg2:View3D){
+        public function RenderScene(_arg1:MetaScene)
+		{
             this.m_visibleRenderRegion = new Vector.<RenderRegion>();
             this.m_rayForSelectTerrainGrid = new Vector3D();
             this.m_lastUpdateRegionCenter = new Vector3D();
@@ -63,7 +95,6 @@ package deltax.graphic.scenegraph.object {
             super();
             this.m_metaScene = _arg1;
             this.m_metaScene.reference();
-            this.m_view = _arg2;
             var _local3:uint = RenderConstants.STATIC_SHADOW_MAP_SIZE;
             this.m_invalidShadowMap = true;
             this.m_shadowMaptexture = null;
@@ -129,14 +160,11 @@ package deltax.graphic.scenegraph.object {
         public function get metaScene():MetaScene{
             return (this.m_metaScene);
         }
-        public function get view():View3D{
-            return (this.m_view);
-        }
         public function get curEnviroment():SceneEnv{
             return (this.m_curEnv);
         }
         override public function dispose():void{
-            this.view.scene.removePartition(partition);
+			this.m_app.scene.removePartition(partition);
             this.releaseAllAmbientFx();
             this.partition.dispose();
             super.dispose();
@@ -181,10 +209,9 @@ package deltax.graphic.scenegraph.object {
                 this.m_sunLight.release();
             };
             this.m_staticShadowRegionInfos = null;
-            if (this == DeltaXRenderer(this.view.renderer).mainRenderScene){
-                DeltaXRenderer(this.view.renderer).mainRenderScene = null;
+            if (this == DeltaXRenderer(this.m_app.renderer).mainRenderScene){
+                DeltaXRenderer(this.m_app.renderer).mainRenderScene = null;
             };
-            this.m_view = null;
         }
         public function ClearShadowmap():void{
             if (this.m_shadowMaptexture){
@@ -193,7 +220,7 @@ package deltax.graphic.scenegraph.object {
             };
         }
         public function show():void{
-            DeltaXRenderer(this.m_view.renderer).mainRenderScene = this;
+            DeltaXRenderer(this.m_app.renderer).mainRenderScene = this;
             this.onSceneShown();
         }
         private function onSceneShown():void{
@@ -201,21 +228,22 @@ package deltax.graphic.scenegraph.object {
             this.updateGlobalSceneStatus();
         }
         private function updateGlobalSceneStatus():void{
-            this.m_view.backgroundColor = this.m_curEnv.m_fogColor;
+			this.m_app.backgroundColor = this.m_curEnv.m_fogColor;
             this.resetCameraLens();
         }
         public function resetCameraLens():void{
-            if (!this.m_view){
+            if (!this.m_app.camera)
+			{
                 return;
             };
             var _local1:SceneCameraInfo = this.m_metaScene.sceneInfo.m_cameraInfo;
-            var _local2:PerspectiveLens = (this.m_view.camera.lens as PerspectiveLens);
+            var _local2:PerspectiveLens = (this.m_app.camera.lens as PerspectiveLens);
             _local2.adjustMatrix = null;
             _local2.far = Math.min(this.m_curEnv.m_fogEnd, CAMERA_FAR);
             _local2.near = CAMERA_NEAR;
             _local2.matrix;
             _local2.fieldOfView = (_local1.m_fovy * MathConsts.RADIANS_TO_DEGREES);
-            _local2.aspectRatio = (this.m_view.width / this.m_view.height);
+            _local2.aspectRatio = (this.m_app.width / this.m_app.height);
         }
         public function onSceneInfoRetrieved(_arg1:MetaSceneInfo):void{
             var _local13:Vector3D;
@@ -233,7 +261,7 @@ package deltax.graphic.scenegraph.object {
             this.m_sunLight.bounds = InfinityBounds.INFINITY_BOUNDS;
             this.addChild(this.m_sunLight);
             var _local8:SceneCameraInfo = _arg1.m_cameraInfo;
-            var _local9:Camera3D = this.m_view.camera;
+            var _local9:Camera3D = this.m_app.camera;
             var _local10:Vector3D = new Vector3D(0, 0, -1);
             var _local11:Matrix3D = new Matrix3D();
             _local11.appendRotation((_local8.m_rotateRadianX * MathConsts.RADIANS_TO_DEGREES), Vector3D.X_AXIS);
@@ -387,7 +415,7 @@ package deltax.graphic.scenegraph.object {
             this.delta::buildStaticShadowMap();
         }
         public function selectPosByCursor(_arg1:Number, _arg2:Number):Vector3D{
-            var _local3:Camera3D = this.m_view.camera;
+            var _local3:Camera3D = this.m_app.camera;
             var _local4:LensBase = _local3.lens;
             var _local5:Vector.<Number> = _local4.frustumCorners;
             this.m_rayForSelectTerrainGrid.x = (_local5[0] + ((_local5[3] * 2) * _arg1));
@@ -409,7 +437,7 @@ package deltax.graphic.scenegraph.object {
             return (this.m_preCheckedIntersectPos);
         }
         public function get viewRay():Vector3D{
-            var _local1:Camera3D = this.m_view.camera;
+            var _local1:Camera3D = this.m_app.camera;
             this.m_viewRay.x = 0;
             this.m_viewRay.y = 0;
             this.m_viewRay.z = 1;
@@ -469,7 +497,7 @@ package deltax.graphic.scenegraph.object {
             if (((_local3.equals(this.m_selectGridPos)) || (!(this.m_metaScene.isGridValid(_local3.x, _local3.y))))){
                 return (true);
             };
-            var _local4:Vector3D = this.m_view.camera.scenePosition;
+            var _local4:Vector3D = this.m_app.camera.scenePosition;
             var _local5:Vector3D = MathUtl.TEMP_VECTOR3D;
             _local5.setTo(_arg1, this.m_metaScene.getGridLogicHeightByPixel(_arg1, _arg2), _arg2);
             var _local6:Number = (_arg1 - _local4.x);
@@ -707,7 +735,7 @@ package deltax.graphic.scenegraph.object {
             if (this.m_metaScene.regionWidth == 0){
                 return;
             };
-            var _local1:Camera3D = this.view.camera;
+            var _local1:Camera3D = this.m_app.camera;
             var _local2:uint = this.m_metaScene.regionWidth;
             var _local3:uint = this.m_metaScene.regionHeight;
             var _local4:uint = this.m_metaScene.gridWidth;
@@ -831,7 +859,7 @@ package deltax.graphic.scenegraph.object {
             var _local2:Vector.<String>;
             var _local3:AttachEffectInfo;
             var _local5:String;
-            var _local4:DeltaXCamera3D = (this.m_view.camera as DeltaXCamera3D);
+            var _local4:DeltaXCamera3D = (this.m_app.camera as DeltaXCamera3D);
             for (_local5 in this.m_ambientFxMap) {
                 _local3 = this.m_ambientFxMap[_local5];
                 if (((_local3.endTime) && ((_arg1 > _local3.endTime)))){
@@ -866,12 +894,15 @@ package deltax.graphic.scenegraph.object {
     }
 }//package deltax.graphic.scenegraph.object 
 
-import flash.geom.*;
-import deltax.graphic.effect.render.*;
-import flash.utils.*;
-import deltax.graphic.scenegraph.partition.*;
-import deltax.graphic.scenegraph.traverse.*;
-import deltax.graphic.scenegraph.object.*;
+import flash.geom.Vector3D;
+import flash.utils.getTimer;
+
+import deltax.graphic.effect.render.Effect;
+import deltax.graphic.scenegraph.object.Entity;
+import deltax.graphic.scenegraph.object.RenderScene;
+import deltax.graphic.scenegraph.partition.EntityNode;
+import deltax.graphic.scenegraph.traverse.PartitionTraverser;
+import deltax.graphic.scenegraph.traverse.ViewTestResult;
 class ShadowRegionInfo {
 
     public var m_regionID:int = -1;

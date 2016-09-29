@@ -1,8 +1,34 @@
 ﻿package deltax.appframe 
 {
-	import deltax.common.StartUpParams.StartUpParams;
+	import flash.desktop.Clipboard;
+	import flash.desktop.ClipboardFormats;
+	import flash.display.Sprite;
+	import flash.display.Stage;
+	import flash.display.StageAlign;
+	import flash.display.StageScaleMode;
+	import flash.display3D.Context3D;
+	import flash.display3D.Context3DRenderMode;
+	import flash.events.DataEvent;
+	import flash.events.Event;
+	import flash.events.FocusEvent;
+	import flash.events.KeyboardEvent;
+	import flash.events.TextEvent;
+	import flash.external.ExternalInterface;
+	import flash.geom.Vector3D;
+	import flash.media.SoundTransform;
+	import flash.system.Capabilities;
+	import flash.system.System;
+	import flash.text.TextField;
+	import flash.text.TextFieldAutoSize;
+	import flash.text.TextFieldType;
+	import flash.ui.Keyboard;
+	import flash.ui.Mouse;
+	import flash.utils.getTimer;
+	
+	import deltax.delta;
 	import deltax.common.Tick;
 	import deltax.common.TickManager;
+	import deltax.common.StartUpParams.StartUpParams;
 	import deltax.common.error.Exception;
 	import deltax.common.error.SingletonMultiCreateError;
 	import deltax.common.log.LogLevel;
@@ -11,7 +37,6 @@
 	import deltax.common.resource.Enviroment;
 	import deltax.common.resource.FileRevisionManager;
 	import deltax.common.respackage.loader.LoaderManager;
-	import deltax.delta;
 	import deltax.graphic.audio.SoundResource;
 	import deltax.graphic.camera.Camera3D;
 	import deltax.graphic.camera.CameraController;
@@ -22,44 +47,39 @@
 	import deltax.graphic.manager.DeltaXTextureManager;
 	import deltax.graphic.manager.IResource;
 	import deltax.graphic.manager.MaterialManager;
+	import deltax.graphic.manager.OcclusionManager;
 	import deltax.graphic.manager.ResourceManager;
 	import deltax.graphic.manager.ResourceType;
 	import deltax.graphic.manager.ShaderManager;
+	import deltax.graphic.manager.Stage3DManager;
 	import deltax.graphic.manager.StepTimeManager;
 	import deltax.graphic.manager.TextureMemoryManager;
-	import deltax.graphic.manager.View3D;
 	import deltax.graphic.map.IMapLoadHandler;
 	import deltax.graphic.map.MetaRegion;
 	import deltax.graphic.map.MetaScene;
 	import deltax.graphic.render.DeltaXRenderer;
 	import deltax.graphic.render2D.font.DeltaXFontRenderer;
 	import deltax.graphic.render2D.rect.DeltaXRectRenderer;
+	import deltax.graphic.scenegraph.Scene3D;
 	import deltax.graphic.scenegraph.object.RenderObject;
 	import deltax.graphic.scenegraph.object.RenderScene;
+	import deltax.graphic.scenegraph.partition.NodeBase;
+	import deltax.graphic.scenegraph.partition.PartitionNodeRenderer;
+	import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
 	import deltax.gui.component.DeltaXWindow;
 	import deltax.gui.component.event.DXWndEvent;
 	import deltax.gui.component.event.DXWndKeyEvent;
 	import deltax.gui.component.event.DXWndMouseEvent;
 	import deltax.gui.manager.GUIManager;
-	import deltax.gui.manager.GUIRoot;
-	import deltax.network.coreconn.ConnectionToGameServer;
+	import deltax.gui.manager.IGUIHandler;
 	
-	import flash.desktop.Clipboard;
-	import flash.desktop.ClipboardFormats;
-	import flash.display.Sprite;
-	import flash.display3D.Context3D;
-	import flash.display3D.Context3DRenderMode;
-	import flash.events.DataEvent;
-	import flash.events.Event;
-	import flash.external.ExternalInterface;
-	import flash.media.SoundTransform;
-	import flash.system.Capabilities;
-	import flash.system.System;
-	import flash.utils.getTimer;
+	/**
+	 * 应用程序入口
+	 * @author lees
+	 * @date 2015/08/09
+	 */	
 	
-	import mx.core.UIComponent;
-	
-	public class BaseApplication extends GUIRoot implements IMapLoadHandler 
+	public class BaseApplication implements IMapLoadHandler,IGUIHandler
 	{
 		private static const DIRECTORY_FILE:String = "directory.xml";
 		private static const SCENELISTXML:String = "scene_list.xml";
@@ -72,22 +92,45 @@
 		
 		private static var ms_appInstance:BaseApplication;
 		
+		public static var TraverseSceneTime:uint;
+		public static var RenderSceneTime:uint;
+		
 		public var totalText:String = "";
 		private var m_directorObject:DirectorObject;
 		private var m_tickManager:TickManager;
 		private var m_lastUpdateTime:uint;
 		private var m_curFrameCount:uint;
-		private var m_config:AppConfig;
 		private var m_sceneManager:SceneManager;
-		private var m_gameServerConnection:ConnectionToGameServer;
-		private var m_view3D:View3D;
 		private var m_camController:CameraController;
 		private var m_debugMode:Boolean;
-		private var m_debugUI:Boolean;
 		protected var m_started:Boolean;
 		private var m_dependencies:int;
 		private var m_enableStepLoad:Boolean = true;
 		private var m_container:Sprite;
+		private var m_stage:Stage;
+		private var m_textInput:TextField;
+		private var m_forceFocusSelf:Boolean = true;
+		
+		private var m_render:DeltaXRenderer;
+		private var m_scene3D:Scene3D;
+		private var m_camera:Camera3D;
+		private var m_collector:DeltaXEntityCollector;
+		private var m_stage3DManager:Stage3DManager;
+		
+		private var m_width:Number=0;
+		private var m_height:Number=0;
+		private var m_x:Number=0;
+		private var m_y:Number=0;
+		private var m_scaleX:Number=1;
+		private var m_scaleY:Number=1;
+		private var m_backgrounpColor:uint=0;
+		/**屏幕长宽比率*/
+		private var m_aspectRatio:Number;
+		
+		private var m_deltaTime:uint;
+		private var m_camera2D:DeltaXCamera3D;
+		private var m_time:Number = 0;
+		
 		
 		public function BaseApplication($container:Sprite)
 		{
@@ -97,9 +140,51 @@
 			}
 			ms_appInstance = this;
 			
-			m_container = $container;
+			this.m_container = $container;
 			
-			super.init($container);
+			this.m_textInput = new TextField();
+			this.m_textInput.alpha = 0;
+			this.m_textInput.type = TextFieldType.INPUT;
+			this.m_textInput.doubleClickEnabled = true;
+			this.m_container.doubleClickEnabled = true;
+			this.m_container.alpha = 0;
+			
+			if($container.stage)
+			{
+				onAddedToStage(null);
+			}else
+			{
+				this.m_container.addEventListener(Event.ADDED_TO_STAGE,onAddedToStage);
+			}
+		}
+		
+		public static function get instance():BaseApplication
+		{
+			return ms_appInstance;
+		}
+		
+		/**
+		 * 添加到舞台
+		 * @param evt
+		 */		
+		protected function onAddedToStage(evt:Event):void
+		{
+			m_container.removeEventListener(Event.ADDED_TO_STAGE, this.onAddedToStage);
+			
+			m_stage = m_container.stage;
+			m_stage.align = StageAlign.TOP_LEFT;
+			m_stage.scaleMode = StageScaleMode.NO_SCALE;
+			m_stage.stageFocusRect = false;
+			
+			this.m_textInput.autoSize = TextFieldAutoSize.NONE;
+			this.m_textInput.width = this.m_container.width;
+			this.m_textInput.height = this.m_container.height;
+			
+			initAllEvents();
+			
+			new GUIManager(this);
+			GUIManager.instance.init(this.m_container.width, this.m_container.height);
+			
 			this.registerResourceTypes();
 			this.registerSyncDataPools();
 			this.registerPools();
@@ -107,7 +192,7 @@
 			
 			m_tickManager = new TickManager();
 			m_lastUpdateTime = getTimer();
-			this.addEventListener(Event.ENTER_FRAME, onEnterFrame);
+			
 			var rootWnd:DeltaXWindow = GUIManager.instance.rootWnd;
 			rootWnd.addEventListener(DXWndEvent.RESIZED, onStageResize);
 			rootWnd.addEventListener(DXWndKeyEvent.KEY_UP, onKeyUp);
@@ -124,379 +209,817 @@
 			m_sceneManager = new SceneManager((Enviroment.ConfigRootPath + SCENELISTXML));
 			onSceneManagerCreated();
 			
-			//			stage.frameRate = 60;
-			m_view3D.width = $container.width;
-			m_view3D.height = $container.height;
-			m_view3D.antiAlias = 2;
-			m_view3D.x = $container.x;
-			m_view3D.y = $container.y;
+			m_stage.frameRate = 60;
 			LoaderManager.getInstance().startSerialLoad();
 			m_started = true;
 			onStarted();
-			//            this.addEventListener(Event.ADDED_TO_STAGE, this.onAddedToStage, false, 0, true);
-			this.addEventListener(DATA_EVENT_COPY, this.onCopyRequest, false, 0, true);
 		}
 		
-		public static function get instance():BaseApplication
+		/**
+		 * 事件注册
+		 */		
+		private function initAllEvents():void
 		{
-			return ms_appInstance;
+			m_container.addEventListener(Event.RESIZE, this.processEvent);
+			m_stage.addEventListener(TextEvent.TEXT_INPUT, this.processEvent);
+			m_stage.addEventListener(DXWndMouseEvent.DOUBLE_CLICK, this.processEvent);
+			m_stage.addEventListener(DXWndMouseEvent.MOUSE_DOWN, this.processEvent);
+			m_stage.addEventListener(DXWndMouseEvent.MOUSE_UP, this.processEvent);
+			m_stage.addEventListener(DXWndMouseEvent.MIDDLE_MOUSE_DOWN, this.processEvent);
+			m_stage.addEventListener(DXWndMouseEvent.MIDDLE_MOUSE_UP, this.processEvent);
+			m_stage.addEventListener(DXWndMouseEvent.RIGHT_MOUSE_DOWN, this.processEvent);
+			m_stage.addEventListener(DXWndMouseEvent.RIGHT_MOUSE_UP, this.processEvent);
+			m_stage.addEventListener(DXWndMouseEvent.MOUSE_MOVE, this.processEvent);
+			m_stage.addEventListener(DXWndMouseEvent.MOUSE_WHEEL, this.processEvent);
+			m_stage.addEventListener(KeyboardEvent.KEY_DOWN, this.processEvent);
+			m_stage.addEventListener(KeyboardEvent.KEY_UP, this.processEvent);
+			m_stage.addEventListener(Event.SELECT_ALL, this.processEvent);
+			m_stage.addEventListener(Event.COPY, this.processEvent);
+			m_stage.addEventListener(Event.PASTE, this.processEvent);
+			m_stage.addEventListener(Event.CUT, this.processEvent);
+			
+			m_container.addEventListener(Event.ENTER_FRAME, onEnterFrame);
+			m_container.addEventListener(DATA_EVENT_COPY, this.onCopyRequest, false, 0, true);
+			m_container.addEventListener(FocusEvent.FOCUS_OUT, this.focusOutHandler);
+			
+			m_stage.focus = m_container;
 		}
 		
-		//		protected function onAddedToStage(evt:Event):void
-		//		{
-		//			removeEventListener(Event.ADDED_TO_STAGE, this.onAddedToStage, false);
-		//			
-		//			super.init(stage);
-		//			this.registerResourceTypes();
-		//			this.registerSyncDataPools();
-		//			this.registerPools();
-		//			this.initView3D();
-		//			
-		//			m_tickManager = new TickManager();
-		//			m_lastUpdateTime = getTimer();
-		//			this.addEventListener(Event.ENTER_FRAME, onEnterFrame);
-		//			var rootWnd:DeltaXWindow = GUIManager.instance.rootWnd;
-		//			rootWnd.addEventListener(DXWndEvent.RESIZED, onStageResize);
-		//			rootWnd.addEventListener(DXWndKeyEvent.KEY_UP, onKeyUp);
-		//			rootWnd.addEventListener(DXWndKeyEvent.KEY_DOWN, onKeyDown);
-		//			rootWnd.addEventListener(DXWndMouseEvent.MOUSE_DOWN, onMouseDown);
-		//			rootWnd.addEventListener(DXWndMouseEvent.MOUSE_UP, onMouseUp);
-		//			rootWnd.addEventListener(DXWndMouseEvent.MOUSE_MOVE, onMouseMove);
-		//			rootWnd.addEventListener(DXWndMouseEvent.MOUSE_WHEEL, onMouseWheel);
-		//			rootWnd.addEventListener(DXWndMouseEvent.RIGHT_MOUSE_DOWN, onRightMouseDown);
-		//			rootWnd.addEventListener(DXWndMouseEvent.RIGHT_MOUSE_UP, onRightMouseUp);
-		//			
-		//			m_sceneManager = new SceneManager((Enviroment.ConfigRootPath + SCENELISTXML));
-		//			onSceneManagerCreated();
-		//			
-		//			stage.frameRate = 60;
-		//			m_view3D.width = rootUIComponent.width;
-		//			m_view3D.height = rootUIComponent.height;
-		//			m_view3D.antiAlias = 2;
-		//			m_view3D.x = rootUIComponent.x;
-		//			m_view3D.y = rootUIComponent.y;
-		//			LoaderManager.getInstance().startSerialLoad();
-		//			m_started = true;
-		//			onStarted();
-		//		}
-		
+		/**
+		 * 移除所有事件
+		 */		
+		private function removeAllEvents():void
+		{
+			m_container.removeEventListener(Event.RESIZE, this.processEvent);
+			m_stage.removeEventListener(TextEvent.TEXT_INPUT, this.processEvent);
+			m_stage.removeEventListener(DXWndMouseEvent.DOUBLE_CLICK, this.processEvent);
+			m_stage.removeEventListener(DXWndMouseEvent.MOUSE_DOWN, this.processEvent);
+			m_stage.removeEventListener(DXWndMouseEvent.MOUSE_UP, this.processEvent);
+			m_stage.removeEventListener(DXWndMouseEvent.MIDDLE_MOUSE_DOWN, this.processEvent);
+			m_stage.removeEventListener(DXWndMouseEvent.MIDDLE_MOUSE_UP, this.processEvent);
+			m_stage.removeEventListener(DXWndMouseEvent.RIGHT_MOUSE_DOWN, this.processEvent);
+			m_stage.removeEventListener(DXWndMouseEvent.RIGHT_MOUSE_UP, this.processEvent);
+			m_stage.removeEventListener(DXWndMouseEvent.MOUSE_MOVE, this.processEvent);
+			m_stage.removeEventListener(DXWndMouseEvent.MOUSE_WHEEL, this.processEvent);
+			m_stage.removeEventListener(KeyboardEvent.KEY_DOWN, this.processEvent);
+			m_stage.removeEventListener(KeyboardEvent.KEY_UP, this.processEvent);
+			m_stage.removeEventListener(Event.SELECT_ALL, this.processEvent);
+			m_stage.removeEventListener(Event.COPY, this.processEvent);
+			m_stage.removeEventListener(Event.PASTE, this.processEvent);
+			m_stage.removeEventListener(Event.CUT, this.processEvent);
+			
+			m_container.removeChild(this.m_textInput);
+		}
+				
+		/**
+		 * 初始化3D界面
+		 */		
 		private function initView3D():void
 		{
-			var _local2:DeltaXRenderer = new DeltaXRenderer(DEFAULT_ANTIALIAS);
-			_local2.swapBackBuffer = false;
-			this.m_view3D = new View3D(null, new DeltaXCamera3D(), _local2);
-			_local2.addEventListener(Context3DEvent.CONTEXT_LOST, this.onContextLost, false, 0, true);
-			_local2.addEventListener(Context3DEvent.CREATED_HARDWARE, this.onContextCreatedHardware, false, 0, true);
-			_local2.addEventListener(Context3DEvent.CREATED_SOFTWARE, this.onContextCreatedSoftware, false, 0, true);
-			_local2.view3D = this.m_view3D;
-			EffectManager.instance.view3D = this.m_view3D;
-			EffectManager.instance.renderer = _local2;
-			this.m_view3D.width = m_container.width;
-			this.m_view3D.height = m_container.height;
-			this.m_view3D.antiAlias = DEFAULT_ANTIALIAS;
-			m_view3D.x = m_container.x;
-			m_view3D.y = m_container.y;
-			addChild(this.m_view3D);
-			this.m_camController = new CameraController(this.m_view3D.camera);
+			this.m_scene3D = new Scene3D();
+			this.m_camera = new DeltaXCamera3D();
+			this.m_render = new DeltaXRenderer(DEFAULT_ANTIALIAS);
+			this.m_collector = new DeltaXEntityCollector();
+			this.m_camController = new CameraController(this.m_camera);
+			this.m_collector.camera = this.m_camera;
+			
+			this.m_render.swapBackBuffer = false;
+			this.m_render.addEventListener(Context3DEvent.CONTEXT_LOST, this.onContextLost, false, 0, true);
+			this.m_render.addEventListener(Context3DEvent.CREATED_HARDWARE, this.onContextCreatedHardware, false, 0, true);
+			this.m_render.addEventListener(Context3DEvent.CREATED_SOFTWARE, this.onContextCreatedSoftware, false, 0, true);
+			
+			this.m_stage3DManager = Stage3DManager.getInstance(m_stage);
+			this.x = m_container.x;
+			this.y = m_container.y;
+			this.width = m_container.width;
+			this.height = m_container.height;
+			this.antiAlias = DEFAULT_ANTIALIAS;
+			this.m_render.delta::stage3DProxy = this.m_stage3DManager.getFreeStage3DProxy();
 		}
 		
-		public function get lastUpdateTime():uint{
-			return (this.m_lastUpdateTime);
-		}
-		public function get contextInfo():String{
-			return ((this.context3D) ? this.context3D.driverInfo : "unknown");
-		}
-		public function get playerInfo():String{
-			return (Capabilities.version);
-		}
-		public function get browserInfo():String{
-			var _local1:String = StartUpParams.getParam("browser");
-			if (_local1){
-				return (_local1);
-			};
-			try {
-				_local1 = ExternalInterface.call("function getBrowser(){ return navigator.userAgent; }");
-			} catch(e:Error) {
-			};
-			return (_local1);
-		}
-		protected function onCopyRequest(_arg1:DataEvent):void{
-			Clipboard.generalClipboard.clear();
-			Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT, _arg1.data, false);
+		public function get entityCollector():DeltaXEntityCollector
+		{
+			return this.m_collector;
 		}
 		
-		protected function registerResourceTypes():void{
-			ResourceManager.instance.registerGraphicResources();
+		public function get renderedFacesCount():uint
+		{
+			return this.m_collector.numTriangles;
 		}
-		protected function registerSyncDataPools():void{
+		
+		public function get deltaTime():uint
+		{
+			return this.m_deltaTime;
 		}
-		protected function onSceneManagerCreated():void{
+		
+		public function get scene():Scene3D
+		{
+			return this.m_scene3D;
 		}
-		public function get sceneManager():SceneManager{
-			return (this.m_sceneManager);
+		
+		public function get camera2D():DeltaXCamera3D
+		{
+			if (!this.m_camera2D)
+			{
+				this.m_camera2D = new DeltaXCamera3D();
+				this.m_camera2D.position = new Vector3D(0, 0, -1);
+				this.m_camera2D.lookAt(new Vector3D());
+				this.m_camera2D.lens = new Orthographic2DLens();
+				this.m_camera2D.lens.near = 1;
+				this.m_camera2D.lens.far = 1000;
+			}
+			
+			return this.m_camera2D;
 		}
-		public function get debugMode():Boolean{
-			return (this.m_debugMode);
+		
+		public function get antiAlias():uint
+		{
+			return this.m_render.antiAlias;
 		}
-		public function set debugMode(_arg1:Boolean):void{
-			this.m_debugMode = _arg1;
+		public function set antiAlias(va:uint):void
+		{
+			this.m_render.antiAlias = va;
 		}
-		public function get developVersion():Boolean{
-			return (StartUpParams.developVersion);
+		
+		public function get width():Number
+		{
+			return this.m_width;
 		}
-		public function get debugUI():Boolean{
-			return (this.m_debugUI);
+		public function set width(va:Number):void
+		{
+			this.m_render.delta::viewPortWidth = va * this.m_scaleX;
+			this.m_render.delta::backBufferWidth = va;
+			this.m_width = va;
+			this.m_aspectRatio = this.m_width / this.m_height;
+			this.m_camera.lens.aspectRatio = this.m_aspectRatio;
 		}
-		public function set debugUI(_arg1:Boolean):void{
-			this.m_debugUI = _arg1;
+		
+		public function get height():Number
+		{
+			return this.m_height;
 		}
-		public function get camController():CameraController{
+		public function set height(va:Number):void
+		{
+			this.m_render.delta::viewPortHeight = va * this.m_scaleY;
+			this.m_render.delta::backBufferHeight = va;
+			this.m_height = va;
+			this.m_aspectRatio = this.m_width / this.m_height;
+			this.m_camera.lens.aspectRatio = this.m_aspectRatio;
+		}
+		
+		public function get scaleX():Number
+		{
+			return this.m_scaleX;
+		}
+		public function set scaleX(va:Number):void
+		{
+			this.m_scaleX = va;
+			this.m_render.delta::viewPortWidth = this.m_width * this.m_scaleX;
+		}
+		
+		public function get scaleY():Number
+		{
+			return this.m_scaleY;
+		}
+		public function set scaleY(va:Number):void
+		{
+			this.m_scaleY = va;
+			this.m_render.delta::viewPortHeight = this.m_height * this.m_scaleY;
+		}
+		
+		public function get x():Number
+		{
+			return this.m_x;
+		}
+		public function set x(va:Number):void
+		{
+			this.m_render.delta::viewPortX = va;
+			this.m_x = va;
+		}
+		
+		public function get y():Number
+		{
+			return this.m_y;
+		}
+		public function set y(va:Number):void
+		{
+			this.m_render.delta::viewPortY = va;
+			this.m_y = va;
+		}
+		
+		public function get backgroundColor():uint
+		{
+			return this.m_backgrounpColor;
+		}
+		public function set backgroundColor(va:uint):void
+		{
+			this.m_backgrounpColor = va;
+			this.m_render.delta::backgroundR = ((va >>> 16) & 0xFF) / 0xFF;
+			this.m_render.delta::backgroundG = ((va >>> 8) & 0xFF) / 0xFF;
+			this.m_render.delta::backgroundB = (va & 0xFF) / 0xFF;
+			this.m_render.delta::backgroundAlpha = ((va >>> 24) & 0xFF) / 0xFF;
+		}
+		
+		public function get renderer():DeltaXRenderer
+		{
+			return this.m_render;
+		}
+		public function set renderer(va:DeltaXRenderer):void
+		{
+			this.m_render.delta::dispose();
+			this.m_render = va;
+			this.m_render.delta::stage3DProxy = this.m_render.delta::stage3DProxy;
+			this.m_render.delta::viewPortX = this.m_x;
+			this.m_render.delta::viewPortY = this.m_y;
+			this.m_render.delta::backBufferWidth = this.m_width;
+			this.m_render.delta::backBufferHeight = this.m_height;
+			this.m_render.delta::viewPortWidth = this.m_width * this.m_scaleX;
+			this.m_render.delta::viewPortHeight = this.m_height * this.m_scaleY;
+			this.m_render.delta::backgroundR = (((this.m_backgrounpColor >> 16) & 0xFF) / 0xFF);
+			this.m_render.delta::backgroundG = (((this.m_backgrounpColor >> 8) & 0xFF) / 0xFF);
+			this.m_render.delta::backgroundB = ((this.m_backgrounpColor & 0xFF) / 0xFF);
+			this.m_render.delta::backgroundAlpha = (((this.m_backgrounpColor >>> 24) & 0xFF) / 0xFF);
+		}
+		
+		public function get camera():Camera3D
+		{
+			return this.m_camera;
+		}
+		public function set camera(va:Camera3D):void
+		{
+			this.m_camera = va;
+			this.m_camera.lens.delta::aspectRatio = this.m_aspectRatio;
+			this.m_collector.camera = this.m_camera;
+		}
+		
+		public function get curFrameCount():uint
+		{
+			return this.m_curFrameCount;
+		}
+		
+		public function get context3D():Context3D
+		{
+			return this.m_render.delta::stage3DProxy.context3D;
+		}
+		
+		public function get lastUpdateTime():uint
+		{
+			return this.m_lastUpdateTime;
+		}
+		
+		public function get contextInfo():String
+		{
+			return this.context3D ? this.context3D.driverInfo : "unknown";
+		}
+		
+		public function get playerInfo():String
+		{
+			return Capabilities.version;
+		}
+		
+		public function get browserInfo():String
+		{
+			var browser:String = StartUpParams.getParam("browser");
+			if (browser)
+			{
+				return (browser);
+			}
+			
+			try 
+			{
+				browser = ExternalInterface.call("function getBrowser(){ return navigator.userAgent; }");
+			} catch(e:Error) 
+			{
+				//
+			}
+			
+			return (browser);
+		}
+		
+		public function get sceneManager():SceneManager
+		{
+			return this.m_sceneManager;
+		}
+		
+		public function get developVersion():Boolean
+		{
+			return StartUpParams.developVersion;
+		}
+		
+		public function get camController():CameraController
+		{
 			return (this.m_camController);
 		}
-		public function set camController(_arg1:CameraController):void{
-			this.m_camController = _arg1;
-		}
-		protected function onStarted():void{
-		}
-		public function get designerConfigPath():String{
-			return (Enviroment.ConfigRootPath);
-		}
-		public function get rootResourcePath():String{
-			return (Enviroment.ResourceRootPath);
-		}
-		public function dispose():void{
-			removeEventListener(Event.ENTER_FRAME, this.updateFrame);
-			this.m_tickManager.dispose();
-			this.m_tickManager = null;
-			this.m_sceneManager.dispose();
-			this.m_sceneManager = null;
-			this.m_camController.destroy();
-			this.m_view3D.dispose();
-		}
-		public function get curFrameCount():uint{
-			return (this.m_curFrameCount);
-		}
-		public function get context3D():Context3D{
-			return (this.m_view3D.renderer.delta::stage3DProxy.context3D);
-		}
-		protected function onPostRender(_arg1:Context3D, _arg2:DeltaXCamera3D):void{
-		}
-		private function onEnterFrame(_arg1:Event):void{
-			var event:* = _arg1;
-			if (Exception.throwError){
-				this.updateFrame();
-			} else {
-				try {
-					this.updateFrame();
-				} catch(e:Error) {
-					dtrace(LogLevel.FATAL, e.message, e.getStackTrace());
-					m_view3D.renderer.resetContextManually(Context3DRenderMode.AUTO);
-				};
-			};
-		}
-		protected function updateFrame():void{
-			var _local1:uint = getTimer();
-			var _local2:uint = (_local1 - this.m_lastUpdateTime);
-			if (!this.m_started){
-				return;
-			};
-			this.m_tickManager.delta::update(_local2);
-			var _local3:Context3D = this.context3D;
-			if (!_local3){
-				return;
-			};
-			if (!this.m_view3D.renderer.clear()){
-				return;
-			};
-			this.m_curFrameCount++;
-			DeltaXFontRenderer.Instance.setViewPort(this.view.width, this.view.height);
-			DeltaXRectRenderer.Instance.setViewPort(this.view.width, this.view.height);
-			StepTimeManager.instance.onFrameUpdated();
-			DeltaXTextureManager.instance.onFrameUpdated(this.context3D);
-			MaterialManager.Instance.checkUsage();
-			TextureMemoryManager.Instance.check();
-			ResourceManager.instance.parseDataInCommon();
-			if (this.curLogicScene){
-				this.curLogicScene.updateLogicObject(_local1);
-			};
-			if (this.m_camController){
-				this.m_camController.updateCamera();
-			};
-			this.m_view3D.render();
-			var _local4:Camera3D = this.m_view3D.camera2D;
-			var _local5:Orthographic2DLens = Orthographic2DLens(_local4.lens);
-			if (int(_local5.width) != int(this.m_view3D.width)){
-				_local5.width = this.m_view3D.width;
-			};
-			if (int(_local5.height) != int(this.m_view3D.height)){
-				_local5.height = this.m_view3D.height;
-			};
-			ShaderManager.instance.resetCameraState(_local4);
-			GUIManager.instance.render(_local3, this.m_debugUI);
-			this.m_view3D.renderer.present();
-			this.onPostRender(_local3, (this.view.camera as DeltaXCamera3D));
-			DownloadStatistic.instance.updateStatistic(_local1);
-			EffectManager.instance.clearCurRenderingEffect();
-			this.onFrameUpdated(_local2);
-			this.m_lastUpdateTime = _local1;
-			if (stage.frameRate > 60){
-				if ((stage.frameRate & 1)){
-					stage.frameRate = (stage.frameRate + 1);
-				} else {
-					stage.frameRate = (stage.frameRate - 1);
-				};
-			};
-		}
-		protected function onFrameUpdated(_arg1:uint):void{
-		}
-		
-		protected function onContextLost(_arg1:Context3DEvent):void{
-		}
-		protected function onContextCreatedSoftware(_arg1:Context3DEvent):void{
-		}
-		protected function onContextCreatedHardware(_arg1:Context3DEvent):void{
-		}
-		public function get view():View3D{
-			return (this.m_view3D);
-		}
-		
-		public function createRenderScene(_arg1:uint, _arg2:SceneGrid, _arg3:Function=null):RenderScene
+		public function set camController(va:CameraController):void
 		{
-			return (this.m_sceneManager.createRenderScene(_arg1, _arg2, _arg3));
+			this.m_camController = va;
 		}
 		
-		public function get curLogicScene():LogicScene{
-			return (this.m_sceneManager.curLogicScene);
+		public function get designerConfigPath():String
+		{
+			return Enviroment.ConfigRootPath;
 		}
-		protected function onKeyDown(_arg1:DXWndKeyEvent):void{
+		
+		public function get rootResourcePath():String
+		{
+			return Enviroment.ResourceRootPath;
 		}
-		protected function onKeyUp(_arg1:DXWndKeyEvent):void{
+		
+		public function get enableStepLoad():Boolean
+		{
+			return this.m_enableStepLoad;
 		}
-		protected function onStageResize(_arg1:DXWndEvent):void{
-			this.m_view3D.width = m_container.width;
-			this.m_view3D.height = m_container.height;
+		public function set enableStepLoad(va:Boolean):void
+		{
+			this.m_enableStepLoad = va;
 		}
-		protected function onMouseDown(_arg1:DXWndMouseEvent):void{
+		
+		public function get curLogicScene():LogicScene
+		{
+			return this.m_sceneManager.curLogicScene;
 		}
-		protected function onMouseUp(_arg1:DXWndMouseEvent):void{
-		}
-		protected function onMouseMove(_arg1:DXWndMouseEvent):void{
-		}
-		protected function onMouseWheel(_arg1:DXWndMouseEvent):void{
-		}
-		protected function onRightMouseDown(_arg1:DXWndMouseEvent):void{
-		}
-		protected function onRightMouseUp(_arg1:DXWndMouseEvent):void{
-		}
-		protected function onMiddleMouseDown(_arg1:DXWndMouseEvent):void{
-		}
-		protected function onMiddleMouseUp(_arg1:DXWndMouseEvent):void{
-		}
-		protected function registerPools():void{
-		}
-		protected function registerClass(_arg1:Class, _arg2:uint, _arg3:uint, _arg4:uint):void{
-			ObjectClassID.init();
-			if (_arg3 == ObjectClassID.DIRECTOR_CLASS_ID){
-				ObjectClassID.ShellDirectorClassID = _arg2;
-			};
-			ObjectClassID.registerShellClass(_arg1, _arg2, _arg3);
-		}
-		protected function set shellSceneClass(_arg1:Class):void{
-			this.m_sceneManager.shellLogicSceneType = _arg1;
-		}
-		public function onLoadingStart():void{
-			if (this.m_gameServerConnection){
-				this.m_gameServerConnection.msgProcessEnable = false;
-			};
-		}
-		public function onRegionLoaded(_arg1:MetaRegion):void{
-			if (this.curLogicScene){
-				this.curLogicScene.onRegionLoaded(_arg1);
-			};
-		}
-		public function onLoading(_arg1:Number):void{
-		}
-		public function onLoadingDone():void{
-			if (this.m_gameServerConnection){
-				this.m_gameServerConnection.msgProcessEnable = true;
-			};
-		}
-		public function onSceneInfoRetrieved(_arg1:MetaScene):void{
-			if (this.curLogicScene){
-				this.m_camController.sceneCameraInfo = _arg1.sceneInfo.m_cameraInfo;
-			};
-		}
-		public function get config():AppConfig{
-			return (this.m_config);
-		}
-		public function forceGC():void{
-			System.gc();
-		}
-		public function addTick(_arg1:Tick, _arg2:uint):void{
-			if (_arg1.isRegistered){
-				this.m_tickManager.delTick(_arg1);
-			};
-			this.m_tickManager.addTick(_arg1, _arg2);
-		}
-		public function removeTick(_arg1:Tick):void{
-			this.m_tickManager.delTick(_arg1);
-		}
-		public function get enableStepLoad():Boolean{
-			return (this.m_enableStepLoad);
-		}
-		public function set enableStepLoad(_arg1:Boolean):void{
-			this.m_enableStepLoad = _arg1;
-		}
-		public function playSound(_arg1:String):void{
-			var onSoundLoaded:* = null;
-			var url:* = _arg1;
-			onSoundLoaded = function (_arg1:IResource, _arg2:Boolean):void{
-				var _local3:SoundTransform;
-				if (_arg2){
-					_local3 = new SoundTransform(EffectManager.instance.soundEffectVolume);
-					SoundResource(_arg1).play(0, 0, _local3);
-				};
-				_arg1.release();
-			};
-			if (!EffectManager.instance.soundEffectEnable){
-				return;
-			};
-			url = FileRevisionManager.instance.getVersionedURL(url);
-			ResourceManager.instance.getResource(url, ResourceType.SOUND, onSoundLoaded);
-		}
-		public function isRenderObjectAllowCameraShakeEffect(_arg1:RenderObject):Boolean{
-			if (!DirectorObject.delta::m_onlyOneDirector){
-				return (false);
-			};
-			return ((_arg1 == DirectorObject.delta::m_onlyOneDirector.renderObject));
-		}
-		public function reloadWebPage():void{
-			try {
-				if (ExternalInterface.available){
-					ExternalInterface.call("window.location.reload()");
-				};
-			} catch(e:Error) {
-				dtrace(LogLevel.INFORMATIVE, e.message);
-			};
+		
+		protected function set shellSceneClass(cl:Class):void
+		{
+			this.m_sceneManager.shellLogicSceneType = cl;
 		}
 		
 		public function get mContainer():Sprite
 		{
 			return m_container;
 		}
-		
-		public function set mContainer(value:Sprite):void
+		public function set mContainer(va:Sprite):void
 		{
-			m_container = value;
+			this.m_container = va;
 		}
 		
 		
-		//		private var m_rootUIComponent:UIComponent;
-		//		public function set rootUIComponent(value:UIComponent):void{
-		//			m_rootUIComponent = value;
-		//		}
-		//		public function get rootUIComponent():UIComponent{
-		//			return this.m_rootUIComponent;
-		//		}
+		/**
+		 * 事件处理
+		 * @param evt
+		 */		
+		private function processEvent(evt:Event):void
+		{
+			var orgCode:uint = 0;
+			var keyEvent:KeyboardEvent = null;
+			var keyCode:uint = 0;
+			var charCode:uint = 0;
+			if (evt.type == Event.RESIZE)
+			{
+				this.m_textInput.width = m_container.width;
+				this.m_textInput.height = m_container.height;
+			} else 
+			{
+				if (evt.type == TextEvent.TEXT_INPUT)
+				{
+					orgCode = TextEvent(evt).text.charCodeAt(0);
+					if (orgCode < 32)
+					{
+						if (orgCode <= 26)
+						{
+							keyCode = Keyboard.A + orgCode - 1;
+							charCode = "A".charCodeAt(0) + orgCode - 1;
+						} else
+						{
+							keyCode = Keyboard.LEFTBRACKET + orgCode - 27;
+							charCode = 91 + orgCode - 27;
+						}
+					}
+				} else 
+				{
+					if (evt.type == Event.SELECT_ALL || evt.type == Event.COPY || evt.type == Event.PASTE || evt.type == Event.CUT)
+					{
+						keyCode = Keyboard.A;
+						if (evt.type == Event.COPY)
+						{
+							keyCode = Keyboard.C;
+						} else
+						{
+							if (evt.type == Event.PASTE)
+							{
+								keyCode = Keyboard.V;
+							} else 
+							{
+								if (evt.type == Event.CUT)
+								{
+									keyCode = Keyboard.X;
+								}
+							}
+						}
+						charCode = "A".charCodeAt(0) + keyCode - Keyboard.A;
+					} else 
+					{
+						if (evt is KeyboardEvent)
+						{
+							keyEvent = evt as KeyboardEvent;
+							if (keyEvent.ctrlKey)
+							{
+								if (keyEvent.keyCode == Keyboard.A || keyEvent.keyCode == Keyboard.C || keyEvent.keyCode == Keyboard.V || keyEvent.keyCode == Keyboard.X)
+								{
+									return;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			var guiManager:GUIManager = GUIManager.instance;
+			if (keyCode && charCode)
+			{
+				guiManager.processEvent(new KeyboardEvent(KeyboardEvent.KEY_DOWN, true, false, charCode, keyCode, 0, true, false, false));
+				evt = new KeyboardEvent(KeyboardEvent.KEY_UP, true, false, charCode, keyCode, 0, true, false, false);
+			}
+			
+			guiManager.processEvent(evt);
+			
+			this.m_textInput.text = "";
+			this.m_textInput.selectable = guiManager.curWndSelectable;
+			if (guiManager.curWndEditable && this.m_textInput.parent != m_container)
+			{
+				m_container.addChild(this.m_textInput);
+			} else 
+			{
+				if (!guiManager.curWndEditable && this.m_textInput.parent == m_container)
+				{
+					m_container.removeChild(this.m_textInput);
+				}
+			}
+		}
+		
+		protected function onCopyRequest(evt:DataEvent):void
+		{
+			Clipboard.generalClipboard.clear();
+			Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT, evt.data, false);
+		}
+		
+		protected function registerResourceTypes():void
+		{
+			ResourceManager.instance.registerGraphicResources();
+		}
+		
+		private function onEnterFrame(evt:Event):void
+		{
+			if (Exception.throwError)
+			{
+				this.updateFrame();
+			} else 
+			{
+				try 
+				{
+					this.updateFrame();
+				} catch(e:Error) 
+				{
+					dtrace(LogLevel.FATAL, e.message, e.getStackTrace());
+					this.m_render.resetContextManually(Context3DRenderMode.AUTO);
+				}
+			}
+		}
+		
+		protected function updateFrame():void
+		{
+			var curTime:uint = getTimer();
+			var interval:uint = curTime - this.m_lastUpdateTime;
+			if (!this.m_started)
+			{
+				return;
+			}
+			
+			this.m_tickManager.delta::update(interval);
+			var context:Context3D = this.context3D;
+			if (!context)
+			{
+				return;
+			}
+			
+			if (!this.m_render.clear())
+			{
+				return;
+			}
+			
+			this.m_curFrameCount++;
+			DeltaXFontRenderer.Instance.setViewPort(this.width, this.height);
+			DeltaXRectRenderer.Instance.setViewPort(this.width, this.height);
+			StepTimeManager.instance.onFrameUpdated();
+			DeltaXTextureManager.instance.onFrameUpdated(this.context3D);
+			MaterialManager.Instance.checkUsage();
+			TextureMemoryManager.Instance.check();
+			ResourceManager.instance.parseDataInCommon();
+			
+			if (this.curLogicScene)
+			{
+				this.curLogicScene.updateLogicObject(curTime);
+			}
+			
+			if (this.m_camController)
+			{
+				this.m_camController.updateCamera();
+			}
+			
+			renderScene();
+			
+			var lens:Orthographic2DLens = Orthographic2DLens(this.camera2D.lens);
+			if (int(lens.width) != int(this.width))
+			{
+				lens.width = this.width;
+			}
+			
+			if (int(lens.height) != int(this.height))
+			{
+				lens.height = this.height;
+			}
+			
+			ShaderManager.instance.resetCameraState(this.camera2D);
+			GUIManager.instance.render(context, false);
+			this.m_render.present();
+			
+			this.onPostRender(context, (this.m_camera as DeltaXCamera3D));
+			DownloadStatistic.instance.updateStatistic(curTime);
+			EffectManager.instance.clearCurRenderingEffect();
+			this.onFrameUpdated(interval);
+			this.m_lastUpdateTime = curTime;
+		}
+		
+		private function renderScene():void
+		{
+			var curTime:Number = getTimer();
+			if(this.m_time == 0)
+			{
+				this.m_time = curTime;
+			}
+			this.m_deltaTime = curTime - this.m_time;
+			this.m_time = curTime;
+			
+			this.m_collector.clear();
+			OcclusionManager.Instance.clearOcclusionEffectObj();
+			this.m_camera.onFrameBegin();
+			if (this.m_camera.delta::m_worldFrustumInvalid)
+			{
+				NodeBase.SKIP_STATIC_ENTITY = false;
+				this.m_camera.updateFrustom();
+			} else 
+			{
+				NodeBase.SKIP_STATIC_ENTITY = true;
+			}
+			this.m_collector.lastTraverseTime = curTime;
+			this.m_scene3D.traversePartitions(this.m_collector);
+			this.m_collector.finish();
+			TraverseSceneTime = getTimer() - curTime;
+			
+			if (this.m_render.delta::showPartitionNode)
+			{
+				this.m_render.delta::m_partionNodeRenderer = (this.m_render.delta::m_partionNodeRenderer || new PartitionNodeRenderer());
+				this.m_render.delta::m_partionNodeRenderer.camera = this.m_camera;
+				this.m_render.delta::m_partionNodeRenderer.beginTraverse();
+				this.m_scene3D.traversePartitions(this.m_render.delta::m_partionNodeRenderer);
+			}
+			
+			this.m_time = getTimer();
+			
+			this.m_render.delta::render(this.m_collector);
+			RenderSceneTime = getTimer() - this.m_time;
+			
+			this.m_collector.clearOnRenderEnd();
+			this.m_camera.onFrameEnd();
+		}
+		
+		public function createRenderScene(sid:uint, grid:SceneGrid, callBack:Function=null):RenderScene
+		{
+			return this.m_sceneManager.createRenderScene(sid, grid, callBack);
+		}
+		
+		
+		protected function registerSyncDataPools():void
+		{
+			//
+		}
+		
+		protected function registerPools():void
+		{
+			//
+		}
+		
+		protected function onSceneManagerCreated():void
+		{
+			//
+		}
+		
+		protected function onStarted():void
+		{
+			//
+		}
+		
+		protected function onPostRender(context:Context3D, camera:DeltaXCamera3D):void
+		{
+			//
+		}
+		
+		protected function onFrameUpdated(time:uint):void
+		{
+			//
+		}
+		
+		public function onLoadingStart():void
+		{
+			//
+		}
+		
+		public function onLoading(va:Number):void
+		{
+			//
+		}
+		
+		public function onLoadingDone():void
+		{
+			//
+		}
+		
+		protected function onContextLost(evt:Context3DEvent):void
+		{
+			//
+		}
+		
+		protected function onContextCreatedSoftware(evt:Context3DEvent):void
+		{
+			//
+		}
+		
+		protected function onContextCreatedHardware(_arg1:Context3DEvent):void
+		{
+			//
+		}
+		
+		private function focusOutHandler(event:FocusEvent):void
+		{
+			if (this.m_forceFocusSelf)
+			{
+//				m_stage.focus = m_container;
+			}
+		}
+		
+		protected function onStageResize(evt:DXWndEvent):void
+		{
+			this.width = m_container.width;
+			this.height = m_container.height;
+		}
+		
+		protected function onKeyDown(evt:DXWndKeyEvent):void
+		{
+			//
+		}
+		protected function onKeyUp(evt:DXWndKeyEvent):void
+		{
+			//
+		}
+		
+		protected function onMouseDown(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		protected function onMouseUp(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		protected function onMouseMove(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		protected function onMouseWheel(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		protected function onRightMouseDown(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		protected function onRightMouseUp(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		protected function onMiddleMouseDown(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		protected function onMiddleMouseUp(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		
+		protected function registerClass(cl:Class, shellID:uint, clID:uint, va:uint):void
+		{
+			ObjectClassID.init();
+			if (clID == ObjectClassID.DIRECTOR_CLASS_ID)
+			{
+				ObjectClassID.ShellDirectorClassID = shellID;
+			}
+			ObjectClassID.registerShellClass(cl, shellID, clID);
+		}
+		
+		public function onRegionLoaded(rgn:MetaRegion):void
+		{
+			if (this.curLogicScene)
+			{
+				this.curLogicScene.onRegionLoaded(rgn);
+			}
+		}
+		
+		public function onSceneInfoRetrieved(metaScene:MetaScene):void
+		{
+			if (this.curLogicScene)
+			{
+				this.m_camController.sceneCameraInfo = metaScene.sceneInfo.m_cameraInfo;
+			}
+		}
+		
+		public function forceGC():void
+		{
+			System.gc();
+		}
+		
+		public function addTick(tick:Tick, interval:uint):void
+		{
+			if (tick.isRegistered)
+			{
+				this.m_tickManager.delTick(tick);
+			}
+			
+			this.m_tickManager.addTick(tick, interval);
+		}
+		
+		public function removeTick(tick:Tick):void
+		{
+			this.m_tickManager.delTick(tick);
+		}
+		
+		public function playSound(path:String):void
+		{
+			var onSoundLoaded:Function = function (res:IResource, isSuccess:Boolean):void
+			{
+				if (isSuccess)
+				{
+					var st:SoundTransform = new SoundTransform(EffectManager.instance.soundEffectVolume);
+					SoundResource(res).play(0, 0, st);
+				}
+				res.release();
+			}
+				
+			if (!EffectManager.instance.soundEffectEnable)
+			{
+				return;
+			}
+			
+			path = FileRevisionManager.instance.getVersionedURL(path);
+			ResourceManager.instance.getResource(path, ResourceType.SOUND, onSoundLoaded);
+		}
+		
+		public function isRenderObjectAllowCameraShakeEffect(obj:RenderObject):Boolean
+		{
+			if (!DirectorObject.delta::m_onlyOneDirector)
+			{
+				return false;
+			}
+			return obj == DirectorObject.delta::m_onlyOneDirector.renderObject;
+		}
+		
+		public function reloadWebPage():void
+		{
+			try 
+			{
+				if (ExternalInterface.available)
+				{
+					ExternalInterface.call("window.location.reload()");
+				}
+			} catch(e:Error) 
+			{
+				dtrace(LogLevel.INFORMATIVE, e.message);
+			}
+		}
+		
+		public function enableForceSelfFocus(value:Boolean):void
+		{
+			this.m_forceFocusSelf = value;
+			if (value)
+			{
+//				m_stage.focus = m_container;
+			}
+		}
+		
+		public function doSetCursor(cursorName:String):Boolean
+		{
+			Mouse.cursor = cursorName;
+			return true;
+		}
+		
+		public function dispose():void
+		{
+			m_container.removeEventListener(Event.ENTER_FRAME, this.updateFrame);
+			this.m_tickManager.dispose();
+			this.m_tickManager = null;
+			this.m_sceneManager.dispose();
+			this.m_sceneManager = null;
+			this.m_camController.destroy();
+			this.m_render.delta::dispose();
+		}
+		
 	}
 }

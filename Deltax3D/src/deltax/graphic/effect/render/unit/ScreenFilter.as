@@ -9,6 +9,7 @@
     import flash.geom.Matrix3D;
     import flash.geom.Vector3D;
     
+    import deltax.appframe.BaseApplication;
     import deltax.common.math.MathUtl;
     import deltax.common.math.Vector2D;
     import deltax.common.math.VectorUtil;
@@ -148,10 +149,10 @@
                 return false;
             }
 			
-			var eMgr:EffectManager= EffectManager.instance;
+			var app:BaseApplication = BaseApplication.instance; 
             if (sfData.m_filterType == ScreenFilterType.CUSTOM_TEXTURE)
 			{
-                if (sfData.m_blendMode == BlendMode.DISTURB_SCREEN && !eMgr.screenDisturbEnable)
+                if (sfData.m_blendMode == BlendMode.DISTURB_SCREEN && !EffectManager.instance.screenDisturbEnable)
 				{
                     return false;
                 }
@@ -198,14 +199,14 @@
             if (sfData.m_filterType == ScreenFilterType.BLUR)
 			{
 				var scale:Number = 2 << sfData.m_scaleLevel;
-                this.m_curBlurScreenReciprocal.x = scale / eMgr.view3D.width;
-                this.m_curBlurScreenReciprocal.y = scale / eMgr.view3D.height;
+                this.m_curBlurScreenReciprocal.x = scale / app.width;
+                this.m_curBlurScreenReciprocal.y = scale / app.height;
                 this.m_screenInvData[0] = this.m_curBlurScreenReciprocal.x;
                 this.m_screenInvData[1] = this.m_curBlurScreenReciprocal.y;
                 this.m_deltaU = this.m_curBlurScreenReciprocal.x * 0.5;
                 this.m_deltaV = this.m_curBlurScreenReciprocal.y * 0.5;
-                this.m_blurTargetWidth = int(eMgr.view3D.width / scale);
-                this.m_blurTargetHeight = int(eMgr.view3D.height / scale);
+                this.m_blurTargetWidth = int(app.width / scale);
+                this.m_blurTargetHeight = int(app.height / scale);
                 this.m_blurTargetWidth = MathUtl.wrapToUpperPowerOf2(this.m_blurTargetWidth);
                 this.m_blurTargetHeight = MathUtl.wrapToUpperPowerOf2(this.m_blurTargetHeight);
                 this.m_specularPowerData[0] = sfData.m_brightnessPower;

@@ -1,32 +1,46 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.gui.component {
-    import __AS3__.vec.*;
+﻿package deltax.gui.component {
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DCompareMode;
+    import flash.geom.Matrix3D;
+    import flash.geom.Point;
+    import flash.geom.Rectangle;
+    import flash.utils.Dictionary;
+    import flash.utils.getTimer;
     
-    import deltax.appframe.*;
-    import deltax.common.*;
-    import deltax.common.debug.*;
-    import deltax.common.localize.Language;
-    import deltax.common.resource.*;
-    import deltax.graphic.camera.*;
-    import deltax.graphic.effect.*;
-    import deltax.graphic.effect.render.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.render2D.font.*;
-    import deltax.graphic.render2D.rect.*;
-    import deltax.graphic.util.*;
-    import deltax.gui.base.*;
-    import deltax.gui.base.style.*;
-    import deltax.gui.component.event.*;
-    import deltax.gui.component.subctrl.*;
-    import deltax.gui.manager.*;
-    import deltax.gui.util.*;
+    import __AS3__.vec.Vector;
     
-    import flash.display3D.*;
-    import flash.events.*;
-    import flash.geom.*;
-    import flash.utils.*;
-    
-    import mx.core.Window;
+    import deltax.appframe.BaseApplication;
+    import deltax.common.DictionaryUtil;
+    import deltax.common.debug.ObjectCounter;
+    import deltax.common.resource.Enviroment;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.effect.EffectManager;
+    import deltax.graphic.effect.render.Effect;
+    import deltax.graphic.manager.IResource;
+    import deltax.graphic.manager.ResourceManager;
+    import deltax.graphic.manager.ResourceType;
+    import deltax.graphic.render2D.font.DeltaXFont;
+    import deltax.graphic.render2D.font.DeltaXFontRenderer;
+    import deltax.graphic.render2D.rect.DeltaXRectRenderer;
+    import deltax.graphic.util.IAlphaChangeable;
+    import deltax.gui.base.ComponentDisplayItem;
+    import deltax.gui.base.ComponentDisplayStateInfo;
+    import deltax.gui.base.DisplayImageInfo;
+    import deltax.gui.base.WindowCreateParam;
+    import deltax.gui.base.WindowResource;
+    import deltax.gui.base.WndSoundFxType;
+    import deltax.gui.base.style.AreaHitTestColor;
+    import deltax.gui.base.style.LockFlag;
+    import deltax.gui.base.style.WindowStyle;
+    import deltax.gui.component.event.DXWndEvent;
+    import deltax.gui.component.event.DXWndKeyEvent;
+    import deltax.gui.component.event.DXWndMouseEvent;
+    import deltax.gui.component.subctrl.CommonWndSubCtrlType;
+    import deltax.gui.component.subctrl.SubCtrlStateType;
+    import deltax.gui.manager.GUIManager;
+    import deltax.gui.manager.WindowClassManager;
+    import deltax.gui.util.ImageList;
+    import deltax.gui.util.Size;
 
     public class DeltaXWindow implements IAlphaChangeable {
 
@@ -1860,7 +1874,7 @@ package deltax.gui.component {
             this._makeEffectMatrix(ms_effectMatrix);
             _arg1.setDepthTest(true, Context3DCompareMode.LESS);
             EffectManager.instance.clearCurRenderingEffect();
-            var _local6:Camera3D = BaseApplication.instance.view.camera2D;
+            var _local6:Camera3D = BaseApplication.instance.camera2D;
             for (_local7 in this.m_attachEffects) {
                 _local4 = this.m_attachEffects[_local7];
                 if (_local4.endTime == 0){
@@ -1943,7 +1957,7 @@ package deltax.gui.component {
     }
 }//package deltax.gui.component 
 
-import deltax.graphic.effect.render.*;
+import deltax.graphic.effect.render.Effect;
 
 class AttachEffectInfo {
 

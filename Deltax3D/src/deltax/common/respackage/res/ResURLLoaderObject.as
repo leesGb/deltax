@@ -17,7 +17,6 @@
 		
         override public function Load(loader:Loader, urlloader:URLLoader, req:URLRequest):void
 		{
-			trace("load===============",this.m_resUrl);
             m_dataLoadState = LoaderCommon.LOADSTATE_LOADING;
 			req.url = FileRevisionManager.instance.getVersionedURL(this.m_resUrl);
 			req.url = encodeURI(req.url);

@@ -670,10 +670,6 @@
 		public function processEvent(evt:Event):void
 		{
 			var mEvt:MouseEvent;
-			if(evt.type == MouseEvent.RIGHT_MOUSE_DOWN)
-			{
-				trace("====================",evt.target);
-			}
 			if (evt is MouseEvent)
 			{
 				mEvt = MouseEvent(evt);

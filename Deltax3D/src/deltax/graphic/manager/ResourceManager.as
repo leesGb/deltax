@@ -454,7 +454,7 @@
             };
         }
         private function queuedResourceDataRetrieved(_arg1:Object = null):void {
-			trace("loadcomplete:" + (_arg1["resource"] as IResource).name);
+//			trace("loadcomplete:" + (_arg1["resource"] as IResource).name);
             DownloadStatistic.instance.addDownloadedBytes((_arg1["data"] as ByteArray).length, (_arg1["resource"] as IResource).name);
             this.addParseData(_arg1["resource"], _arg1["resourceInfo"], (_arg1["data"] as ByteArray));
             this.m_completeResourcCount++;
@@ -473,11 +473,6 @@
             } else {
                 _arg1.loadfailed = true;
             };
-			
-			if(_arg1.name.indexOf(".rgn")>-1)
-			{
-				trace("=======================");
-			}
 			
             var _local3:Dictionary = this.m_extraCompleteHandlers[_arg1];
             if (_local3){

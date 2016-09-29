@@ -617,7 +617,7 @@
 		
         private function checkSceneValid():Boolean
 		{
-            return (!(((BaseApplication.instance.view.renderer as DeltaXRenderer).mainRenderScene == null)));
+            return (!(((BaseApplication.instance.renderer as DeltaXRenderer).mainRenderScene == null)));
         }
 		
         private function onDurateRotateTick():void

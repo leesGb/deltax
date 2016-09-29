@@ -199,11 +199,13 @@ package deltax.graphic.map {
             this.m_regions = null;
             this.m_resourceLoadingOnIdle = null;
         }
-        public function createRenderScene(_arg1:View3D):RenderScene{
-            var _local2:RenderScene = new RenderScene(this, _arg1);
+        public function createRenderScene():RenderScene
+		{
+            var _local2:RenderScene = new RenderScene(this);
             this.m_renderScenes.push(_local2);
             return (_local2);
         }
+		
         public function removeRenderScene(_arg1:RenderScene):void{
             var _local2:int = this.m_renderScenes.indexOf(_arg1);
             if (_local2 < 0){
@@ -542,7 +544,6 @@ package deltax.graphic.map {
             var _local8:Vector.<uint> = Vector.<uint>([(_local4 / 10), (_local4 % 10)]);
             var _local9:Vector.<uint> = Vector.<uint>([(_local3 / 10), (_local3 % 10)]);
             _local5 = new String((((((((_local6 + "/ter/") + _local8[0]) + _local8[1]) + "_") + _local9[0]) + _local9[1]) + ".rgn"));
-			trace("=================",_local5);
 			//_local5 = new String(Enviroment.ResourceRootPath + Game.instance.sceneManager.getSceneInfo(m_sceneID).m_fileFullPath + "ter/" + _local8[0] + _local8[1] + "_" + _local9[0] + _local9[1] + ".rgn");			
             _local7 = (ResourceManager.instance.getDependencyOnResource(this, _local5, ResourceType.REGION) as MetaRegion);
             _local7.delta::regionID = _arg1;

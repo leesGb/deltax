@@ -1,471 +1,753 @@
 ﻿package deltax.graphic.render 
 {
-    import com.hmh.SkeletonPreview;
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DCompareMode;
+    import flash.display3D.Context3DStencilAction;
+    import flash.display3D.Context3DTriangleFace;
+    import flash.display3D.textures.TextureBase;
+    import flash.events.Event;
+    import flash.events.EventDispatcher;
+    import flash.geom.Rectangle;
     
-    import deltax.*;
-    import deltax.common.error.*;
-    import deltax.graphic.camera.*;
-    import deltax.graphic.effect.*;
-    import deltax.graphic.event.*;
-    import deltax.graphic.light.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.map.*;
-    import deltax.graphic.material.*;
-    import deltax.graphic.render.sort.*;
-    import deltax.graphic.render2D.font.*;
-    import deltax.graphic.render2D.rect.*;
-    import deltax.graphic.scenegraph.object.*;
-    import deltax.graphic.scenegraph.partition.*;
-    import deltax.graphic.scenegraph.traverse.*;
-    import deltax.graphic.util.*;
-    
-    import flash.display3D.*;
-    import flash.display3D.textures.*;
-    import flash.events.*;
-    import flash.geom.*;
+    import deltax.delta;
+    import deltax.appframe.BaseApplication;
+    import deltax.common.error.SingletonMultiCreateError;
+    import deltax.common.math.MathUtl;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.effect.EffectManager;
+    import deltax.graphic.effect.EffectSystemListener;
+    import deltax.graphic.event.Context3DEvent;
+    import deltax.graphic.light.LightBase;
+    import deltax.graphic.manager.DeltaXSubGeometryManager;
+    import deltax.graphic.manager.DeltaXTextureManager;
+    import deltax.graphic.manager.OcclusionManager;
+    import deltax.graphic.manager.ShaderManager;
+    import deltax.graphic.manager.Stage3DProxy;
+    import deltax.graphic.map.SceneEnv;
+    import deltax.graphic.material.MaterialBase;
+    import deltax.graphic.material.TerrainMaterial;
+    import deltax.graphic.render.sort.DeltaXRenderableSorter;
+    import deltax.graphic.render2D.font.DeltaXFontRenderer;
+    import deltax.graphic.render2D.rect.DeltaXRectRenderer;
+    import deltax.graphic.scenegraph.object.IRenderable;
+    import deltax.graphic.scenegraph.object.RenderScene;
+    import deltax.graphic.scenegraph.partition.PartitionNodeRenderer;
+    import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
+	
+	/**
+	 * 3D对象渲染器
+	 * @author lees
+	 * @date 2015/09/22
+	 */	
 
     public class DeltaXRenderer extends EventDispatcher implements EffectSystemListener 
 	{
-
         private static var m_instance:DeltaXRenderer;
 
+		/**3D舞台属性*/
         protected var _stage3DProxy:Stage3DProxy;
+		/**缓冲区宽度*/
         private var _backBufferWidth:int;
+		/**缓冲区高度*/
         private var _backBufferHeight:int;
+		/**缓冲区是否失效*/
         protected var _backBufferInvalid:Boolean;
+		/**锯齿度*/
         private var _antiAlias:uint;
+		/**渲染模式*/
         private var _renderMode:String = "auto";
+		/**上下文描述*/
         private var m_contextProfile:String = "baseline";
+		/**R通道*/
         protected var _backgroundR:Number = 0;
+		/**G通道*/
         protected var _backgroundG:Number = 0;
+		/**B通道*/
         protected var _backgroundB:Number = 0;
+		/**透明通道*/
         protected var _backgroundAlpha:Number = 1;
+		/**视图宽度*/
         protected var _viewPortWidth:Number = 1;
+		/**视图高度*/
         protected var _viewPortHeight:Number = 1;
+		/**视图位置x*/
         protected var _viewPortX:Number = 0;
+		/**视图位置y*/
         protected var _viewPortY:Number = 0;
+		/**视图是否发生改变*/
         private var _viewPortInvalid:Boolean;
+		/**能否深度与印模测试*/
         private var _enableDepthAndStencil:Boolean;
+		/**是否交换缓冲区*/
         private var _swapBackBuffer:Boolean = true;
+		/**渲染对象排序*/
         protected var _renderableSorter:DeltaXRenderableSorter;
+		/**当前材质*/
         private var _activeMaterial:MaterialBase;
-        private var _depthPrePass:Boolean;
+		/**当前渲染对象*/
         private var m_curRenderTarget:TextureBase;
+		/**主渲染场景*/
         private var m_mainRenderScene:RenderScene;
-        private var m_view3D:View3D;
+		/**渲染时是否忽略场景检测*/
         private var m_ignoreSceneCheckOnRender:Boolean;
-        delta var showRenderableBoundingBox:Boolean;
+		/**是否显示区域节点*/
         delta var showPartitionNode:Boolean;
+		/**分区节点渲染*/
         delta var m_partionNodeRenderer:PartitionNodeRenderer;
-		
+		/**忽略地面渲染*/
 		public var m_ignoreTerrainRender:Boolean;
 		
-        public function DeltaXRenderer(_arg1:uint=0, _arg2:Boolean=true, _arg3:String="auto", _arg4:String="baseline")
+        public function DeltaXRenderer($antiAlias:uint=0, $enableDepthAndStencil:Boolean=true, $renderMode:String="auto", $contextProfile:String="baseline")
 		{
             if (m_instance)
 			{
-                throw (new SingletonMultiCreateError(DeltaXRenderer));
+                throw new SingletonMultiCreateError(DeltaXRenderer);
             }
 			
             m_instance = this;
-            this._antiAlias = _arg1;
-            this._renderMode = _arg3;
-            this.m_contextProfile = _arg4;
-            this._enableDepthAndStencil = _arg2;
+            this._antiAlias = $antiAlias;
+            this._renderMode = $renderMode;
+            this.m_contextProfile = $contextProfile;
+            this._enableDepthAndStencil = $enableDepthAndStencil;
             this._renderableSorter = new DeltaXRenderableSorter();
             EffectManager.instance.listener = this;
         }
-        public static function get instance():DeltaXRenderer{
-            return (m_instance);
+		
+        public static function get instance():DeltaXRenderer
+		{
+            return m_instance;
         }
+		
+		/**
+		 * 是否为约束模式
+		 * @return 
+		 */		
+		public function get constrainedMode():Boolean
+		{
+			return this.m_contextProfile == "baselineConstrained";
+		}
 
-        public function get ignoreSceneCheckOnRender():Boolean{
-            return (this.m_ignoreSceneCheckOnRender);
+		/**
+		 * 获取当前渲染对象
+		 * @return 
+		 */		
+        public function get curRenderTarget():TextureBase
+		{
+            return this.m_curRenderTarget;
         }
-        public function set ignoreSceneCheckOnRender(_arg1:Boolean):void{
-            this.m_ignoreSceneCheckOnRender = _arg1;
+		
+		/**
+		 * 获取当前场景环境
+		 * @return 
+		 */		
+		public function get curEnviroment():SceneEnv
+		{
+			if (this.m_mainRenderScene)
+			{
+				return this.m_mainRenderScene.curEnviroment;
+			}
+			
+			return RenderScene.DEFAULT_ENVIROMENT;
+		}
+		
+		/**
+		 * 获取渲染上下文
+		 * @return 
+		 */		
+        public function get context():Context3D
+		{
+            return this._stage3DProxy.context3D;
         }
-        public function get curRenderTarget():TextureBase{
-            return (this.m_curRenderTarget);
+		
+		/**
+		 * 主渲染场景
+		 * @return 
+		 */		
+		public function get mainRenderScene():RenderScene
+		{
+			return this.m_mainRenderScene;
+		}
+		public function set mainRenderScene(va:RenderScene):void
+		{
+			if (this.m_mainRenderScene)
+			{
+				BaseApplication.instance.entityCollector.delClearHandler(this.m_mainRenderScene);
+				this.m_mainRenderScene.ClearShadowmap();
+				this.m_mainRenderScene.remove();
+			}
+			
+			if (va)
+			{
+				BaseApplication.instance.scene.addChild(va);
+				BaseApplication.instance.entityCollector.addClearHandler(va);
+			}
+			
+			this.m_mainRenderScene = va;
+		}
+		
+		/**
+		 * 渲染时是否忽略场景检测
+		 * @return 
+		 */		
+		public function get ignoreSceneCheckOnRender():Boolean
+		{
+			return this.m_ignoreSceneCheckOnRender;
+		}
+		public function set ignoreSceneCheckOnRender(va:Boolean):void
+		{
+			this.m_ignoreSceneCheckOnRender = va;
+		}
+		
+		/**
+		 * 是否交换缓冲区
+		 * @return 
+		 */		
+        public function get swapBackBuffer():Boolean
+		{
+            return this._swapBackBuffer;
         }
-        public function get context():Context3D{
-            return (this._stage3DProxy.context3D);
+        public function set swapBackBuffer(va:Boolean):void
+		{
+            this._swapBackBuffer = va;
         }
-        public function reloadShader(_arg1:uint, _arg2:String, _arg3:String, _arg4:String):void{
-            ShaderManager.instance.reloadShader(_arg1, _arg2, _arg3, _arg4);
+		
+		/**
+		 * 抗锯齿值
+		 * @return 
+		 */		
+        public function get antiAlias():uint
+		{
+            return this._antiAlias;
         }
-        public function get swapBackBuffer():Boolean{
-            return (this._swapBackBuffer);
-        }
-        public function set swapBackBuffer(_arg1:Boolean):void{
-            this._swapBackBuffer = _arg1;
-        }
-        public function get antiAlias():uint{
-            return (this._antiAlias);
-        }
-        public function set antiAlias(_arg1:uint):void{
+        public function set antiAlias(va:uint):void
+		{
             this._backBufferInvalid = true;
-            this._antiAlias = _arg1;
+            this._antiAlias = va;
         }
-        delta function get backgroundR():Number{
-            return (this._backgroundR);
+		
+		/**
+		 * 背景色红色通道
+		 * @return 
+		 */		
+        delta function get backgroundR():Number
+		{
+            return this._backgroundR;
         }
-        delta function set backgroundR(_arg1:Number):void{
-            this._backgroundR = _arg1;
+        delta function set backgroundR(va:Number):void
+		{
+            this._backgroundR = va;
         }
-        delta function get backgroundG():Number{
-            return (this._backgroundG);
+		
+		/**
+		 * 背景色绿色通道
+		 * @return 
+		 */
+        delta function get backgroundG():Number
+		{
+            return this._backgroundG;
         }
-        delta function set backgroundG(_arg1:Number):void{
-            this._backgroundG = _arg1;
+        delta function set backgroundG(va:Number):void
+		{
+            this._backgroundG = va;
         }
-        delta function get backgroundB():Number{
-            return (this._backgroundB);
+		
+		/**
+		 * 背景色蓝色通道
+		 * @return 
+		 */
+        delta function get backgroundB():Number
+		{
+            return this._backgroundB;
         }
-        delta function set backgroundB(_arg1:Number):void{
-            this._backgroundB = _arg1;
+        delta function set backgroundB(va:Number):void
+		{
+            this._backgroundB = va;
         }
-        delta function get backgroundAlpha():Number{
-            return (this._backgroundAlpha);
+		
+		/**
+		 * 背景色透明通道
+		 * @return 
+		 */
+        delta function get backgroundAlpha():Number
+		{
+            return this._backgroundAlpha;
         }
-        delta function set backgroundAlpha(_arg1:Number):void{
-            this._backgroundAlpha = _arg1;
+        delta function set backgroundAlpha(va:Number):void
+		{
+            this._backgroundAlpha = va;
         }
-        public function get constrainedMode():Boolean{
-            return ((this.m_contextProfile == "baselineConstrained"));
+		
+		/**
+		 * 3D舞台属性
+		 * @return 
+		 */		
+        delta function get stage3DProxy():Stage3DProxy
+		{
+            return this._stage3DProxy;
         }
-        delta function get stage3DProxy():Stage3DProxy{
-            return (this._stage3DProxy);
-        }
-        delta function set stage3DProxy(_arg1:Stage3DProxy):void{
-            if (this._stage3DProxy){
+        delta function set stage3DProxy(va:Stage3DProxy):void
+		{
+            if (this._stage3DProxy)
+			{
                 this._stage3DProxy.removeEventListener(Event.CONTEXT3D_CREATE, this.onContextUpdate);
                 this._stage3DProxy.removeEventListener(Context3DEvent.CONTEXT_LOST, this.onContextLost);
-            };
-            if (!_arg1){
+            }
+			
+            if (!va)
+			{
                 this._stage3DProxy = null;
                 return;
-            };
-            if (this._stage3DProxy){
-                throw (new Error("A Stage3D instance was already assigned!"));
-            };
-            this._stage3DProxy = _arg1;
+            }
+			
+            if (this._stage3DProxy)
+			{
+                throw new Error("A Stage3D instance was already assigned!");
+            }
+			
+            this._stage3DProxy = va;
             this._stage3DProxy.addEventListener(Event.CONTEXT3D_CREATE, this.onContextUpdate);
             this._stage3DProxy.addEventListener(Context3DEvent.CONTEXT_LOST, this.onContextLost);
             this.updateViewPort();
         }
-        delta function get backBufferWidth():int{
-            return (this._backBufferWidth);
+		
+		/**
+		 * 后台缓冲区宽度
+		 * @return 
+		 */		
+        delta function get backBufferWidth():int
+		{
+            return this._backBufferWidth;
         }
-        delta function set backBufferWidth(_arg1:int):void{
-            this._backBufferWidth = _arg1;
+        delta function set backBufferWidth(va:int):void
+		{
+            this._backBufferWidth = va;
             this._backBufferInvalid = true;
         }
-        delta function get backBufferHeight():int{
-            return (this._backBufferHeight);
+		
+		/**
+		 * 后台缓冲区高度
+		 * @return 
+		 */	
+        delta function get backBufferHeight():int
+		{
+            return this._backBufferHeight;
         }
-        delta function set backBufferHeight(_arg1:int):void{
-            this._backBufferHeight = _arg1;
+        delta function set backBufferHeight(va:int):void
+		{
+            this._backBufferHeight = va;
             this._backBufferInvalid = true;
         }
-        delta function get viewPortX():Number{
-            return (this._viewPortX);
+		
+		/**
+		 * 视图坐标x
+		 * @return 
+		 */		
+        delta function get viewPortX():Number
+		{
+            return this._viewPortX;
         }
-        delta function set viewPortX(_arg1:Number):void{
-            this._viewPortX = _arg1;
+        delta function set viewPortX(va:Number):void
+		{
+            this._viewPortX = va;
             this._viewPortInvalid = true;
         }
-        delta function get viewPortY():Number{
-            return (this._viewPortY);
+		
+		/**
+		 * 视图坐标y
+		 * @return 
+		 */	
+        delta function get viewPortY():Number
+		{
+            return this._viewPortY;
         }
-        delta function set viewPortY(_arg1:Number):void{
-            this._viewPortY = _arg1;
+        delta function set viewPortY(va:Number):void
+		{
+            this._viewPortY = va;
             this._viewPortInvalid = true;
         }
-        delta function get viewPortWidth():Number{
-            return (this._viewPortWidth);
+		
+		/**
+		 * 视图宽度
+		 * @return 
+		 */	
+        delta function get viewPortWidth():Number
+		{
+            return this._viewPortWidth;
         }
-        delta function set viewPortWidth(_arg1:Number):void{
-            this._viewPortWidth = _arg1;
+        delta function set viewPortWidth(va:Number):void
+		{
+            this._viewPortWidth = va;
             this._viewPortInvalid = true;
         }
-        delta function get viewPortHeight():Number{
-            return (this._viewPortHeight);
+		
+		/**
+		 * 视图高度
+		 * @return 
+		 */	
+        delta function get viewPortHeight():Number
+		{
+            return this._viewPortHeight;
         }
-        delta function set viewPortHeight(_arg1:Number):void{
-            this._viewPortHeight = _arg1;
+        delta function set viewPortHeight(va:Number):void
+		{
+            this._viewPortHeight = va;
             this._viewPortInvalid = true;
         }
-        delta function dispose():void{
-            this.delta::stage3DProxy = null;
-        }
-        delta function render(_arg1:DeltaXEntityCollector):void{
-            if (!this._stage3DProxy){
+		
+		/**
+		 * 获取水面高度
+		 * @return 
+		 */		
+		public function getWaterHeightByGridFun():Function
+		{
+			if (this.m_mainRenderScene)
+			{
+				return this.m_mainRenderScene.metaScene.getGridWaterHeight;
+			}
+			return null;
+		}
+		
+		/**
+		 * 获取地面高度
+		 * @return 
+		 */		
+		public function getTerrainLogicHeightByGridFun():Function
+		{
+			if (this.m_mainRenderScene)
+			{
+				return this.m_mainRenderScene.metaScene.getGridLogicHeight;
+			}
+			return null;
+		}
+		
+		/**
+		 * 缓冲区清理
+		 * @param target
+		 * @param surfaceSelector
+		 * @param additionalClearMask
+		 * @return 
+		 */		
+		public function clear(target:TextureBase=null, surfaceSelector:int=0, additionalClearMask:int=7):Boolean
+		{
+			try 
+			{
+				if (this._backBufferInvalid)
+				{
+					this.updateBackBuffer();
+				}
+				
+				this.m_curRenderTarget = target;
+				if (target)
+				{
+					this.context.setRenderToTexture(target, this._enableDepthAndStencil, this._antiAlias, surfaceSelector);
+				} else 
+				{
+					this.context.setRenderToBackBuffer();
+				}
+				this.context.clear(this._backgroundR, this._backgroundG, this._backgroundB, this._backgroundAlpha, 1, 0, additionalClearMask);
+			} catch(error:Error) 
+			{
+				trace(error.message);
+				trace(error.getStackTrace());
+				resetContextManually(_renderMode, m_contextProfile, false);
+				return false;
+			}
+			
+			return true;
+		}
+		
+		/**
+		 * 3D场景对象渲染
+		 * @param collector
+		 */		
+        delta function render(collector:DeltaXEntityCollector):void
+		{
+            if (!this._stage3DProxy)
+			{
                 return;
-            };
-            if (this._viewPortInvalid){
+            }
+			
+            if (this._viewPortInvalid)
+			{
                 this.updateViewPort();
-            };
+            }
+			
             DeltaXFontRenderer.FLUSH_COUNT = 0;
             DeltaXRectRenderer.FLUSH_COUNT = 0;
-            this.executeRender(_arg1);
+			
+            this.executeRender(collector);
         }
-        public function present():void{
-            if (((!(this._stage3DProxy)) || (!(this._stage3DProxy.context3D)))){
+		
+		/**
+		 * 渲染对象处理
+		 * @param collector
+		 */		
+		protected function executeRender(collector:DeltaXEntityCollector):void
+		{
+			this._renderableSorter.sort(collector);
+			this.draw(collector);
+			
+			if (this._swapBackBuffer && !this.m_curRenderTarget)
+			{
+				this.context.present();
+			}
+		}
+		
+		/**
+		 * 场景对象绘制
+		 * @param collector
+		 */		
+		public function draw(collector:DeltaXEntityCollector):void
+		{
+			if (!this.m_ignoreSceneCheckOnRender && this.m_mainRenderScene && !this.m_mainRenderScene.metaScene.loadAllDependecy)
+			{
+				return;
+			}
+			
+			var context:Context3D = this._stage3DProxy.context3D;
+			ShaderManager.instance.resetOnFrameStart(context, this.m_ignoreSceneCheckOnRender ? null : this.m_mainRenderScene, DeltaXEntityCollector(collector), collector.camera);
+			context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK, Context3DCompareMode.ALWAYS, Context3DStencilAction.SET);
+			context.setStencilReferenceValue(0);
+			
+			this.drawRenderables(collector.opaqueRenderables, collector);
+			
+			if (collector.skyBox)
+			{
+				if (this._activeMaterial)
+				{
+					this._activeMaterial.delta::deactivate(context);
+				}
+				this._activeMaterial = null;
+				this.drawSkyBox(collector);
+			}
+			
+			this.drawRenderables(collector.blendedRenderables, collector);
+			
+			OcclusionManager.Instance.render(context, collector);
+			//			SkeletonPreview.getInstance().render(context);
+			context.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK, Context3DCompareMode.ALWAYS);
+			
+			EffectManager.instance.render(context, collector.camera);
+			
+			if (this.delta::showPartitionNode && this.delta::m_partionNodeRenderer)
+			{
+				this.delta::m_partionNodeRenderer.render(context);
+			}
+			
+			EffectManager.instance.renderScreenFilters(context, collector.camera);
+			
+			if (this._activeMaterial)
+			{
+				this._activeMaterial.delta::deactivate(context);
+			}
+			this._activeMaterial = null;
+		}
+		
+		/**
+		 * 天空盒绘制
+		 * @param collector
+		 */		
+		private function drawSkyBox(collector:DeltaXEntityCollector):void
+		{
+			var material:MaterialBase = collector.skyBox.material;
+			material.delta::activatePass(0, this._stage3DProxy.context3D, collector.camera);
+			material.delta::renderPass(0, collector.skyBox, this._stage3DProxy.context3D, collector);
+			material.delta::deactivatePass(0, this._stage3DProxy.context3D);
+		}
+		
+		/**
+		 * 渲染对象绘制
+		 * @param list
+		 * @param collector
+		 */		
+		public function drawRenderables(list:Vector.<IRenderable>, collector:DeltaXEntityCollector):void
+		{
+			var context:Context3D = this._stage3DProxy.context3D;
+			var renderCount:uint = list.length;
+			var camera:Camera3D = collector.camera;
+			var _local11:Vector.<LightBase> = collector.lights;
+			
+			var i:uint;
+			var j:uint;
+			var k:uint;
+			var passNum:uint;
+			var renderable:IRenderable;
+			while (i < renderCount) 
+			{
+				this._activeMaterial = list[i].material;
+				if(m_ignoreTerrainRender && this._activeMaterial is TerrainMaterial)
+				{
+					i ++;
+					continue;
+				}
+				
+				passNum = this._activeMaterial.delta::numPasses;
+				j = 0;
+				while (j < passNum) 
+				{
+					this._activeMaterial.delta::activatePass(j, context, camera);
+					k = i;
+					while (k < renderCount) 
+					{
+						renderable = list[k];
+						if (renderable.material != this._activeMaterial)
+						{
+							break;
+						}
+						this._activeMaterial.delta::renderPass(j, renderable, context, collector);
+						k++;
+					}
+					this._activeMaterial.delta::deactivatePass(j, context);
+					j++;
+				}
+				i = k;
+			}
+		}
+		
+		/**
+		 * 刷新后台缓冲区
+		 */		
+        public function present():void
+		{
+            if (!this._stage3DProxy || !this._stage3DProxy.context3D)
+			{
                 return;
-            };
+            }
+			
             this._stage3DProxy.context3D.present();
         }
-        public function clear(_arg1:TextureBase=null, _arg2:int=0, _arg3:int=7):Boolean{
-            var target = _arg1;
-            var surfaceSelector:int = _arg2;
-            var additionalClearMask:int = _arg3;
-            try {
-                if (this._backBufferInvalid){
-                    this.updateBackBuffer();
-                };
-                this.m_curRenderTarget = target;
-                if (target){
-                    this.context.setRenderToTexture(target, this._enableDepthAndStencil, this._antiAlias, surfaceSelector);
-                } else {
-                    this.context.setRenderToBackBuffer();
-                };
-                this.context.clear(this._backgroundR, this._backgroundG, this._backgroundB, this._backgroundAlpha, 1, 0, additionalClearMask);
-            } catch(error:Error) {
-                trace(error.message);
-                trace(error.getStackTrace());
-                resetContextManually(_renderMode, m_contextProfile, false);
-                return (false);
-            };
-            return (true);
-        }
-        protected function executeRender(_arg1:DeltaXEntityCollector):void{
-            this._renderableSorter.sort(_arg1);
-            this.draw(_arg1);
-            if (((this._swapBackBuffer) && (!(this.m_curRenderTarget)))){
-                this.context.present();
-            };
-        }
-        protected function updateViewPort():void{
-            this._stage3DProxy.viewPort = new Rectangle(this._viewPortX, this._viewPortY, this._viewPortWidth, this._viewPortHeight);
+		
+		/**
+		 * 更新视图
+		 */		
+        protected function updateViewPort():void
+		{
+			var rect:Rectangle = MathUtl.TEMP_RECTANGLE;
+			rect.setTo(this._viewPortX, this._viewPortY, this._viewPortWidth, this._viewPortHeight);
+            this._stage3DProxy.viewPort = rect;
             this._viewPortInvalid = false;
         }
-        private function updateBackBuffer():void{
+		
+		/**
+		 * 更新后台缓冲区
+		 */		
+        private function updateBackBuffer():void
+		{
             this._stage3DProxy.configureBackBuffer(this._backBufferWidth, this._backBufferHeight, this._antiAlias, this._enableDepthAndStencil);
             this._backBufferInvalid = false;
         }
-        private function onContextUpdate(_arg1:Event):void{
-            var _local2:String = this._stage3DProxy.context3D.driverInfo.toLowerCase();
-            trace("context updated: ", _local2);
-            if (_local2.indexOf("software") >= 0){
-                if ((((_local2.indexOf("unavaiable") >= 0)) && (!((this.m_contextProfile == "baselineConstrained"))))){
-                    if (this._stage3DProxy.supportContrainedMode){
+		
+		/**
+		 * 渲染上下文更新
+		 * @param evt
+		 */		
+        private function onContextUpdate(evt:Event):void
+		{
+            var info:String = this._stage3DProxy.context3D.driverInfo.toLowerCase();
+            trace("context updated: ", info);
+			
+            if (info.indexOf("software") >= 0)
+			{
+                if (info.indexOf("unavaiable") >= 0 && this.m_contextProfile != "baselineConstrained")
+				{
+                    if (this._stage3DProxy.supportContrainedMode)
+					{
                         trace("try to use baselineConstrained profile for context3D");
                         this.resetContextManually("auto", "baselineConstrained", false);
-                    };
-                } else {
-                    if (hasEventListener(Context3DEvent.CREATED_SOFTWARE)){
-                        dispatchEvent(new Context3DEvent(Context3DEvent.CREATED_SOFTWARE, _local2));
-                    };
-                };
-            } else {
-                if (hasEventListener(Context3DEvent.CREATED_HARDWARE)){
-                    dispatchEvent(new Context3DEvent(Context3DEvent.CREATED_HARDWARE, _local2));
-                };
-            };
+                    }
+                } else 
+				{
+                    if (hasEventListener(Context3DEvent.CREATED_SOFTWARE))
+					{
+                        dispatchEvent(new Context3DEvent(Context3DEvent.CREATED_SOFTWARE, info));
+                    }
+                }
+            } else 
+			{
+                if (hasEventListener(Context3DEvent.CREATED_HARDWARE))
+				{
+                    dispatchEvent(new Context3DEvent(Context3DEvent.CREATED_HARDWARE, info));
+                }
+            }
+			
             ShaderManager.constrained = this.constrainedMode;
         }
-        private function onContextLost(_arg1:Context3DEvent):void{
+		
+		/**
+		 * 渲染上下文设备丢失
+		 * @param evt
+		 */		
+        private function onContextLost(evt:Context3DEvent):void
+		{
             this.resetContextManually(this._renderMode, this.m_contextProfile);
-            trace("on context lost");
-            if (hasEventListener(Context3DEvent.CONTEXT_LOST)){
-                dispatchEvent(_arg1);
-            };
+            
+			trace("on context lost");
+           
+			if (hasEventListener(Context3DEvent.CONTEXT_LOST))
+			{
+                dispatchEvent(evt);
+            }
         }
-        public function resetContextManually(_arg1:String="auto", _arg2:String="baseline", _arg3:Boolean=true):void{
-            trace("resetContextManually", _arg1, _arg2);
-            this.onLostDevice();
-            if (((!(_arg3)) && (hasEventListener(Context3DEvent.CONTEXT_LOST)))){
+		
+		/**
+		 * 手动重设渲染上下文
+		 * @param renderMode
+		 * @param contextProfile
+		 * @param va
+		 */		
+        public function resetContextManually(renderMode:String="auto", contextProfile:String="baseline", va:Boolean=true):void
+		{
+            trace("resetContextManually", renderMode, contextProfile);
+            
+			this.onLostDevice();
+           
+			if (!va && hasEventListener(Context3DEvent.CONTEXT_LOST))
+			{
                 dispatchEvent(new Context3DEvent(Context3DEvent.CONTEXT_LOST));
-            };
-            this._renderMode = _arg1;
-            this.m_contextProfile = _arg2;
+            }
+			
+            this._renderMode = renderMode;
+            this.m_contextProfile = contextProfile;
             this._stage3DProxy.resetContext(this._renderMode, this.m_contextProfile);
         }
-        protected function onLostDevice():void{
+		
+		/**
+		 * 设备丢失处理
+		 */		
+        protected function onLostDevice():void
+		{
             ShaderManager.onLostDevice();
             DeltaXTextureManager.instance.onLostDevice();
             DeltaXSubGeometryManager.Instance.onLostDevice();
-            if (this.m_mainRenderScene){
+            if (this.m_mainRenderScene)
+			{
                 this.m_mainRenderScene.ClearShadowmap();
-            };
+            }
             DeltaXFontRenderer.Instance.onLostDevice();
             DeltaXRectRenderer.Instance.onLostDevice();
         }
-        public function draw(_arg1:DeltaXEntityCollector):void
+		
+		/**
+		 * 重新加载着色器程序
+		 * @param index
+		 * @param vertexShader
+		 * @param fragmentShader
+		 * @param materialShader
+		 */		
+		public function reloadShader(index:uint, vertexShader:String, fragmentShader:String, materialShader:String):void
 		{
-            if (((((!(this.m_ignoreSceneCheckOnRender)) && (this.m_mainRenderScene))) && (!(this.m_mainRenderScene.metaScene.loadAllDependecy))))
-			{
-                return;
-            }
-			
-            var _local2:Context3D = this._stage3DProxy.context3D;
-            ShaderManager.instance.resetOnFrameStart(_local2, (this.m_ignoreSceneCheckOnRender) ? null : this.m_mainRenderScene, DeltaXEntityCollector(_arg1), _arg1.camera);
-            _local2.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK, Context3DCompareMode.ALWAYS, Context3DStencilAction.SET);
-            _local2.setStencilReferenceValue(0);
-            this.drawRenderables(_arg1.opaqueRenderables, _arg1);
-            if (_arg1.skyBox)
-			{
-                if (this._activeMaterial)
-				{
-                    this._activeMaterial.delta::deactivate(_local2);
-                }
-                this._activeMaterial = null;
-                this.drawSkyBox(_arg1);
-            }
-			
-            this.drawRenderables(_arg1.blendedRenderables, _arg1);
-            OcclusionManager.Instance.render(_local2, _arg1);
-			SkeletonPreview.getInstance().render(_local2);
-            _local2.setStencilActions(Context3DTriangleFace.FRONT_AND_BACK, Context3DCompareMode.ALWAYS);
-            EffectManager.instance.render(_local2, _arg1.camera);
-           
-			if (this.delta::showRenderableBoundingBox)
-			{
-                this.drawRenderableBBoxs(_arg1.opaqueRenderables);
-                this.drawRenderableBBoxs(_arg1.blendedRenderables);
-            }
-			
-            if (((this.delta::showPartitionNode) && (this.delta::m_partionNodeRenderer)))
-			{
-                this.delta::m_partionNodeRenderer.render(_local2);
-            }
-			
-            EffectManager.instance.renderScreenFilters(_local2, _arg1.camera);
-            
-			if (this._activeMaterial)
-			{
-                this._activeMaterial.delta::deactivate(_local2);
-            }
-            this._activeMaterial = null;
-        }
+			ShaderManager.instance.reloadShader(index, vertexShader, fragmentShader, materialShader);
+		}
 		
-        private function drawSkyBox(_arg1:DeltaXEntityCollector):void{
-            var _local2:IRenderable = _arg1.skyBox;
-            var _local3:MaterialBase = _local2.material;
-            var _local4:Camera3D = _arg1.camera;
-            var _local5:Context3D = this._stage3DProxy.context3D;
-            _local3.delta::activatePass(0, _local5, _local4);
-            _local3.delta::renderPass(0, _local2, _local5, _arg1);
-            _local3.delta::deactivatePass(0, _local5);
-        }
-        public function drawRenderables(_arg1:Vector.<IRenderable>, _arg2:DeltaXEntityCollector):void{
-            var _local4:IRenderable;
-            var _local5:uint;
-            var _local6:uint;
-            var _local7:uint;
-            var _local8:uint;
-            var _local3:Context3D = this._stage3DProxy.context3D;
-            var _local9:uint = _arg1.length;
-            var _local10:Camera3D = _arg2.camera;
-            var _local11:Vector.<LightBase> = _arg2.lights;
-            while (_local5 < _local9) 
-			{
-                this._activeMaterial = _arg1[_local5].material;
-				if(m_ignoreTerrainRender && this._activeMaterial is TerrainMaterial)
-				{
-					_local5 ++;
-					continue;
-				}
-                _local8 = this._activeMaterial.delta::numPasses;
-                _local6 = 0;
-                while (_local6 < _local8) 
-				{
-                    this._activeMaterial.delta::activatePass(_local6, _local3, _local10);
-                    _local7 = _local5;
-                    while (_local7 < _local9) 
-					{
-                        _local4 = _arg1[_local7];
-                        if (_local4.material != this._activeMaterial)
-						{
-                            break;
-                        }
-                        this._activeMaterial.delta::renderPass(_local6, _local4, _local3, _arg2);
-                        _local7++;
-                    }
-                    this._activeMaterial.delta::deactivatePass(_local6, _local3);
-                    _local6++;
-                }
-                _local5 = _local7;
-            }
-        }
-		
-        private function drawRenderableBBoxs(_arg1:Vector.<IRenderable>):void{
-            var _local4:Vector3D;
-            var _local5:Vector3D;
-            var _local2:Context3D = this._stage3DProxy.context3D;
-            var _local3:uint;
-            while (_local3 < _arg1.length) {
-                if (!(_arg1[_local3].sourceEntity is Mesh)){
-                } else {
-                    _local4 = _arg1[_local3].sourceEntity.bounds.min;
-                    _local5 = _arg1[_local3].sourceEntity.bounds.max;
-                    RenderBox.Render(_local2, _arg1[_local3].sceneTransform, _local4.x, _local4.y, _local4.z, _local5.x, _local5.y, _local5.z);
-                };
-                _local3++;
-            };
-        }
-        public function getWaterHeightByGridFun():Function{
-            if (this.m_mainRenderScene){
-                return (this.m_mainRenderScene.metaScene.getGridWaterHeight);
-            };
-            return (null);
-        }
-        public function getTerrainLogicHeightByGridFun():Function{
-            if (this.m_mainRenderScene){
-                return (this.m_mainRenderScene.metaScene.getGridLogicHeight);
-            };
-            return (null);
-        }
-        public function get mainRenderScene():RenderScene{
-            return (this.m_mainRenderScene);
-        }
-        public function set mainRenderScene(_arg1:RenderScene):void{
-            if (this.m_mainRenderScene){
-                this.m_view3D.entityCollector.delClearHandler(this.m_mainRenderScene);
-                this.m_mainRenderScene.ClearShadowmap();
-                this.m_mainRenderScene.remove();
-            };
-            if (_arg1){
-                this.m_view3D.scene.addChild(_arg1);
-                this.m_view3D.entityCollector.addClearHandler(_arg1);
-            };
-            this.m_mainRenderScene = _arg1;
-        }
-        public function get curEnviroment():SceneEnv{
-            if (this.m_mainRenderScene){
-                return (this.m_mainRenderScene.curEnviroment);
-            };
-            return (RenderScene.DEFAULT_ENVIROMENT);
-        }
-        public function getVisibleRegionString():String{
-            if (this.m_mainRenderScene){
-                return (this.m_mainRenderScene.visibleRenderRegionString);
-            };
-            return ("null");
-        }
-        public function getCenterPositionString():String{
-            if (this.m_mainRenderScene){
-                return (this.m_mainRenderScene.getCenterPositionString());
-            };
-            return ("null");
-        }
-        public function get view3D():View3D{
-            return (this.m_view3D);
-        }
-        public function set view3D(_arg1:View3D):void{
-            this.m_view3D = _arg1;
-        }
+		/**
+		 * 数据销毁
+		 */		
+		delta function dispose():void
+		{
+			this.delta::stage3DProxy = null;
+		}
 
+		
+		
     }
-}//package deltax.graphic.render 
+}

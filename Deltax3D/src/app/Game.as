@@ -1,4 +1,5 @@
-﻿package app{
+﻿package app
+{
 	import flash.display.Sprite;
 	import flash.display3D.Context3D;
 	import flash.utils.getDefinitionByName;
@@ -105,7 +106,7 @@
 				}
 			}
 			
-			if(_middleMouseDown && view)
+			if(_middleMouseDown && camController)
 			{
 				var xx:int = _ox - _arg1.globalX;
 				var yy:int = _oy - _arg1.globalY;

@@ -1,23 +1,26 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.scenegraph.object {
-    import deltax.graphic.camera.*;
-    import deltax.graphic.manager.*;
-    import deltax.gui.component.*;
-    import flash.geom.*;
-    import deltax.graphic.scenegraph.partition.*;
-    import deltax.common.math.*;
-    import deltax.graphic.scenegraph.traverse.*;
-    import deltax.graphic.effect.*;
+﻿package deltax.graphic.scenegraph.object {
+    import flash.geom.Matrix3D;
+    import flash.geom.Rectangle;
+    import flash.geom.Vector3D;
+    
+    import deltax.appframe.BaseApplication;
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.VectorUtil;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.scenegraph.partition.EntityNode;
+    import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
+    import deltax.graphic.scenegraph.traverse.PartitionTraverser;
+    import deltax.graphic.scenegraph.traverse.ViewTestResult;
+    import deltax.gui.component.DeltaXWindow;
 
     public class Window3DNode extends EntityNode {
 
-        private var m_view:View3D;
 
         public function Window3DNode(_arg1:Entity){
             super(_arg1);
-            this.m_view = EffectManager.instance.view3D;
         }
-        override public function isInFrustum(_arg1:Camera3D, _arg2:Boolean):uint{
+        override public function isInFrustum(_arg1:Camera3D, _arg2:Boolean):uint
+		{
             var _local7:Rectangle;
             var _local8:Rectangle;
             var _local3:DeltaXWindow = Window3D(_entity).innerWindow;
@@ -30,6 +33,8 @@ package deltax.graphic.scenegraph.object {
                 m_lastEntityVisible = _local4;
                 return (ViewTestResult.FULLY_OUT);
             };
+			
+			var app:BaseApplication = BaseApplication.instance; 
             if (m_lastFrameViewTestResult == ViewTestResult.UNDEFINED){
                 _arg2 = false;
             };
@@ -46,13 +51,13 @@ package deltax.graphic.scenegraph.object {
             };
             _local5.x = ((_local5.x + 1) / 2);
             _local5.y = ((-(_local5.y) + 1) / 2);
-            _local5.x = (_local5.x * this.m_view.width);
-            _local5.y = (_local5.y * this.m_view.height);
+            _local5.x = (_local5.x * app.width);
+            _local5.y = (_local5.y * app.height);
             _local3.x = (_local5.x - (_local3.width / 2));
             _local3.y = (_local5.y - (_local3.height / 2));
             if (!_arg2){
                 _local7 = MathUtl.TEMP_RECTANGLE;
-                _local7.setTo(0, 0, this.m_view.width, this.m_view.height);
+                _local7.setTo(0, 0, app.width, app.height);
                 _local8 = MathUtl.TEMP_RECTANGLE2;
                 _local8.setTo(_local3.x, _local3.y, _local3.width, _local3.height);
                 if (_local7.intersects(_local8)){
@@ -78,4 +83,4 @@ package deltax.graphic.scenegraph.object {
         }
 
     }
-}//package deltax.graphic.scenegraph.object 
+}

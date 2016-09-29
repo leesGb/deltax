@@ -28,7 +28,6 @@
     import deltax.graphic.effect.render.unit.PolygonTrail;
     import deltax.graphic.effect.render.unit.ScreenFilter;
     import deltax.graphic.effect.render.unit.SoundFX;
-    import deltax.graphic.manager.View3D;
     import deltax.graphic.render.DeltaXRenderer;
     import deltax.graphic.scenegraph.object.ObjectContainer3D;
 	
@@ -52,8 +51,6 @@
         private var m_curEffectUnits:Vector.<EffectUnit>;
 		/**音频注册对象*/
         private var m_audioListener:ObjectContainer3D;
-		/**3d视图*/
-        private var m_view3D:View3D;
 		/**渲染器*/
         private var m_renderer:DeltaXRenderer;
 		/**屏幕干扰*/
@@ -214,15 +211,6 @@
 			}
 		}
 		
-		public function get view3D():View3D
-		{
-			return this.m_view3D;
-		}
-		public function set view3D(va:View3D):void
-		{
-			this.m_view3D = va;
-		}
-		
 		public function get particleEffectEnable():Boolean
 		{
 			return this.m_particleEffectEnable;
@@ -255,7 +243,7 @@
 			var va:ObjectContainer3D = this.m_audioListener ? this.m_audioListener : null;
 			if (!va)
 			{
-				va = BaseApplication.instance.view.camera;
+				va = BaseApplication.instance.camera;
 			}
 			return va;
 		}
@@ -610,8 +598,8 @@
         public function get mainRenderTarget():Texture
 		{
             var t:Texture = this.m_externalRenderTarget;
-            var w:int = MathUtl.wrapToUpperPowerOf2(this.view3D.width);
-            var h:int = MathUtl.wrapToUpperPowerOf2(this.view3D.height);
+            var w:int = MathUtl.wrapToUpperPowerOf2(BaseApplication.instance.width);
+            var h:int = MathUtl.wrapToUpperPowerOf2(BaseApplication.instance.height);
             if (!t)
 			{
                 if (!this.m_internalRenderTarget)
@@ -637,7 +625,7 @@
                     this.m_backBufferData = new BitmapData(w, h, true, 0);
                 }
 				
-				var bData:BitmapData = new BitmapData(this.view3D.width, this.view3D.height, true, 0);
+				var bData:BitmapData = new BitmapData(BaseApplication.instance.width, BaseApplication.instance.height, true, 0);
                 this.context.drawToBitmapData(bData);
                 m_bmpScaleMatrix.a = Number(w) / bData.width;
                 m_bmpScaleMatrix.d = Number(h) / bData.height;

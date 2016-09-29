@@ -108,7 +108,7 @@ package deltax.appframe {
             if (_local4 == null){
                 return (null);
             };
-            var _local5:RenderScene = _local4.createRenderScene(BaseApplication.instance.view);
+            var _local5:RenderScene = _local4.createRenderScene();
             _local4.release();
             return (_local5);
         }

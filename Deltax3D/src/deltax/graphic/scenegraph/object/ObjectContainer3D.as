@@ -770,7 +770,7 @@
 		 */		
 		public function get scene():Scene3D
 		{
-			return (this._scene);
+			return this._scene;
 		}
 		public function set scene(scene3d:Scene3D):void
 		{
@@ -792,7 +792,7 @@
 				this._oldScene = this._scene;
 			}
 			//
-			if ((this._explicitPartition) && (this._oldScene) && !(this._oldScene == this._scene))
+			if (this._explicitPartition && this._oldScene && this._oldScene != this._scene)
 			{
 				this.partition = null;
 			}
@@ -902,9 +902,9 @@
 						pos = transform.position;
 						this.m_scaledSelfTransform.copyFrom(_transform);
 						this.m_scaledSelfTransform.appendTranslation(-(pos.x), -(pos.y), -(pos.z));
-						scaleX = (1 / scale.x);
-						scaleY = (1 / scale.y);
-						scaleZ = (1 / scale.z);
+						scaleX = 1 / scale.x;
+						scaleY = 1 / scale.y;
+						scaleZ = 1 / scale.z;
 						this.m_scaledSelfTransform.appendScale(scaleX, scaleY, scaleZ);
 						this.m_scaledSelfTransform.appendTranslation(pos.x, pos.y, pos.z);
 					}
@@ -922,54 +922,44 @@
 		}
 		
 		/**
-		 * 获取划分区域
+		 * 划分区域
 		 * @return 
 		 */		
 		public function get partition():Partition3D
 		{
-			return (this._explicitPartition);
+			return this._explicitPartition;
 		}
-		
-		/**
-		 * 设置划分区域
-		 * @param value
-		 */		
 		public function set partition(value:Partition3D):void
 		{
 			this._explicitPartition = value;
-			this.implicitPartition = (value) ? value : (this._parent ? this.parent.implicitPartition : null);
+			this.implicitPartition = value ? value : (this._parent ? this.parent.implicitPartition : null);
 		}
 		
 		/**
-		 * 获取隐形划分区域（这一般是与父类相关的）
+		 * 隐形划分区域（这一般是与父类相关的）
 		 * @return 
 		 */		
 		public function get implicitPartition():Partition3D
 		{
-			return (this._implicitPartition);
+			return this._implicitPartition;
 		}
-		
-		/**
-		 * 设置隐形区域划分（这一般是与父类相关的）
-		 * @param value
-		 */		
 		public function set implicitPartition(value:Partition3D):void
 		{
 			var index:uint;
-			var obj3D:ObjectContainer3D;
+			var child:ObjectContainer3D;
 			if (value == this._implicitPartition)
 			{
 				return;
 			}
 			//
-			var len:uint = this._children.length;
+			var count:uint = this._children.length;
 			this._implicitPartition = value;
-			while (index < len) 
+			while (index < count) 
 			{
-				obj3D = this._children[index++];
-				if (!obj3D._explicitPartition)
+				child = this._children[index++];
+				if (!child._explicitPartition)
 				{
-					obj3D.implicitPartition = value;
+					child.implicitPartition = value;
 				}
 			}
 		}
@@ -983,18 +973,20 @@
 		{
 			if (child == null)
 			{
-				throw (new Error("Parameter child cannot be null."));
+				throw new Error("Parameter child cannot be null.");
 			}
 			//
 			if (!child._explicitPartition)
 			{
 				child.implicitPartition = this._implicitPartition;
 			}
+			
 			child._parent = this;
 			child.scene = this._scene;
 			child.invalidateSceneTransform();
 			child.reference();
 			this._children.push(child);
+			
 			return child;
 		}
 		
@@ -1018,7 +1010,7 @@
 		 */		
 		public function indexOfChild(child:ObjectContainer3D):int
 		{
-			return (this._children.indexOf(child));
+			return this._children.indexOf(child);
 		}
 		
 		/**
@@ -1028,7 +1020,7 @@
 		 */		
 		public function containChild(child:ObjectContainer3D):Boolean
 		{
-			return ((child._parent == this));
+			return child._parent == this;
 		}
 		
 		/**
@@ -1039,13 +1031,13 @@
 		{
 			if (child == null)
 			{
-				throw (new Error("Parameter child cannot be null"));
+				throw new Error("Parameter child cannot be null");
 			}
 			//
 			var index:int = this._children.indexOf(child);
 			if (index == -1)
 			{
-				trace(new Error("Parameter is not a child of the caller").getStackTrace());
+				trace("Parameter is not a child of the caller");
 				return;
 			}
 			//
@@ -1055,6 +1047,7 @@
 			{
 				child.implicitPartition = null;
 			}
+			
 			child.release();
 		}
 		
@@ -1077,7 +1070,7 @@
 		 */		
 		public function getChildAt(index:uint):ObjectContainer3D
 		{
-			return (this._children[index]);
+			return this._children[index];
 		}
 		
 		/**
@@ -1103,7 +1096,7 @@
 		 */		
 		public function get numChildren():uint
 		{
-			return (this._children.length);
+			return this._children.length;
 		}
 		
 		/**
@@ -1114,9 +1107,9 @@
 		{
 			if (!this.m_visible)
 			{
-				return (false);
+				return false;
 			}
-			return ((this._parent) ? this._parent.visible : true);
+			return this._parent ? this._parent.visible : true;
 		}
 		public function set visible(value:Boolean):void
 		{
@@ -1131,9 +1124,9 @@
 		{
 			if (!this.m_effectVisible)
 			{
-				return (false);
+				return false;
 			}
-			return ((this._parent) ? this._parent.effectVisible : true);
+			return this._parent ? this._parent.effectVisible : true;
 		}
 		public function set effectVisible(value:Boolean):void
 		{
@@ -1152,9 +1145,9 @@
 		{
 			if (!this.m_enableRender)
 			{
-				return (false);
+				return false;
 			}
-			return (this._parent) ? this._parent.enableRender : true;
+			return this._parent ? this._parent.enableRender : true;
 		}
 		
 		/**
@@ -1163,7 +1156,7 @@
 		 */		
 		public function get applyParentScale():Boolean
 		{
-			return (this.m_applyParentScale);
+			return this.m_applyParentScale;
 		}
 		public function set applyParentScale(value:Boolean):void
 		{
@@ -1200,7 +1193,7 @@
 			
 			if (this._refCount < 0)
 			{
-				Exception.CreateException(((this.name + ":after release refCount == ") + this._refCount));
+				Exception.CreateException(this.name + ":after release refCount == " + this._refCount);
 				return;
 			}
 			this.dispose();
@@ -1213,7 +1206,6 @@
 		
 		public function dispose():void
 		{
-			
 			if (this._parent)
 			{
 				this._parent.removeChild(this);

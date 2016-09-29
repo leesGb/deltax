@@ -159,7 +159,7 @@ package deltax.graphic.camera {
                 this.m_timeFromLastKeyFrame = _local3.durationFromPrevFrame;
             };
             if (this.m_renderScene){
-                _local8 = (this.m_renderScene.view.camera as DeltaXCamera3D);
+                _local8 = (BaseApplication.instance.camera as DeltaXCamera3D);
                 _local9 = (Number(this.m_timeFromLastKeyFrame) / _local3.durationFromPrevFrame);
                 if (!this.m_treatPosAsOffset){
                     _local11 = new Vector3D();
