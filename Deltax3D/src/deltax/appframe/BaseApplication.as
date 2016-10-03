@@ -10,7 +10,6 @@
 	import flash.display3D.Context3DRenderMode;
 	import flash.events.DataEvent;
 	import flash.events.Event;
-	import flash.events.FocusEvent;
 	import flash.events.KeyboardEvent;
 	import flash.events.TextEvent;
 	import flash.external.ExternalInterface;
@@ -81,13 +80,8 @@
 	
 	public class BaseApplication implements IMapLoadHandler,IGUIHandler
 	{
-		private static const DIRECTORY_FILE:String = "directory.xml";
 		private static const SCENELISTXML:String = "scene_list.xml";
-		private static const DEFAULT_STAGE_WIDTH:Number = 800;
-		private static const DEFAULT_STAGE_HEIGHT:Number = 600;
 		private static const DEFAULT_ANTIALIAS:Number = 1;
-		private static const APPCONFIGXML:String = "app_config.xml";
-		private static const DEFAULT_CAMERA_MOV_SPEED:Number = 10;
 		public static const DATA_EVENT_COPY:String = "deltax_StringCopy";
 		
 		private static var ms_appInstance:BaseApplication;
@@ -95,42 +89,58 @@
 		public static var TraverseSceneTime:uint;
 		public static var RenderSceneTime:uint;
 		
-		public var totalText:String = "";
+		/**角色操作者（一般是主角色）*/
 		private var m_directorObject:DirectorObject;
+		/**计数器管理器*/
 		private var m_tickManager:TickManager;
+		/**上一帧更新时间*/
 		private var m_lastUpdateTime:uint;
+		/**当前帧数*/
 		private var m_curFrameCount:uint;
+		/**逻辑场景管理器*/
 		private var m_sceneManager:SceneManager;
+		/**相机控制器*/
 		private var m_camController:CameraController;
-		private var m_debugMode:Boolean;
+		/**程序是否开始*/
 		protected var m_started:Boolean;
-		private var m_dependencies:int;
+		/**能否分步加载*/
 		private var m_enableStepLoad:Boolean = true;
+		/**应用程序外部容器*/
 		private var m_container:Sprite;
+		/**舞台*/
 		private var m_stage:Stage;
+		/**文本输入*/
 		private var m_textInput:TextField;
+		/**强制焦点为自身*/
 		private var m_forceFocusSelf:Boolean = true;
-		
+		/**场景渲染器*/
 		private var m_render:DeltaXRenderer;
+		/**3D场景*/
 		private var m_scene3D:Scene3D;
+		/**摄像机*/
 		private var m_camera:Camera3D;
+		/**场景收集器*/
 		private var m_collector:DeltaXEntityCollector;
+		/**3D舞台管理器*/
 		private var m_stage3DManager:Stage3DManager;
-		
+		/**应用程序视图宽度*/
 		private var m_width:Number=0;
+		/**应用程序视图高度*/
 		private var m_height:Number=0;
+		/**应用程序视图x坐标*/
 		private var m_x:Number=0;
+		/**应用程序视图y坐标*/
 		private var m_y:Number=0;
+		/**应用程序视图x轴缩放*/
 		private var m_scaleX:Number=1;
+		/**应用程序视图y轴缩放*/
 		private var m_scaleY:Number=1;
+		/**应用程序背景颜色*/
 		private var m_backgrounpColor:uint=0;
 		/**屏幕长宽比率*/
 		private var m_aspectRatio:Number;
-		
-		private var m_deltaTime:uint;
+		/**正交投影摄像机（一般用于ui渲染使用）*/
 		private var m_camera2D:DeltaXCamera3D;
-		private var m_time:Number = 0;
-		
 		
 		public function BaseApplication($container:Sprite)
 		{
@@ -240,7 +250,7 @@
 			
 			m_container.addEventListener(Event.ENTER_FRAME, onEnterFrame);
 			m_container.addEventListener(DATA_EVENT_COPY, this.onCopyRequest, false, 0, true);
-			m_container.addEventListener(FocusEvent.FOCUS_OUT, this.focusOutHandler);
+//			m_container.addEventListener(FocusEvent.FOCUS_OUT, this.focusOutHandler);
 			
 			m_stage.focus = m_container;
 		}
@@ -297,26 +307,37 @@
 			this.m_render.delta::stage3DProxy = this.m_stage3DManager.getFreeStage3DProxy();
 		}
 		
+		/**
+		 * 获取场景实体收集器
+		 * @return 
+		 */		
 		public function get entityCollector():DeltaXEntityCollector
 		{
 			return this.m_collector;
 		}
 		
+		/**
+		 * 获取渲染的面数
+		 * @return 
+		 */		
 		public function get renderedFacesCount():uint
 		{
 			return this.m_collector.numTriangles;
 		}
 		
-		public function get deltaTime():uint
-		{
-			return this.m_deltaTime;
-		}
-		
+		/**
+		 * 获取3D场景
+		 * @return 
+		 */		
 		public function get scene():Scene3D
 		{
 			return this.m_scene3D;
 		}
 		
+		/**
+		 * 获取正交投影摄像机
+		 * @return 
+		 */		
 		public function get camera2D():DeltaXCamera3D
 		{
 			if (!this.m_camera2D)
@@ -332,6 +353,10 @@
 			return this.m_camera2D;
 		}
 		
+		/**
+		 * 抗锯齿度
+		 * @return 
+		 */		
 		public function get antiAlias():uint
 		{
 			return this.m_render.antiAlias;
@@ -341,6 +366,10 @@
 			this.m_render.antiAlias = va;
 		}
 		
+		/**
+		 * 应用程序视图宽度
+		 * @return 
+		 */		
 		public function get width():Number
 		{
 			return this.m_width;
@@ -354,6 +383,10 @@
 			this.m_camera.lens.aspectRatio = this.m_aspectRatio;
 		}
 		
+		/**
+		 * 应用程序视图高度
+		 * @return 
+		 */		
 		public function get height():Number
 		{
 			return this.m_height;
@@ -367,6 +400,10 @@
 			this.m_camera.lens.aspectRatio = this.m_aspectRatio;
 		}
 		
+		/**
+		 * 应用程序视图x缩放轴
+		 * @return 
+		 */	
 		public function get scaleX():Number
 		{
 			return this.m_scaleX;
@@ -377,6 +414,10 @@
 			this.m_render.delta::viewPortWidth = this.m_width * this.m_scaleX;
 		}
 		
+		/**
+		 * 应用程序视图y缩放轴
+		 * @return 
+		 */
 		public function get scaleY():Number
 		{
 			return this.m_scaleY;
@@ -387,6 +428,10 @@
 			this.m_render.delta::viewPortHeight = this.m_height * this.m_scaleY;
 		}
 		
+		/**
+		 * 应用程序视图x坐标轴
+		 * @return 
+		 */
 		public function get x():Number
 		{
 			return this.m_x;
@@ -397,6 +442,10 @@
 			this.m_x = va;
 		}
 		
+		/**
+		 * 应用程序视图y坐标轴
+		 * @return 
+		 */
 		public function get y():Number
 		{
 			return this.m_y;
@@ -407,6 +456,10 @@
 			this.m_y = va;
 		}
 		
+		/**
+		 * 应用程序背景色
+		 * @return 
+		 */
 		public function get backgroundColor():uint
 		{
 			return this.m_backgrounpColor;
@@ -420,6 +473,10 @@
 			this.m_render.delta::backgroundAlpha = ((va >>> 24) & 0xFF) / 0xFF;
 		}
 		
+		/**
+		 * 3D场景对象渲染器
+		 * @return 
+		 */		
 		public function get renderer():DeltaXRenderer
 		{
 			return this.m_render;
@@ -441,6 +498,10 @@
 			this.m_render.delta::backgroundAlpha = (((this.m_backgrounpColor >>> 24) & 0xFF) / 0xFF);
 		}
 		
+		/**
+		 * 透视投影摄像机
+		 * @return 
+		 */		
 		public function get camera():Camera3D
 		{
 			return this.m_camera;
@@ -452,31 +513,55 @@
 			this.m_collector.camera = this.m_camera;
 		}
 		
+		/**
+		 * 当前帧数
+		 * @return 
+		 */		
 		public function get curFrameCount():uint
 		{
 			return this.m_curFrameCount;
 		}
 		
+		/**
+		 * 渲染上下文
+		 * @return 
+		 */		
 		public function get context3D():Context3D
 		{
 			return this.m_render.delta::stage3DProxy.context3D;
 		}
 		
+		/**
+		 * 上一帧时间
+		 * @return 
+		 */		
 		public function get lastUpdateTime():uint
 		{
 			return this.m_lastUpdateTime;
 		}
 		
+		/**
+		 * 显卡信息
+		 * @return 
+		 */		
 		public function get contextInfo():String
 		{
 			return this.context3D ? this.context3D.driverInfo : "unknown";
 		}
 		
+		/**
+		 * flash player版本信息
+		 * @return 
+		 */		
 		public function get playerInfo():String
 		{
 			return Capabilities.version;
 		}
 		
+		/**
+		 * 浏览器信息
+		 * @return 
+		 */		
 		public function get browserInfo():String
 		{
 			var browser:String = StartUpParams.getParam("browser");
@@ -496,16 +581,28 @@
 			return (browser);
 		}
 		
+		/**
+		 * 外部逻辑场景管理器
+		 * @return 
+		 */		
 		public function get sceneManager():SceneManager
 		{
 			return this.m_sceneManager;
 		}
 		
+		/**
+		 * 是否为开发版本
+		 * @return 
+		 */		
 		public function get developVersion():Boolean
 		{
 			return StartUpParams.developVersion;
 		}
 		
+		/**
+		 * 相机控制器
+		 * @return 
+		 */		
 		public function get camController():CameraController
 		{
 			return (this.m_camController);
@@ -515,16 +612,28 @@
 			this.m_camController = va;
 		}
 		
+		/**
+		 * 程序配置路径
+		 * @return 
+		 */		
 		public function get designerConfigPath():String
 		{
 			return Enviroment.ConfigRootPath;
 		}
 		
+		/**
+		 * 程序资源路径
+		 * @return 
+		 */		
 		public function get rootResourcePath():String
 		{
 			return Enviroment.ResourceRootPath;
 		}
 		
+		/**
+		 * 资源加载时能否分步加载
+		 * @return 
+		 */		
 		public function get enableStepLoad():Boolean
 		{
 			return this.m_enableStepLoad;
@@ -534,16 +643,28 @@
 			this.m_enableStepLoad = va;
 		}
 		
+		/**
+		 * 当前逻辑控制场景
+		 * @return 
+		 */		
 		public function get curLogicScene():LogicScene
 		{
 			return this.m_sceneManager.curLogicScene;
 		}
 		
+		/**
+		 * 外部逻辑场景类
+		 * @param cl
+		 */		
 		protected function set shellSceneClass(cl:Class):void
 		{
 			this.m_sceneManager.shellLogicSceneType = cl;
 		}
 		
+		/**
+		 * 应用程序外部容器
+		 * @return 
+		 */		
 		public function get mContainer():Sprite
 		{
 			return m_container;
@@ -647,17 +768,28 @@
 			}
 		}
 		
+		/**
+		 * 复制请求处理
+		 * @param evt
+		 */		
 		protected function onCopyRequest(evt:DataEvent):void
 		{
 			Clipboard.generalClipboard.clear();
 			Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT, evt.data, false);
 		}
 		
+		/**
+		 * 注册资源类型
+		 */		
 		protected function registerResourceTypes():void
 		{
 			ResourceManager.instance.registerGraphicResources();
 		}
 		
+		/**
+		 * 每帧更新事件处理
+		 * @param evt
+		 */		
 		private function onEnterFrame(evt:Event):void
 		{
 			if (Exception.throwError)
@@ -676,10 +808,15 @@
 			}
 		}
 		
+		/**
+		 * 帧更新处理
+		 */		
 		protected function updateFrame():void
 		{
 			var curTime:uint = getTimer();
 			var interval:uint = curTime - this.m_lastUpdateTime;
+			this.m_lastUpdateTime = curTime;
+			
 			if (!this.m_started)
 			{
 				return;
@@ -737,19 +874,14 @@
 			DownloadStatistic.instance.updateStatistic(curTime);
 			EffectManager.instance.clearCurRenderingEffect();
 			this.onFrameUpdated(interval);
-			this.m_lastUpdateTime = curTime;
 		}
 		
+		/**
+		 * 场景对象渲染
+		 */		
 		private function renderScene():void
 		{
 			var curTime:Number = getTimer();
-			if(this.m_time == 0)
-			{
-				this.m_time = curTime;
-			}
-			this.m_deltaTime = curTime - this.m_time;
-			this.m_time = curTime;
-			
 			this.m_collector.clear();
 			OcclusionManager.Instance.clearOcclusionEffectObj();
 			this.m_camera.onFrameBegin();
@@ -774,137 +906,34 @@
 				this.m_scene3D.traversePartitions(this.m_render.delta::m_partionNodeRenderer);
 			}
 			
-			this.m_time = getTimer();
+			curTime = getTimer();
 			
 			this.m_render.delta::render(this.m_collector);
-			RenderSceneTime = getTimer() - this.m_time;
+			RenderSceneTime = getTimer() - curTime;
 			
 			this.m_collector.clearOnRenderEnd();
 			this.m_camera.onFrameEnd();
 		}
 		
+		/**
+		 * 创建渲染场景
+		 * @param sid
+		 * @param grid
+		 * @param callBack
+		 * @return 
+		 */		
 		public function createRenderScene(sid:uint, grid:SceneGrid, callBack:Function=null):RenderScene
 		{
 			return this.m_sceneManager.createRenderScene(sid, grid, callBack);
 		}
 		
-		
-		protected function registerSyncDataPools():void
-		{
-			//
-		}
-		
-		protected function registerPools():void
-		{
-			//
-		}
-		
-		protected function onSceneManagerCreated():void
-		{
-			//
-		}
-		
-		protected function onStarted():void
-		{
-			//
-		}
-		
-		protected function onPostRender(context:Context3D, camera:DeltaXCamera3D):void
-		{
-			//
-		}
-		
-		protected function onFrameUpdated(time:uint):void
-		{
-			//
-		}
-		
-		public function onLoadingStart():void
-		{
-			//
-		}
-		
-		public function onLoading(va:Number):void
-		{
-			//
-		}
-		
-		public function onLoadingDone():void
-		{
-			//
-		}
-		
-		protected function onContextLost(evt:Context3DEvent):void
-		{
-			//
-		}
-		
-		protected function onContextCreatedSoftware(evt:Context3DEvent):void
-		{
-			//
-		}
-		
-		protected function onContextCreatedHardware(_arg1:Context3DEvent):void
-		{
-			//
-		}
-		
-		private function focusOutHandler(event:FocusEvent):void
-		{
-			if (this.m_forceFocusSelf)
-			{
-//				m_stage.focus = m_container;
-			}
-		}
-		
-		protected function onStageResize(evt:DXWndEvent):void
-		{
-			this.width = m_container.width;
-			this.height = m_container.height;
-		}
-		
-		protected function onKeyDown(evt:DXWndKeyEvent):void
-		{
-			//
-		}
-		protected function onKeyUp(evt:DXWndKeyEvent):void
-		{
-			//
-		}
-		
-		protected function onMouseDown(evt:DXWndMouseEvent):void
-		{
-			//
-		}
-		protected function onMouseUp(evt:DXWndMouseEvent):void
-		{
-			//
-		}
-		protected function onMouseMove(evt:DXWndMouseEvent):void
-		{
-			//
-		}
-		protected function onMouseWheel(evt:DXWndMouseEvent):void
-		{
-			//
-		}
-		protected function onRightMouseDown(evt:DXWndMouseEvent):void
-		{
-			//
-		}
-		protected function onRightMouseUp(evt:DXWndMouseEvent):void
-		{
-			//
-		}
-		protected function onMiddleMouseDown(evt:DXWndMouseEvent):void
-		{
-			//
-		}
-		protected function onMiddleMouseUp(evt:DXWndMouseEvent):void
-		{
-			//
-		}
-		
+		/**
+		 * 类注册
+		 * @param cl
+		 * @param shellID
+		 * @param clID
+		 * @param va
+		 */		
 		protected function registerClass(cl:Class, shellID:uint, clID:uint, va:uint):void
 		{
 			ObjectClassID.init();
@@ -915,6 +944,10 @@
 			ObjectClassID.registerShellClass(cl, shellID, clID);
 		}
 		
+		/**
+		 * 场景分块加载完调用
+		 * @param rgn
+		 */		
 		public function onRegionLoaded(rgn:MetaRegion):void
 		{
 			if (this.curLogicScene)
@@ -923,6 +956,10 @@
 			}
 		}
 		
+		/**
+		 * 场景信息加载完
+		 * @param metaScene
+		 */		
 		public function onSceneInfoRetrieved(metaScene:MetaScene):void
 		{
 			if (this.curLogicScene)
@@ -931,11 +968,19 @@
 			}
 		}
 		
+		/**
+		 * gc
+		 */		
 		public function forceGC():void
 		{
 			System.gc();
 		}
 		
+		/**
+		 * 添加计数器
+		 * @param tick
+		 * @param interval
+		 */		
 		public function addTick(tick:Tick, interval:uint):void
 		{
 			if (tick.isRegistered)
@@ -946,11 +991,19 @@
 			this.m_tickManager.addTick(tick, interval);
 		}
 		
+		/**
+		 * 移除计数器
+		 * @param tick
+		 */		
 		public function removeTick(tick:Tick):void
 		{
 			this.m_tickManager.delTick(tick);
 		}
 		
+		/**
+		 * 声音播放
+		 * @param path
+		 */		
 		public function playSound(path:String):void
 		{
 			var onSoundLoaded:Function = function (res:IResource, isSuccess:Boolean):void
@@ -962,7 +1015,7 @@
 				}
 				res.release();
 			}
-				
+			
 			if (!EffectManager.instance.soundEffectEnable)
 			{
 				return;
@@ -972,6 +1025,11 @@
 			ResourceManager.instance.getResource(path, ResourceType.SOUND, onSoundLoaded);
 		}
 		
+		/**
+		 * 是否允许相机抖动
+		 * @param obj
+		 * @return 
+		 */		
 		public function isRenderObjectAllowCameraShakeEffect(obj:RenderObject):Boolean
 		{
 			if (!DirectorObject.delta::m_onlyOneDirector)
@@ -981,6 +1039,9 @@
 			return obj == DirectorObject.delta::m_onlyOneDirector.renderObject;
 		}
 		
+		/**
+		 * 重新加载页面
+		 */		
 		public function reloadWebPage():void
 		{
 			try 
@@ -995,14 +1056,236 @@
 			}
 		}
 		
+		/**
+		 * 能否强使自身为焦点
+		 * @param value
+		 */		
 		public function enableForceSelfFocus(value:Boolean):void
 		{
 			this.m_forceFocusSelf = value;
 			if (value)
 			{
-//				m_stage.focus = m_container;
+				//				m_stage.focus = m_container;
 			}
 		}
+		
+		/**
+		 * 注册异步数据池
+		 */		
+		protected function registerSyncDataPools():void
+		{
+			//
+		}
+		
+		/**
+		 * 注册数据池
+		 */		
+		protected function registerPools():void
+		{
+			//
+		}
+		
+		/**
+		 * 场景管理器创建完成
+		 */		
+		protected function onSceneManagerCreated():void
+		{
+			//
+		}
+		
+		/**
+		 * 程序创建完成
+		 */		
+		protected function onStarted():void
+		{
+			//
+		}
+		
+		/**
+		 * 位置渲染
+		 * @param context
+		 * @param camera
+		 */		
+		protected function onPostRender(context:Context3D, camera:DeltaXCamera3D):void
+		{
+			//
+		}
+		
+		/**
+		 * 帧更新
+		 * @param time
+		 */		
+		protected function onFrameUpdated(time:uint):void
+		{
+			//
+		}
+		
+		/**
+		 * 开始加载
+		 */		
+		public function onLoadingStart():void
+		{
+			//
+		}
+		
+		/**
+		 * 加载中
+		 * @param va
+		 */		
+		public function onLoading(va:Number):void
+		{
+			//
+		}
+		
+		/**
+		 * 加载完成
+		 */		
+		public function onLoadingDone():void
+		{
+			//
+		}
+		
+		/**
+		 * 上下文丢失
+		 * @param evt
+		 */		
+		protected function onContextLost(evt:Context3DEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 软件创建模式
+		 * @param evt
+		 */		
+		protected function onContextCreatedSoftware(evt:Context3DEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 硬件创建模式
+		 * @param evt
+		 */		
+		protected function onContextCreatedHardware(evt:Context3DEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 
+		 * @param event
+		 */		
+//		private function focusOutHandler(event:FocusEvent):void
+//		{
+//			if (this.m_forceFocusSelf)
+//			{
+////				m_stage.focus = m_container;
+//			}
+//		}
+		
+		/**
+		 * 窗口缩放
+		 * @param evt
+		 */		
+		protected function onStageResize(evt:DXWndEvent):void
+		{
+			this.width = m_container.width;
+			this.height = m_container.height;
+		}
+		
+		/**
+		 * 键盘按下事件
+		 * @param evt
+		 */		
+		protected function onKeyDown(evt:DXWndKeyEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 键盘松开事件
+		 * @param evt
+		 */		
+		protected function onKeyUp(evt:DXWndKeyEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 鼠标按下
+		 * @param evt
+		 */		
+		protected function onMouseDown(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 鼠标释放
+		 * @param evt
+		 */		
+		protected function onMouseUp(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 鼠标移动事件
+		 * @param evt
+		 */		
+		protected function onMouseMove(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 鼠标滚轮事件
+		 * @param evt
+		 */		
+		protected function onMouseWheel(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 鼠标右键按下事件
+		 * @param evt
+		 */		
+		protected function onRightMouseDown(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 鼠标右键释放事件
+		 * @param evt
+		 */		
+		protected function onRightMouseUp(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 中间滚轮按下事件
+		 * @param evt
+		 */		
+		protected function onMiddleMouseDown(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		
+		/**
+		 * 中间滚轮释放事件
+		 * @param evt
+		 */		
+		protected function onMiddleMouseUp(evt:DXWndMouseEvent):void
+		{
+			//
+		}
+		
+		
+		
 		
 		public function doSetCursor(cursorName:String):Boolean
 		{
@@ -1010,6 +1293,10 @@
 			return true;
 		}
 		
+		
+		/**
+		 * 数据销毁
+		 */		
 		public function dispose():void
 		{
 			m_container.removeEventListener(Event.ENTER_FRAME, this.updateFrame);
