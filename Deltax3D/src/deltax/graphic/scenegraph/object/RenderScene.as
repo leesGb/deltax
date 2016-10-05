@@ -178,6 +178,31 @@
 			return this.m_lastUpdateRegionCenter;
 		}
 		
+		public function get lastUpdateRegionCenter():Vector3D
+		{
+			return this.m_lastUpdateRegionCenter;
+		}
+		
+		public function get viewRay():Vector3D
+		{
+			this.m_viewRay.x = 0;
+			this.m_viewRay.y = 0;
+			this.m_viewRay.z = 1;
+			this.m_viewRay = this.m_app.camera.sceneTransform.deltaTransformVector(this.m_viewRay);
+			this.m_viewRay.normalize();
+			return this.m_viewRay;
+		}
+		
+		public function get selectedPixelPos():Vector3D
+		{
+			return this.m_preCheckedIntersectPos;
+		}
+		
+		public function get selectGridPos():Point
+		{
+			return this.m_selectGridPos;
+		}
+		
         public function getWaterMaterial(texBegin:uint, texCount:uint):WaterMaterial
 		{
             if (this.m_materialWater)
@@ -218,14 +243,62 @@
             return "(" + lx + "," + ly + "," + lz + "),(" + gx + "," + gy + "," + gz + "),(" + rgnX + "," + rgnY + "," + rgnZ + "),(" + sx + "," + sy + "," + sz + ")";
         }
 		
-        public function ClearShadowmap():void
+		public function onSceneInfoRetrieved(mSceneInfo:MetaSceneInfo):void
 		{
-            if (this.m_shadowMaptexture)
+			var pixelX:Number = mSceneInfo.m_regionWidth * MapConstants.PIXEL_SPAN_OF_REGION;
+			var pixelZ:Number = mSceneInfo.m_regionHeight * MapConstants.PIXEL_SPAN_OF_REGION;
+			var centerX:Number = pixelX * 0.5;
+			var centerZ:Number = pixelZ * 0.5;
+			var maxWidthOrHeight:uint = MathUtl.max(mSceneInfo.m_regionWidth, mSceneInfo.m_regionHeight) * 2;
+			var depth:uint = Math.log(maxWidthOrHeight) / Math.LN2 + 0.5;
+			this.partition = new QuadTree(depth, pixelX, pixelZ, 128, centerX, centerZ);
+			
+			this.show();
+			
+			this.m_sunLight = new DeltaXDirectionalLight(this.m_curEnv.m_sunDir.x, this.m_curEnv.m_sunDir.y, this.m_curEnv.m_sunDir.z);
+			this.m_sunLight.color = this.m_curEnv.m_sunColor;
+			this.m_sunLight.bounds = InfinityBounds.INFINITY_BOUNDS;
+			this.addChild(this.m_sunLight);
+			
+			var sCameraInfo:SceneCameraInfo = mSceneInfo.m_cameraInfo;
+			var camera:Camera3D = this.m_app.camera;
+			var pos:Vector3D = new Vector3D(0, 0, -1);
+			var roateMat:Matrix3D = MathUtl.TEMP_MATRIX3D;
+			roateMat.identity();
+			roateMat.appendRotation(sCameraInfo.m_rotateRadianX * MathConsts.RADIANS_TO_DEGREES, Vector3D.X_AXIS);
+			roateMat.appendRotation(-(sCameraInfo.m_rotateRadianY) * MathConsts.RADIANS_TO_DEGREES, Vector3D.Y_AXIS);
+			pos = roateMat.transformVector(pos);
+			pos.scaleBy(sCameraInfo.m_distToTarget);
+			if (this.m_metaScene.initPos)
 			{
-                this.m_shadowMaptexture.dispose();
-                this.m_shadowMaptexture = null;
-            }
-        }
+				var offset:Vector3D = MathUtl.EMPTY_VECTOR3D;
+				offset.x = this.m_metaScene.initPos.x * MapConstants.GRID_SPAN;
+				offset.z = this.m_metaScene.initPos.y * MapConstants.GRID_SPAN;
+				offset.y = 0;
+				camera.position = pos.add(offset);
+				camera.lookAt(offset);
+			} else 
+			{
+				camera.position = pos;
+				camera.lookAt(new Vector3D());
+			}
+			
+			this.m_regions = new Vector.<RenderRegion>(this.m_metaScene.regionCount, true);
+			
+			this.buildShadowMatrix();
+			
+			var idx:uint;
+			var fileName:String;
+			while (idx < mSceneInfo.m_ambientFxInfos.length) 
+			{
+				fileName = this.m_metaScene.getAmbientFxFile(mSceneInfo.m_ambientFxInfos[idx].m_fxFileIndex);
+				if (fileName)
+				{
+					this.addAmbientFx(fileName, mSceneInfo.m_ambientFxInfos[idx].m_fxName);
+				}
+				idx++;
+			}
+		}
 		
         public function show():void
 		{
@@ -262,169 +335,276 @@
 			lens.aspectRatio = this.m_app.width / this.m_app.height;
         }
 		
-        public function onSceneInfoRetrieved(mSceneInfo:MetaSceneInfo):void
+		public function onRegionLoaded(rgn:MetaRegion):void
 		{
-            var pixelX:Number = mSceneInfo.m_regionWidth * MapConstants.PIXEL_SPAN_OF_REGION;
-            var pixelZ:Number = mSceneInfo.m_regionHeight * MapConstants.PIXEL_SPAN_OF_REGION;
-            var centerX:Number = pixelX * 0.5;
-            var centerZ:Number = pixelZ * 0.5;
-            var maxWidthOrHeight:uint = MathUtl.max(mSceneInfo.m_regionWidth, mSceneInfo.m_regionHeight) * 2;
-            var depth:uint = Math.log(maxWidthOrHeight) / Math.LN2 + 0.5;
-            this.partition = new QuadTree(depth, pixelX, pixelZ, 128, centerX, centerZ);
-            
-			this.show();
-			
-            this.m_sunLight = new DeltaXDirectionalLight(this.m_curEnv.m_sunDir.x, this.m_curEnv.m_sunDir.y, this.m_curEnv.m_sunDir.z);
-            this.m_sunLight.color = this.m_curEnv.m_sunColor;
-            this.m_sunLight.bounds = InfinityBounds.INFINITY_BOUNDS;
-            this.addChild(this.m_sunLight);
-			
-            var sCameraInfo:SceneCameraInfo = mSceneInfo.m_cameraInfo;
-            var camera:Camera3D = this.m_app.camera;
-            var pos:Vector3D = new Vector3D(0, 0, -1);
-            var roateMat:Matrix3D = MathUtl.TEMP_MATRIX3D;
-			roateMat.identity();
-			roateMat.appendRotation(sCameraInfo.m_rotateRadianX * MathConsts.RADIANS_TO_DEGREES, Vector3D.X_AXIS);
-			roateMat.appendRotation(-(sCameraInfo.m_rotateRadianY) * MathConsts.RADIANS_TO_DEGREES, Vector3D.Y_AXIS);
-			pos = roateMat.transformVector(pos);
-			pos.scaleBy(sCameraInfo.m_distToTarget);
-            if (this.m_metaScene.initPos)
+			if (this.m_regions[rgn.delta::regionID] != null)
 			{
-				var offset:Vector3D = MathUtl.EMPTY_VECTOR3D;
-				offset.x = this.m_metaScene.initPos.x * MapConstants.GRID_SPAN;
-				offset.z = this.m_metaScene.initPos.y * MapConstants.GRID_SPAN;
-				offset.y = 0;
-				camera.position = pos.add(offset);
-				camera.lookAt(offset);
-            } else 
-			{
-				camera.position = pos;
-				camera.lookAt(new Vector3D());
-            }
-			
-            this.m_regions = new Vector.<RenderRegion>(this.m_metaScene.regionCount, true);
-			
-            this.buildShadowMatrix();
-			
-            var idx:uint;
-			var fileName:String;
-            while (idx < mSceneInfo.m_ambientFxInfos.length) 
-			{
-				fileName = this.m_metaScene.getAmbientFxFile(mSceneInfo.m_ambientFxInfos[idx].m_fxFileIndex);
-                if (fileName)
-				{
-					this.addAmbientFx(fileName, mSceneInfo.m_ambientFxInfos[idx].m_fxName);
-                }
-				idx++;
-            }
-        }
-		
-        public function onCalcBorderVertexNormals(_arg1:MetaRegion, _arg2:uint):void
-		{
-            var _local10:uint;
-            var _local11:RenderRegion;
-            var _local12:uint;
-            var _local13:uint;
-            var _local3:uint = _arg1.getColor(_arg2);
-            var _local4:int = _arg1.getTerrainHeight(_arg2);
-            var _local5:uint = _arg1.delta::m_terrainNormal[_arg2];
-            var _local6:Vector3D = StaticNormalTable.instance.getNormalByIndex(_local5);
-            var _local7:uint = (_arg1.regionLeftBottomGridX + (_arg2 % MapConstants.REGION_SPAN));
-            var _local8:uint = (_arg1.regionLeftBottomGridZ + (_arg2 / MapConstants.REGION_SPAN));
-            _arg2 = 3;
-            var _local9:uint = _local7;
-            while (_local9 <= (_local7 + 1)) 
-			{
-                _local10 = _local8;
-                while (_local10 <= (_local8 + 1)) 
-				{
-                    if ((((_local9 >= this.metaScene.gridWidth)) || ((_local10 >= this.metaScene.gridHeight))))
-					{
-						//
-                    } else 
-					{
-                        _local11 = this.m_regions[this.metaScene.getRegionIDByGrid(_local9, _local10)];
-                        if (_local11 == null)
-						{
-							//
-                        } else 
-						{
-                            _local12 = (_local9 - _local11.metaRegion.regionLeftBottomGridX);
-                            _local13 = (_local10 - _local11.metaRegion.regionLeftBottomGridZ);
-                            _local11.updateGridVertex(((_local13 * MapConstants.REGION_SPAN) + _local12), _arg2, _local4, _local6, _local3);
-                        }
-                    }
-                    _local10++;
-                    _arg2--;
-                }
-                _local9++;
-            }
-        }
-		
-        public function onRegionLoaded(_arg1:MetaRegion):void
-		{
-            if (this.m_regions[_arg1.delta::regionID] != null)
-			{
-                (Exception.CreateException("create same renderregion twice!!"));
+				Exception.CreateException("create same renderregion twice!!");
 				return;
-            }
-            this.m_regions[_arg1.delta::regionID] = new RenderRegion(_arg1, this);
-            this.addChild(this.m_regions[_arg1.delta::regionID]);
-            this.delta::buildStaticShadowMap();
-        }
+			}
+			
+			this.m_regions[rgn.delta::regionID] = new RenderRegion(rgn, this);
+			this.addChild(this.m_regions[rgn.delta::regionID]);
+			this.delta::buildStaticShadowMap();
+		}
 		
-        public function createLights(_arg1:MetaRegion):void
+		public function createModels(rgn:MetaRegion):void
 		{
-            var _local3:RegionLightInfo;
-            var _local4:DeltaXPointLight;
-            var _local2:uint = _arg1.delta::m_terrainLights.length;
-            var _local5:Vector3D = new Vector3D();
-            var _local6:uint;
-            while (_local6 < _local2) 
+			var mInfo:RegionModelInfo;
+			var obj:TerranObject;
+			var tts:TerrainTileSetUnit;
+			var models:Vector.<RegionModelInfo> = rgn.delta::m_modelInfos;
+			var modelCount:uint = models.length;
+			var idx:uint;
+			while (idx < modelCount) 
 			{
-                _local3 = _arg1.delta::m_terrainLights[_local6];
-                _local5.x = (((_local3.m_gridIndex % MapConstants.REGION_SPAN) + _arg1.regionLeftBottomGridX) << 6);
-                _local5.z = (((_local3.m_gridIndex / MapConstants.REGION_SPAN) + _arg1.regionLeftBottomGridZ) << 6);
-                _local5.y = _local3.m_height;
-                _local4 = new DeltaXScenePointLight(_local3);
-                _local4.position = _local5;
-                this.addPointLight(_local4);
-                _local4.release();
-                _local6++;
-            }
-        }
-		
-        public function addPointLight(_arg1:PointLight):void
-		{
-            this.addChild(_arg1);
-        }
-		
-        public function removeLight(_arg1:LightBase):void
-		{
-            this.removeChild(_arg1);
-        }
-		
-        public function createModels(_arg1:MetaRegion):void
-		{
-            var _local4:uint;
-            var _local5:RegionModelInfo;
-            var _local6:TerranObject;
-            var _local7:TerrainTileSetUnit;
-            var _local2:Vector.<RegionModelInfo> = _arg1.delta::m_modelInfos;
-            var _local3:uint = _local2.length;
-            var _local8:uint;
-            while (_local8 < _local3) 
-			{
-                _local5 = _local2[_local8];
-                _local7 = this.m_metaScene.tileSetInfo[_local5.m_tileUnitIndex];
-                if (_local7.PartCount)
+				mInfo = models[idx];
+				tts = this.m_metaScene.tileSetInfo[mInfo.m_tileUnitIndex];
+				if (tts.PartCount)
 				{
-                    _local6 = new TerranObject();
-                    _local6.create(_arg1, _local5, _local7);
-                    this.addChild(_local6);
-                    _local6.release();
+					obj = new TerranObject();
+					obj.create(rgn, mInfo, tts);
+					this.addChild(obj);
+					obj.release();
+				}
+				idx++;
+			}
+		}
+		
+		public function createLights(rgn:MetaRegion):void
+		{
+			var lightInfo:RegionLightInfo;
+			var light:DeltaXPointLight;
+			var lightCount:uint = rgn.delta::m_terrainLights.length;
+			var pos:Vector3D = new Vector3D();
+			var idx:uint;
+			while (idx < lightCount) 
+			{
+				lightInfo = rgn.delta::m_terrainLights[idx];
+				pos.x = ((lightInfo.m_gridIndex % MapConstants.REGION_SPAN) + rgn.regionLeftBottomGridX) << 6;
+				pos.z = (int(lightInfo.m_gridIndex / MapConstants.REGION_SPAN) + rgn.regionLeftBottomGridZ) << 6;
+				pos.y = lightInfo.m_height;
+				light = new DeltaXScenePointLight(lightInfo);
+				light.position = pos;
+				this.addPointLight(light);
+				light.release();
+				idx++;
+			}
+		}
+		
+		public function addPointLight(light:PointLight):void
+		{
+			this.addChild(light);
+		}
+		
+		public function removeLight(light:LightBase):void
+		{
+			this.removeChild(light);
+		}
+		
+		public function addVisibleRegion(va:RenderRegion):void
+		{
+			this.m_visibleRenderRegion.push(va);
+		}
+		
+		public function addAmbientFx(effectFile:String, effectName:String, attachName:String=null, time:int=-1, initPos:Vector3D=null):String
+		{
+			var _onEffectCreated:Function = null;
+			_onEffectCreated = function (eft:Effect, isSuccess:Boolean):void
+			{
+				var eInfo:AttachEffectInfo = m_ambientFxMap[attachName];
+				if (!eInfo)
+				{
+					return;
+				}
+				
+				if (!isSuccess)
+				{
+					removeAmbientFx(attachName);
+					return;
+				}
+				
+				if (eInfo.initPos)
+				{
+					eft.position = eInfo.initPos;
+				}
+				
+				addChild(eft);
+				eInfo.endTime = getTimer();
+				if (time > 0)
+				{
+					eInfo.endTime += time;
+				} else
+				{
+					if (time == 0)
+					{
+						eInfo.endTime += eft.timeRange;
+					} else 
+					{
+						eInfo.endTime = uint.MAX_VALUE;
+					}
+				}
+			}
+			
+			if (!attachName)
+			{
+				attachName = effectFile + effectName;
+			}
+			
+			if (!attachName)
+			{
+				return null;
+			}
+			
+			this.removeAmbientFx(attachName);
+			
+			if (!this.m_ambientFxMap)
+			{
+				this.m_ambientFxMap = new Dictionary();
+			}
+			
+			var effect:Effect = new Effect(null, effectFile, effectName, _onEffectCreated);
+			var effectInfo:AttachEffectInfo = new AttachEffectInfo();
+			effectInfo.effect = effect;
+			effectInfo.endTime = 0;
+			effectInfo.initPos = (initPos) ? initPos.clone() : null;
+			this.m_ambientFxMap[attachName] = effectInfo;
+			return attachName;
+		}
+		
+		public function removeAmbientFx(attachName:String):void
+		{
+			if (!this.m_ambientFxMap || !attachName)
+			{
+				return;
+			}
+			
+			var eInfo:AttachEffectInfo = this.m_ambientFxMap[attachName];
+			if (!eInfo)
+			{
+				return;
+			}
+			
+			eInfo.effect.remove();
+			eInfo.effect.release();
+			delete this.m_ambientFxMap[attachName];
+			
+			if (DictionaryUtil.isDictionaryEmpty(this.m_ambientFxMap))
+			{
+				this.m_ambientFxMap = null;
+			}
+		}
+		
+		public function updateAmbientFx(time:int):void
+		{
+			var key:String;
+			var eInfo:AttachEffectInfo;
+			var removeKeys:Vector.<String>;
+			var camera:DeltaXCamera3D = this.m_app.camera as DeltaXCamera3D;
+			for (key in this.m_ambientFxMap) 
+			{
+				eInfo = this.m_ambientFxMap[key];
+				if (eInfo.endTime && time > eInfo.endTime)
+				{
+					if (!removeKeys)
+					{
+						removeKeys = new Vector.<String>();
+					}
+					removeKeys.push(key);
+				} else 
+				{
+					if (eInfo.initPos == null)
+					{
+						eInfo.effect.position = camera.lookAtPos;
+					}
+				}
+			}
+			
+			for each (key in removeKeys) 
+			{
+				this.removeAmbientFx(key);
+			}
+		}
+		
+		private function releaseAllAmbientFx():void
+		{
+			if (!this.m_ambientFxMap)
+			{
+				return;
+			}
+			
+			var eInfo:AttachEffectInfo;
+			var key:String;
+			for (key in this.m_ambientFxMap) 
+			{
+				eInfo = this.m_ambientFxMap[key];
+				eInfo.effect.remove();
+				eInfo.effect.release();
+			}
+			
+			this.m_ambientFxMap = null;
+		}
+		
+		public function updateView(pos:Vector3D):void
+		{
+			if (pos == null)
+			{
+				this.m_metaScene.updateVisibleRegions(this.m_lastUpdateRegionCenter);
+				return;
+			}
+			
+			if (!this.m_metaScene.loaded)
+			{
+				this.m_lastUpdateRegionCenter.copyFrom(pos);
+				return;
+			}
+			
+			var lastRgnX:int = int(this.m_lastUpdateRegionCenter.x / MapConstants.PIXEL_SPAN_OF_REGION);
+			var lastRgnZ:int = int(this.m_lastUpdateRegionCenter.z / MapConstants.PIXEL_SPAN_OF_REGION);
+			var curRgnX:int = int(pos.x / MapConstants.PIXEL_SPAN_OF_REGION);
+			var curRgnZ:int = int(pos.z / MapConstants.PIXEL_SPAN_OF_REGION);
+			if (lastRgnX != curRgnX || lastRgnZ != curRgnZ)
+			{
+				this.m_metaScene.updateVisibleRegions(pos);
+				this.delta::buildStaticShadowMap();
+			}
+			
+			this.m_lastUpdateRegionCenter.copyFrom(pos);
+		}
+		
+        public function onCalcBorderVertexNormals(rgn:MetaRegion, idx:uint):void
+		{
+            var tColor:uint = rgn.getColor(idx);
+            var tHeight:int = rgn.getTerrainHeight(idx);
+            var tNorValue:uint = rgn.delta::m_terrainNormal[idx];
+            var tNor:Vector3D = StaticNormalTable.instance.getNormalByIndex(tNorValue);
+            var gx:uint = rgn.regionLeftBottomGridX + (idx % MapConstants.REGION_SPAN);
+            var gz:uint = rgn.regionLeftBottomGridZ + (idx / MapConstants.REGION_SPAN);
+			idx = 3;
+            var xIdx:uint = gx;
+			var zIdx:uint;
+			var rrgn:RenderRegion;
+			var ox:uint;
+			var oz:uint;
+            while (xIdx <= (gx + 1)) 
+			{
+				zIdx = gz;
+                while (zIdx <= (gz + 1)) 
+				{
+                    if (xIdx < this.metaScene.gridWidth && zIdx < this.metaScene.gridHeight)
+					{
+						rrgn = this.m_regions[this.metaScene.getRegionIDByGrid(xIdx, zIdx)];
+						if (rrgn)
+						{
+							ox = xIdx - rrgn.metaRegion.regionLeftBottomGridX;
+							oz = zIdx - rrgn.metaRegion.regionLeftBottomGridZ;
+							rrgn.updateGridVertex((oz * MapConstants.REGION_SPAN + ox), idx, tHeight, tNor, tColor);
+						}
+                    }
+					zIdx++;
+					idx--;
                 }
-                _local8++;
+				xIdx++;
             }
         }
 		
@@ -439,45 +619,41 @@
             this.buildShadowMatrix();
         }
 		
-        public function addVisibleRegion(va:RenderRegion):void
-		{
-            this.m_visibleRenderRegion.push(va);
-        }
-		
         public function onCollectorFinish():void
 		{
-            var _local2:uint;
-            var _local3:uint;
-            var _local4:uint;
             if (!this.m_metaScene)
 			{
                 return;
             }
+			
             this.m_visibleRenderRegion.sort(visibleRenderRegionCompare);
             this.m_metaScene.updateLoadingProgress();
-            var _local1 = "";
-            var _local5:uint = this.m_visibleRenderRegion.length;
-            var _local6:uint;
-            while (_local6 < _local5) 
+			
+			var rgnID:uint;
+			var rgnX:uint;
+			var rgnZ:uint;
+            var compareStr:String = "";
+            var vrgnCount:uint = this.m_visibleRenderRegion.length;
+            var vidx:uint;
+            while (vidx < vrgnCount) 
 			{
-                if (!this.m_visibleRenderRegion[_local6].metaRegion)
+                if (this.m_visibleRenderRegion[vidx].metaRegion)
 				{
-					//
-                } else 
-				{
-                    _local2 = this.m_visibleRenderRegion[_local6].metaRegion.delta::regionID;
-                    _local3 = (_local2 % this.m_metaScene.regionWidth);
-                    _local4 = uint((_local2 / this.m_metaScene.regionWidth));
-                    _local1 = ((((((_local1 + _local2) + "(") + _local3) + ",") + _local4) + "),");
+					rgnID = this.m_visibleRenderRegion[vidx].metaRegion.delta::regionID;
+					rgnX = rgnID % this.m_metaScene.regionWidth;
+					rgnZ = int(rgnID / this.m_metaScene.regionWidth);
+					compareStr += rgnID + "(" + rgnX + "," + rgnZ + "),";
                 }
-                _local6++;
+				vidx++;
             }
-            _local1 = ((_local1 + "total:") + _local5);
-            if (this.m_visibleRenderRegionString == _local1)
+			
+			compareStr += "total:" + vrgnCount;
+            if (this.m_visibleRenderRegionString == compareStr)
 			{
                 return;
             }
-            this.m_visibleRenderRegionString = _local1;
+			
+            this.m_visibleRenderRegionString = compareStr;
             this.delta::buildStaticShadowMap();
         }
 		
@@ -503,17 +679,6 @@
             this.m_preCheckedIntersectPos.setTo(0, 0, 0);
             MathUtl.lineTo((_local6.x / 8), (_local6.z / 8), (_local7.x / 8), (_local7.z / 8), this.judgeViewRayIntersect);
             return (this.m_preCheckedIntersectPos);
-        }
-		
-        public function get viewRay():Vector3D
-		{
-            var _local1:Camera3D = this.m_app.camera;
-            this.m_viewRay.x = 0;
-            this.m_viewRay.y = 0;
-            this.m_viewRay.z = 1;
-            this.m_viewRay = _local1.sceneTransform.deltaTransformVector(this.m_viewRay);
-            this.m_viewRay.normalize();
-            return (this.m_viewRay);
         }
 		
         public function detectEntityInViewport(_arg1:Number, _arg2:Number, _arg3:Entity, _arg4:Vector3D, _arg5:Matrix3D):Boolean
@@ -599,42 +764,6 @@
             this.m_preHeightOnViewRay = _local9;
             this.m_selectGridPos.copyFrom(_local3);
             return (true);
-        }
-		
-        public function get selectedPixelPos():Vector3D
-		{
-            return (this.m_preCheckedIntersectPos);
-        }
-		
-        public function get selectGridPos():Point
-		{
-            return (this.m_selectGridPos);
-        }
-		
-        public function updateView(_arg1:Vector3D):void
-		{
-            if (_arg1 == null)
-			{
-                this.m_metaScene.updateVisibleRegions(this.m_lastUpdateRegionCenter);
-                return;
-            }
-			
-            if (!this.m_metaScene.loaded)
-			{
-                this.m_lastUpdateRegionCenter.copyFrom(_arg1);
-                return;
-            }
-			
-            var _local2:int = int((this.m_lastUpdateRegionCenter.x / MapConstants.PIXEL_SPAN_OF_REGION));
-            var _local3:int = int((this.m_lastUpdateRegionCenter.z / MapConstants.PIXEL_SPAN_OF_REGION));
-            var _local4:int = int((_arg1.x / MapConstants.PIXEL_SPAN_OF_REGION));
-            var _local5:int = int((_arg1.z / MapConstants.PIXEL_SPAN_OF_REGION));
-            if (((!((_local2 == _local4))) || (!((_local3 == _local5)))))
-			{
-                this.m_metaScene.updateVisibleRegions(_arg1);
-                this.delta::buildStaticShadowMap();
-            }
-            this.m_lastUpdateRegionCenter.copyFrom(_arg1);
         }
 		
         public function filterShadowMap():BitmapData
@@ -898,185 +1027,54 @@
             this.m_curShadowProject.append(_local12);
         }
 		
-        override public function addChild(_arg1:ObjectContainer3D):ObjectContainer3D
+		public function ClearShadowmap():void
 		{
-            if (containChild(_arg1))
+			if (this.m_shadowMaptexture)
 			{
-                return (null);
+				this.m_shadowMaptexture.dispose();
+				this.m_shadowMaptexture = null;
+			}
+		}
+		
+        override public function addChild(child:ObjectContainer3D):ObjectContainer3D
+		{
+            if (containChild(child))
+			{
+                return null;
             }
-            return (super.addChild(_arg1));
+			
+            return super.addChild(child);
         }
 		
-        override public function removeChild(_arg1:ObjectContainer3D):void
+        override public function removeChild(child:ObjectContainer3D):void
 		{
-            if (!containChild(_arg1))
+            if (!containChild(child))
 			{
                 return;
             }
-            super.removeChild(_arg1);
-        }
-		
-        public function get lastUpdateRegionCenter():Vector3D
-		{
-            return (this.m_lastUpdateRegionCenter);
+			
+            super.removeChild(child);
         }
 		
         override protected function updateBounds():void
 		{
-            var _local1:Vector3D = new Vector3D((this.metaScene.pixelWidth / 2), 0, (this.metaScene.pixelHeight / 2));
-            var _local2:Vector3D = new Vector3D(this.metaScene.pixelWidth, 3000, this.metaScene.pixelHeight);
-            var _local3:Vector3D = MathUtl.TEMP_VECTOR3D;
-            _local3.copyFrom(_local2);
-            _local3.scaleBy(-0.5);
-            _local3.incrementBy(_local1);
-            var _local4:Vector3D = MathUtl.TEMP_VECTOR3D2;
-            _local4.copyFrom(_local2);
-            _local4.scaleBy(0.5);
-            _local4.incrementBy(_local1);
-            _bounds.fromExtremes(_local3.x, _local3.y, _local3.z, _local4.x, _local4.y, _local4.z);
+            var center:Vector3D = new Vector3D(this.metaScene.pixelWidth * 0.5, 0, this.metaScene.pixelHeight * 0.5);
+            var extend:Vector3D = new Vector3D(this.metaScene.pixelWidth, 3000, this.metaScene.pixelHeight);
+            var min:Vector3D = MathUtl.TEMP_VECTOR3D;
+			min.copyFrom(extend);
+			min.scaleBy(-0.5);
+			min.incrementBy(center);
+            var max:Vector3D = MathUtl.TEMP_VECTOR3D2;
+			max.copyFrom(extend);
+			max.scaleBy(0.5);
+			max.incrementBy(center);
+            _bounds.fromExtremes(min.x, min.y, min.z, max.x, max.y, max.z);
             _boundsInvalid = false;
         }
 		
         override protected function createEntityPartitionNode():EntityNode
 		{
-            return (new RenderSceneNode(this));
-        }
-		
-        public function addAmbientFx(_arg1:String, _arg2:String, _arg3:String=null, _arg4:int=-1, _arg5:Vector3D=null):String
-		{
-            var _onEffectCreated:* = null;
-            var effectFile:* = _arg1;
-            var effectName:* = _arg2;
-            var attachName = _arg3;
-            var time:int = _arg4;
-            var initPos = _arg5;
-            _onEffectCreated = function (_arg1:Effect, _arg2:Boolean):void
-			{
-                var _local3:AttachEffectInfo = m_ambientFxMap[attachName];
-                if (!_local3)
-				{
-                    return;
-                }
-				
-                if (!_arg2)
-				{
-                    removeAmbientFx(attachName);
-                    return;
-                }
-				
-                if (_local3.initPos)
-				{
-                    _arg1.position = _local3.initPos;
-                }
-                addChild(_arg1);
-                _local3.endTime = getTimer();
-                if (time > 0)
-				{
-                    _local3.endTime = (_local3.endTime + time);
-                } else
-				{
-                    if (time == 0)
-					{
-                        _local3.endTime = (_local3.endTime + _arg1.timeRange);
-                    } else 
-					{
-                        _local3.endTime = uint.MAX_VALUE;
-                    }
-                }
-            }
-				
-            if (!attachName)
-			{
-                attachName = (effectFile + effectName);
-            }
-			
-            if (!attachName)
-			{
-                return (null);
-            }
-			
-            this.removeAmbientFx(attachName);
-            if (!this.m_ambientFxMap)
-			{
-                this.m_ambientFxMap = new Dictionary();
-            }
-			
-            var effect:* = new Effect(null, effectFile, effectName, _onEffectCreated);
-            var effectInfo:* = new AttachEffectInfo();
-            effectInfo.effect = effect;
-            effectInfo.endTime = 0;
-            effectInfo.initPos = (initPos) ? initPos.clone() : null;
-            this.m_ambientFxMap[attachName] = effectInfo;
-            return (attachName);
-        }
-		
-        public function removeAmbientFx(_arg1:String):void
-		{
-            if (((!(this.m_ambientFxMap)) || (!(_arg1))))
-			{
-                return;
-            }
-            var _local2:AttachEffectInfo = this.m_ambientFxMap[_arg1];
-            if (!_local2)
-			{
-                return;
-            }
-            _local2.effect.remove();
-            _local2.effect.release();
-            delete this.m_ambientFxMap[_arg1];
-            if (DictionaryUtil.isDictionaryEmpty(this.m_ambientFxMap))
-			{
-                this.m_ambientFxMap = null;
-            }
-        }
-		
-        public function updateAmbientFx(_arg1:int):void
-		{
-            var _local2:Vector.<String>;
-            var _local3:AttachEffectInfo;
-            var _local5:String;
-            var _local4:DeltaXCamera3D = (this.m_app.camera as DeltaXCamera3D);
-            for (_local5 in this.m_ambientFxMap) 
-			{
-                _local3 = this.m_ambientFxMap[_local5];
-                if (((_local3.endTime) && ((_arg1 > _local3.endTime))))
-				{
-                    if (!_local2)
-					{
-                        _local2 = new Vector.<String>();
-                    }
-                    _local2.push(_local5);
-                } else 
-				{
-                    if (_local3.initPos == null)
-					{
-                        _local3.effect.position = _local4.lookAtPos;
-                    }
-                }
-            }
-			
-            for each (_local5 in _local2) 
-			{
-                this.removeAmbientFx(_local5);
-            }
-        }
-		
-        private function releaseAllAmbientFx():void
-		{
-            var _local1:AttachEffectInfo;
-            var _local2:String;
-            if (!this.m_ambientFxMap)
-			{
-                return;
-            }
-			
-            for (_local2 in this.m_ambientFxMap) 
-			{
-                _local1 = this.m_ambientFxMap[_local2];
-                _local1.effect.remove();
-                _local1.effect.release();
-            }
-            this.m_ambientFxMap = null;
+            return new RenderSceneNode(this);
         }
 		
 		override public function get visible():Boolean
