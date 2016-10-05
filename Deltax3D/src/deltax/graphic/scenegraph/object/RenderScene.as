@@ -681,6 +681,42 @@
             return (this.m_preCheckedIntersectPos);
         }
 		
+		private function judgeViewRayIntersect(_arg1:int, _arg2:int):Boolean
+		{
+			var _local10:Number;
+			var _local11:Number;
+			var _local12:Number;
+			var _local3:Point = MathUtl.TEMP_VECTOR2D;
+			_arg1 = (_arg1 * 8);
+			_arg2 = (_arg2 * 8);
+			_local3.setTo(int((_arg1 / MapConstants.GRID_SPAN)), int((_arg2 / MapConstants.GRID_SPAN)));
+			if (((_local3.equals(this.m_selectGridPos)) || (!(this.m_metaScene.isGridValid(_local3.x, _local3.y)))))
+			{
+				return (true);
+			}
+			var _local4:Vector3D = this.m_app.camera.scenePosition;
+			var _local5:Vector3D = MathUtl.TEMP_VECTOR3D;
+			_local5.setTo(_arg1, this.m_metaScene.getGridLogicHeightByPixel(_arg1, _arg2), _arg2);
+			var _local6:Number = (_arg1 - _local4.x);
+			var _local7:Number = (_arg2 - _local4.z);
+			var _local8:Number = Math.sqrt(((_local6 * _local6) + (_local7 * _local7)));
+			var _local9:Number = (_local4.y + (this.m_paramToCalcHeightOnViewRay * _local8));
+			if ((((_local9 <= _local5.y)) && ((this.m_preHeightOnViewRay >= this.m_preCheckedIntersectPos.y))))
+			{
+				_local10 = (this.m_preHeightOnViewRay - this.m_preCheckedIntersectPos.y);
+				_local11 = (_local5.y - _local9);
+				_local12 = (_local10 / (_local10 + _local11));
+				this.m_preCheckedIntersectPos.x = (this.m_preCheckedIntersectPos.x + ((_local5.x - this.m_preCheckedIntersectPos.x) * _local12));
+				this.m_preCheckedIntersectPos.y = (this.m_preCheckedIntersectPos.y + ((_local5.y - this.m_preCheckedIntersectPos.y) * _local12));
+				this.m_preCheckedIntersectPos.z = (this.m_preCheckedIntersectPos.z + ((_local5.z - this.m_preCheckedIntersectPos.z) * _local12));
+				return (false);
+			}
+			this.m_preCheckedIntersectPos.copyFrom(_local5);
+			this.m_preHeightOnViewRay = _local9;
+			this.m_selectGridPos.copyFrom(_local3);
+			return (true);
+		}
+		
         public function detectEntityInViewport(_arg1:Number, _arg2:Number, _arg3:Entity, _arg4:Vector3D, _arg5:Matrix3D):Boolean
 		{
             var _local6:Vector3D;
@@ -727,42 +763,6 @@
 			{
                 return (false);
             }
-            return (true);
-        }
-		
-        private function judgeViewRayIntersect(_arg1:int, _arg2:int):Boolean
-		{
-            var _local10:Number;
-            var _local11:Number;
-            var _local12:Number;
-            var _local3:Point = MathUtl.TEMP_VECTOR2D;
-            _arg1 = (_arg1 * 8);
-            _arg2 = (_arg2 * 8);
-            _local3.setTo(int((_arg1 / MapConstants.GRID_SPAN)), int((_arg2 / MapConstants.GRID_SPAN)));
-            if (((_local3.equals(this.m_selectGridPos)) || (!(this.m_metaScene.isGridValid(_local3.x, _local3.y)))))
-			{
-                return (true);
-            }
-            var _local4:Vector3D = this.m_app.camera.scenePosition;
-            var _local5:Vector3D = MathUtl.TEMP_VECTOR3D;
-            _local5.setTo(_arg1, this.m_metaScene.getGridLogicHeightByPixel(_arg1, _arg2), _arg2);
-            var _local6:Number = (_arg1 - _local4.x);
-            var _local7:Number = (_arg2 - _local4.z);
-            var _local8:Number = Math.sqrt(((_local6 * _local6) + (_local7 * _local7)));
-            var _local9:Number = (_local4.y + (this.m_paramToCalcHeightOnViewRay * _local8));
-            if ((((_local9 <= _local5.y)) && ((this.m_preHeightOnViewRay >= this.m_preCheckedIntersectPos.y))))
-			{
-                _local10 = (this.m_preHeightOnViewRay - this.m_preCheckedIntersectPos.y);
-                _local11 = (_local5.y - _local9);
-                _local12 = (_local10 / (_local10 + _local11));
-                this.m_preCheckedIntersectPos.x = (this.m_preCheckedIntersectPos.x + ((_local5.x - this.m_preCheckedIntersectPos.x) * _local12));
-                this.m_preCheckedIntersectPos.y = (this.m_preCheckedIntersectPos.y + ((_local5.y - this.m_preCheckedIntersectPos.y) * _local12));
-                this.m_preCheckedIntersectPos.z = (this.m_preCheckedIntersectPos.z + ((_local5.z - this.m_preCheckedIntersectPos.z) * _local12));
-                return (false);
-            }
-            this.m_preCheckedIntersectPos.copyFrom(_local5);
-            this.m_preHeightOnViewRay = _local9;
-            this.m_selectGridPos.copyFrom(_local3);
             return (true);
         }
 		
