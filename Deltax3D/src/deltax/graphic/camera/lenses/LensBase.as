@@ -36,9 +36,13 @@
             this._matrix = new Matrix3D();
         }
 		
-        public function set adjustMatrix(_arg1:Matrix3D):void
+		/**
+		 * 矫正矩阵
+		 * @param va
+		 */		
+        public function set adjustMatrix(va:Matrix3D):void
 		{
-            this.m_adjustMatrix = _arg1;
+            this.m_adjustMatrix = va;
             this.invalidateMatrix();
         }
         public function get adjustMatrix():Matrix3D
@@ -46,11 +50,19 @@
             return this.m_adjustMatrix;
         }
 		
+		/**
+		 * 裁剪区域边角顶点坐标列表
+		 * @return 
+		 */		
         public function get frustumCorners():Vector.<Number>
 		{
             return this._frustumCorners;
         }
 		
+		/**
+		 * 获取投影矩阵
+		 * @return 
+		 */		
         public function get matrix():Matrix3D
 		{
             if (this._matrixInvalid)
@@ -71,6 +83,10 @@
             return this._matrix;
         }
 		
+		/**
+		 * 裁剪近平面
+		 * @return 
+		 */		
         public function get near():Number
 		{
             return this._near;
@@ -86,6 +102,10 @@
             this.invalidateMatrix();
         }
 		
+		/**
+		 * 裁剪远平面
+		 * @return 
+		 */		
         public function get far():Number
 		{
             return this._far;
@@ -101,6 +121,10 @@
             this.invalidateMatrix();
         }
 		
+		/**
+		 * 长宽比
+		 * @return 
+		 */		
         public function get aspectRatio():Number
 		{
             return this._aspectRatio;
@@ -116,16 +140,26 @@
             this.invalidateMatrix();
         }
 		
+		/**
+		 * 投影矩阵是否失效
+		 */		
         protected function invalidateMatrix():void
 		{
             this._matrixInvalid = true;
         }
 		
+		/**
+		 * 投影矩阵更新
+		 */		
         protected function updateMatrix():void
 		{
             throw new AbstractMethodError();
         }
 		
+		/**
+		 * 类字符输出
+		 * @return 
+		 */		
         public function toString():String
 		{
             return ("near=" + this._near + " far=" + this._far + " aspectRatio=" + this.delta::aspectRatio;

@@ -1,8 +1,7 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.camera.lenses {
-
-    public final class FrustumPlane {
-
+﻿package deltax.graphic.camera.lenses 
+{
+    public final class FrustumPlane 
+	{
         public static const FRONT:uint = 0;
         public static const BACK:uint = 1;
         public static const TOP:uint = 2;
@@ -12,4 +11,4 @@ package deltax.graphic.camera.lenses {
         public static const COUNT:uint = 6;
 
     }
-}//package deltax.graphic.camera.lenses 
+} 
