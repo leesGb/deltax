@@ -1,110 +1,121 @@
 ﻿package deltax.graphic.camera 
 {
-    import deltax.*;
-    import deltax.common.*;
-    import deltax.common.math.*;
-    import deltax.graphic.bounds.*;
-    import deltax.graphic.camera.lenses.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.scenegraph.object.*;
-    import deltax.graphic.scenegraph.partition.*;
-    import deltax.graphic.scenegraph.traverse.*;
-    import deltax.graphic.shader.*;
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DBlendFactor;
+    import flash.display3D.Context3DTriangleFace;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     
-    import flash.display3D.*;
-    import flash.geom.*;
-    import flash.utils.*;
+    import deltax.delta;
+    import deltax.common.LittleEndianByteArray;
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.Plane3D;
+    import deltax.graphic.bounds.AxisAlignedBoundingBox;
+    import deltax.graphic.bounds.BoundingSphere;
+    import deltax.graphic.camera.lenses.FrustumCorner;
+    import deltax.graphic.camera.lenses.FrustumPlane;
+    import deltax.graphic.camera.lenses.LensBase;
+    import deltax.graphic.camera.lenses.PerspectiveLens;
+    import deltax.graphic.manager.ShaderManager;
+    import deltax.graphic.scenegraph.object.DeltaXSubGeometry;
+    import deltax.graphic.scenegraph.object.Entity;
+    import deltax.graphic.scenegraph.partition.CameraNode;
+    import deltax.graphic.scenegraph.partition.EntityNode;
+    import deltax.graphic.scenegraph.traverse.ViewTestResult;
+    import deltax.graphic.shader.DeltaXProgram3D;
+	
+	/**
+	 *  摄像机类
+	 * @author moon
+	 * @date 2015/09/10
+	 */	
 
     public class Camera3D extends Entity 
 	{
+		/**视图投影矩阵是否失效*/
         protected var _viewProjectionInvalid:Boolean = true;
+		/**裁剪平面列表*/
+		protected var m_frustumPlanes:Vector.<Plane3D>;
+		/**裁剪区域的8个边角顶点列表*/
+		protected var m_frustumWorldCorners:Vector.<Vector3D>;
+		/**裁剪区域包围盒*/
+		protected var m_frustumAABB:AxisAlignedBoundingBox;
+		/**视图投影矩阵*/
         private var _viewProjection:Matrix3D;
+		/**投影实例*/
         private var _lens:LensBase;
+		/**投影的逆*/
         private var _unprojection:Matrix3D;
+		/**投影的逆是否失效*/
         private var _unprojectionInvalid:Boolean = true;
-        private var m_debugMode:Boolean;
-        delta var m_worldFrustumInvalid:Boolean = true;
-        delta var m_frustumWorldCornersVNumber:Vector.<Number>;
-        protected var m_frustumPlanes:Vector.<Plane3D>;
-        protected var m_frustumWorldCorners:Vector.<Vector3D>;
-        protected var m_frustumAABB:AxisAlignedBoundingBox;
+		/**中心点到平面的距离*/
+		private var m_centerDistToPlanes:Vector.<Number>;
+		/**场景实体的世界包围盒顶点数据列表*/
         private var m_entityWorldBoundsVertice:Vector.<Number>;
-        private var m_centerDistToPlanes:Vector.<Number>;
+		/**场景实体的世界包围盒*/
         private var m_entityWorldBound:AxisAlignedBoundingBox;
+		/**相机顶点数据*/
         private var m_vertexData:LittleEndianByteArray;
+		/**相机顶点索引数据*/
         private var m_indiceData:LittleEndianByteArray;
+		/**相机的几何体数据*/
         private var m_geometry:DeltaXSubGeometry;
+		/**世界裁剪是否有效*/
+		delta var m_worldFrustumInvalid:Boolean = true;
+		/**裁剪的世界边角数据列表*/
+		delta var m_frustumWorldCornersVNumber:Vector.<Number>;
 
-        public function Camera3D(_arg1:LensBase=null)
+        public function Camera3D($lens:LensBase=null)
 		{
             this._viewProjection = new Matrix3D();
             this._unprojection = new Matrix3D();
-            this.delta::m_frustumWorldCornersVNumber = new Vector.<Number>((FrustumCorner.COUNT * 3), true);
-            this.m_frustumPlanes = new Vector.<Plane3D>(FrustumPlane.COUNT, true);
-            this.m_frustumWorldCorners = new Vector.<Vector3D>(FrustumCorner.COUNT, true);
+            this.delta::m_frustumWorldCornersVNumber = new Vector.<Number>(24, true);//FrustumCorner.COUNT * 3
+            this.m_frustumPlanes = new Vector.<Plane3D>(FrustumPlane.COUNT, true);//6
+            this.m_frustumWorldCorners = new Vector.<Vector3D>(FrustumCorner.COUNT, true);//8
             this.m_frustumAABB = new AxisAlignedBoundingBox();
-            this.m_entityWorldBoundsVertice = new Vector.<Number>((8 * 3), true);
-            this.m_centerDistToPlanes = new Vector.<Number>(FrustumPlane.COUNT, true);
+            this.m_entityWorldBoundsVertice = new Vector.<Number>(24, true);//8 * 3
+            this.m_centerDistToPlanes = new Vector.<Number>(FrustumPlane.COUNT, true);//6
             this.m_entityWorldBound = new AxisAlignedBoundingBox();
+			
             super();
-            this._lens = ((_arg1) || (new PerspectiveLens()));
+            this._lens = (($lens) || (new PerspectiveLens()));
             this._lens.delta::onMatrixUpdate = this.onLensUpdate;
             z = -100;
-            var _local2:uint;
-            while (_local2 < FrustumPlane.COUNT) 
+			
+            var idx:uint;
+            while (idx < FrustumPlane.COUNT) 
 			{
-                this.m_frustumPlanes[_local2] = new Plane3D();
-                _local2++;
-            }
-            _local2 = 0;
-            while (_local2 < this.m_frustumWorldCorners.length) 
-			{
-                this.m_frustumWorldCorners[_local2] = new Vector3D();
-                _local2++;
-            }
-        }
-		
-        public function get debugMode():Boolean
-		{
-            return (this.m_debugMode);
-        }
-        public function set debugMode(_arg1:Boolean):void
-		{
-            this.m_debugMode = _arg1;
-        }
-		
-        public function unproject(_arg1:Number, _arg2:Number):Vector3D
-		{
-            if (this._unprojectionInvalid)
-			{
-                this._unprojection.copyFrom(this._lens.matrix);
-                this._unprojection.invert();
-                this._unprojectionInvalid = false;
+                this.m_frustumPlanes[idx] = new Plane3D();
+				idx++;
             }
 			
-            var _local3:Vector3D = new Vector3D(_arg1, -(_arg2), 0);
-            _local3 = this._unprojection.transformVector(_local3);
-            sceneTransform.transformVector(_local3);
-            return (_local3);
+			idx = 0;
+            while (idx < this.m_frustumWorldCorners.length) 
+			{
+                this.m_frustumWorldCorners[idx] = new Vector3D();
+				idx++;
+            }
         }
 		
         public function get lens():LensBase
 		{
-            return (this._lens);
+            return this._lens;
         }
-        public function set lens(_arg1:LensBase):void
+        public function set lens(va:LensBase):void
 		{
-            if (this._lens == _arg1)
+            if (this._lens == va)
 			{
                 return;
             }
 			
-            if (!_arg1)
+            if (!va)
 			{
-                throw (new Error("Lens cannot be null!"));
+                throw new Error("Lens cannot be null!");
             }
+			
             this._lens.delta::onMatrixUpdate = null;
-            this._lens = _arg1;
+            this._lens = va;
             this._lens.delta::onMatrixUpdate = this.onLensUpdate;
         }
 		
@@ -116,26 +127,24 @@
                 this._viewProjection.append(this._lens.matrix);
                 this._viewProjectionInvalid = false;
             }
-            return (this._viewProjection);
+			
+            return this._viewProjection;
         }
 		
-        override protected function invalidateSceneTransform():void
+		public function unproject(px:Number, py:Number):Vector3D
 		{
-            super.invalidateSceneTransform();
-            this._viewProjectionInvalid = true;
-            this.delta::m_worldFrustumInvalid = true;
-        }
-		
-        override protected function updateBounds():void
-		{
-            _bounds.nullify();
-            _boundsInvalid = false;
-        }
-		
-        override protected function createEntityPartitionNode():EntityNode
-		{
-            return (new CameraNode(this));
-        }
+			if (this._unprojectionInvalid)
+			{
+				this._unprojection.copyFrom(this._lens.matrix);
+				this._unprojection.invert();
+				this._unprojectionInvalid = false;
+			}
+			
+			var v:Vector3D = new Vector3D(px, -(py), 0);
+			v = this._unprojection.transformVector(v);
+			sceneTransform.transformVector(v);
+			return v;
+		}
 		
         protected function onLensUpdate():void
 		{
@@ -158,28 +167,30 @@
 		{
             this.sceneTransform.transformVectors(this.lens.frustumCorners, this.delta::m_frustumWorldCornersVNumber);
             this.m_frustumAABB.fromVertices(this.delta::m_frustumWorldCornersVNumber);
-            var _local1:uint;
-            var _local2:uint;
-            while (_local1 < FrustumCorner.COUNT) 
+            var idx:uint;
+            var vIdx:uint;
+            while (idx < FrustumCorner.COUNT) 
 			{
-                this.m_frustumWorldCorners[_local1].setTo(this.delta::m_frustumWorldCornersVNumber[_local2], this.delta::m_frustumWorldCornersVNumber[(_local2 + 1)], this.delta::m_frustumWorldCornersVNumber[(_local2 + 2)]);
-                _local1++;
-                _local2 = (_local2 + 3);
+                this.m_frustumWorldCorners[idx].setTo(this.delta::m_frustumWorldCornersVNumber[vIdx], this.delta::m_frustumWorldCornersVNumber[(vIdx + 1)], this.delta::m_frustumWorldCornersVNumber[(vIdx + 2)]);
+				idx++;
+				vIdx += 3;
             }
 			
-            var _local3:Vector3D = this.scenePosition;
+            var pos:Vector3D = this.scenePosition;
             this.m_frustumPlanes[FrustumPlane.FRONT].fromPoints(this.m_frustumWorldCorners[FrustumCorner.FRONT_LEFT_BOTTOM], this.m_frustumWorldCorners[FrustumCorner.FRONT_RIGHT_BOTTOM], this.m_frustumWorldCorners[FrustumCorner.FRONT_RIGHT_TOP]);
             this.m_frustumPlanes[FrustumPlane.BACK].fromPoints(this.m_frustumWorldCorners[FrustumCorner.BACK_LEFT_BOTTOM], this.m_frustumWorldCorners[FrustumCorner.BACK_LEFT_TOP], this.m_frustumWorldCorners[FrustumCorner.BACK_RIGHT_TOP]);
-            this.m_frustumPlanes[FrustumPlane.TOP].fromPoints(_local3, this.m_frustumWorldCorners[FrustumCorner.FRONT_RIGHT_TOP], this.m_frustumWorldCorners[FrustumCorner.FRONT_LEFT_TOP]);
-            this.m_frustumPlanes[FrustumPlane.BOTTOM].fromPoints(_local3, this.m_frustumWorldCorners[FrustumCorner.FRONT_LEFT_BOTTOM], this.m_frustumWorldCorners[FrustumCorner.FRONT_RIGHT_BOTTOM]);
-            this.m_frustumPlanes[FrustumPlane.LEFT].fromPoints(this.m_frustumWorldCorners[FrustumCorner.FRONT_LEFT_TOP], this.m_frustumWorldCorners[FrustumCorner.FRONT_LEFT_BOTTOM], _local3);
-            this.m_frustumPlanes[FrustumPlane.RIGHT].fromPoints(_local3, this.m_frustumWorldCorners[FrustumCorner.FRONT_RIGHT_BOTTOM], this.m_frustumWorldCorners[FrustumCorner.FRONT_RIGHT_TOP]);
-            _local1 = 0;
-            while (_local1 < FrustumPlane.COUNT) 
+            this.m_frustumPlanes[FrustumPlane.TOP].fromPoints(pos, this.m_frustumWorldCorners[FrustumCorner.FRONT_RIGHT_TOP], this.m_frustumWorldCorners[FrustumCorner.FRONT_LEFT_TOP]);
+            this.m_frustumPlanes[FrustumPlane.BOTTOM].fromPoints(pos, this.m_frustumWorldCorners[FrustumCorner.FRONT_LEFT_BOTTOM], this.m_frustumWorldCorners[FrustumCorner.FRONT_RIGHT_BOTTOM]);
+            this.m_frustumPlanes[FrustumPlane.LEFT].fromPoints(this.m_frustumWorldCorners[FrustumCorner.FRONT_LEFT_TOP], this.m_frustumWorldCorners[FrustumCorner.FRONT_LEFT_BOTTOM], pos);
+            this.m_frustumPlanes[FrustumPlane.RIGHT].fromPoints(pos, this.m_frustumWorldCorners[FrustumCorner.FRONT_RIGHT_BOTTOM], this.m_frustumWorldCorners[FrustumCorner.FRONT_RIGHT_TOP]);
+			
+			idx = 0;
+            while (idx < FrustumPlane.COUNT) 
 			{
-                this.m_frustumPlanes[_local1].normalize();
-                _local1++;
+                this.m_frustumPlanes[idx].normalize();
+				idx++;
             }
+			
             this.delta::m_worldFrustumInvalid = false;
         }
 		
@@ -372,6 +383,24 @@
             _arg1.drawTriangles(this.m_geometry.getIndexBuffer(_arg1), 0, this.m_geometry.numTriangles);
             _local7.deactivate(_arg1);
         }
+		
+		override protected function invalidateSceneTransform():void
+		{
+			super.invalidateSceneTransform();
+			this._viewProjectionInvalid = true;
+			this.delta::m_worldFrustumInvalid = true;
+		}
+		
+		override protected function updateBounds():void
+		{
+			_bounds.nullify();
+			_boundsInvalid = false;
+		}
+		
+		override protected function createEntityPartitionNode():EntityNode
+		{
+			return new CameraNode(this);
+		}
 
 		
 		

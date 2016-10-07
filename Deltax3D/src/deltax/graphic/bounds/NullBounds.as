@@ -1,28 +1,51 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.bounds {
-    import flash.geom.*;
-    import deltax.graphic.scenegraph.traverse.*;
+﻿package deltax.graphic.bounds 
+{
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    
+    import deltax.graphic.scenegraph.traverse.ViewTestResult;
+	
+	/**
+	 * 空包围盒 
+	 * @author moon
+	 * @date 2015/09/16
+	 */	
 
-    public class NullBounds extends BoundingVolumeBase {
-
+    public class NullBounds extends BoundingVolumeBase 
+	{
+		/**是否一直都在视锥体内*/
         private var _alwaysIn:uint;
 
-        public function NullBounds(_arg1:Boolean=true){
-            this._alwaysIn = (_arg1) ? ViewTestResult.FULLY_IN : ViewTestResult.FULLY_OUT;
+        public function NullBounds(alwaysIn:Boolean=true)
+		{
+            this._alwaysIn = alwaysIn ? ViewTestResult.FULLY_IN : ViewTestResult.FULLY_OUT;
         }
-        override public function isInFrustum(_arg1:Matrix3D):uint{
-            return (this._alwaysIn);
+		
+        override public function isInFrustum(mat:Matrix3D):uint
+		{
+            return this._alwaysIn;
         }
-        override public function fromSphere(_arg1:Vector3D, _arg2:Number):void{
+		
+        override public function fromSphere(center:Vector3D, radius:Number):void
+		{
+			//
         }
-        override public function fromExtremes(_arg1:Number, _arg2:Number, _arg3:Number, _arg4:Number, _arg5:Number, _arg6:Number):void{
+		
+        override public function fromExtremes(minX:Number, minY:Number, minZ:Number, maxX:Number, maxY:Number, maxZ:Number):void
+		{
+			//
         }
-        override public function copyFrom(_arg1:BoundingVolumeBase):void{
-            super.copyFrom(_arg1);
-            if ((_arg1 is NullBounds)){
-                this._alwaysIn = NullBounds(_arg1)._alwaysIn;
-            };
+		
+        override public function copyFrom(b:BoundingVolumeBase):void
+		{
+            super.copyFrom(b);
+            if (b is NullBounds)
+			{
+                this._alwaysIn = NullBounds(b)._alwaysIn;
+            }
         }
 
+		
+		
     }
-}//package deltax.graphic.bounds 
+} 

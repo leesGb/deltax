@@ -1,9 +1,11 @@
 ﻿package deltax.graphic.camera 
 {
-    import deltax.common.math.*;
-    import deltax.graphic.camera.lenses.*;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
     
-    import flash.geom.*;
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.VectorUtil;
+    import deltax.graphic.camera.lenses.LensBase;
 
     public class DeltaXCamera3D extends Camera3D 
 	{

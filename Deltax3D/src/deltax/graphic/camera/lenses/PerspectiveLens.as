@@ -22,6 +22,8 @@
         private var _yMax:Number;
 		/**半宽*/
         private var _xMax:Number;
+		/***/
+		private var m_rFactor:Number;
 
         public function PerspectiveLens($fieldOfView:Number=60)
 		{
@@ -45,8 +47,19 @@
 			
             this._fieldOfView = va;
             this._focalLengthInv = Math.tan(this._fieldOfView * Math.PI / 360);
+			this.m_rFactor = this._focalLengthInv * _aspectRatio;
             invalidateMatrix();
         }
+		
+		public function get uFactor():Number
+		{
+			return this._focalLengthInv;
+		}
+		
+		public function get rFactor():Number
+		{
+			return this.m_rFactor;
+		}
 		
         override public function set aspectRatio(va:Number):void
 		{
@@ -56,6 +69,7 @@
             }
 			
             _aspectRatio = va;
+			this.m_rFactor = this._focalLengthInv * _aspectRatio;
             invalidateMatrix();
         }
 		

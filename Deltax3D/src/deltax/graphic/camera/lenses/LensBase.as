@@ -162,7 +162,7 @@
 		 */		
         public function toString():String
 		{
-            return ("near=" + this._near + " far=" + this._far + " aspectRatio=" + this.delta::aspectRatio;
+            return "near=" + this._near + " far=" + this._far + " aspectRatio=" + this.delta::aspectRatio;
         }
 
 		

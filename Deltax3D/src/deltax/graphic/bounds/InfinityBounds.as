@@ -1,14 +1,22 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.bounds {
-    import flash.geom.*;
-    import deltax.graphic.scenegraph.traverse.*;
+﻿package deltax.graphic.bounds 
+{
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    
+    import deltax.graphic.scenegraph.traverse.ViewTestResult;
+	
+	/**
+	 * 无穷大包围盒
+	 * @author moon
+	 * @date 2015/09/16
+	 */	
 
-    public class InfinityBounds extends BoundingVolumeBase {
-
+    public class InfinityBounds extends BoundingVolumeBase 
+	{
         public static const INFINITY_BOUNDS:InfinityBounds = new InfinityBounds();
-;
 
-        public function InfinityBounds(){
+        public function InfinityBounds()
+		{
             _min.x = Number.NEGATIVE_INFINITY;
             _min.y = Number.NEGATIVE_INFINITY;
             _min.z = Number.NEGATIVE_INFINITY;
@@ -17,13 +25,20 @@ package deltax.graphic.bounds {
             _max.z = Number.POSITIVE_INFINITY;
             _aabbPointsDirty = true;
         }
-        override public function isInFrustum(_arg1:Matrix3D):uint{
-            return (ViewTestResult.FULLY_IN);
+		
+        override public function isInFrustum(mat:Matrix3D):uint
+		{
+            return ViewTestResult.FULLY_IN;
         }
-        override public function fromSphere(_arg1:Vector3D, _arg2:Number):void{
+		
+        override public function fromSphere(center:Vector3D, radius:Number):void
+		{
+			//
         }
-        override public function fromExtremes(_arg1:Number, _arg2:Number, _arg3:Number, _arg4:Number, _arg5:Number, _arg6:Number):void{
+        override public function fromExtremes(minX:Number, minY:Number, minZ:Number, maxX:Number, maxY:Number, maxZ:Number):void
+		{
+			//
         }
 
     }
-}//package deltax.graphic.bounds 
+}
