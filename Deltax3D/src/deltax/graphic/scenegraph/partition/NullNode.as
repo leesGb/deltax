@@ -1,7 +1,14 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.scenegraph.partition {
+﻿package deltax.graphic.scenegraph.partition 
+{
 
-    public class NullNode extends NodeBase {
-
+	/**
+	 * 空节点
+	 * @author lees
+	 * @date 2015/12/09
+	 */	
+	
+    public class NullNode extends NodeBase 
+	{
+		//
     }
-}//package deltax.graphic.scenegraph.partition 
+} 

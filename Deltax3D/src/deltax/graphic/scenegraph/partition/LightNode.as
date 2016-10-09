@@ -1,31 +1,56 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.scenegraph.partition {
-    import deltax.graphic.light.*;
-    import deltax.graphic.scenegraph.traverse.*;
+﻿package deltax.graphic.scenegraph.partition 
+{
+    import deltax.graphic.light.DirectionalLight;
+    import deltax.graphic.light.LightBase;
+    import deltax.graphic.scenegraph.traverse.PartitionTraverser;
+    import deltax.graphic.scenegraph.traverse.ViewTestResult;
 
-    public class LightNode extends EntityNode {
-
+	/**
+	 * 场景灯光检测节点
+	 * @author lees
+	 * @date 2015/12/09
+	 */	
+	
+    public class LightNode extends EntityNode 
+	{
+		/**灯光类*/
         private var _light:LightBase;
 
-        public function LightNode(_arg1:LightBase){
-            super(_arg1);
-            this._light = _arg1;
-        }
-        override protected function updateBounds():void{
-            if ((this._light is DirectionalLight)){
-                _boundsInvalid = false;
-            } else {
-                super.updateBounds();
-            };
-        }
-        public function get light():LightBase{
-            return (this._light);
-        }
-        override protected function onVisibleTestResult(_arg1:uint, _arg2:PartitionTraverser):void{
-            if (_arg1 != ViewTestResult.FULLY_OUT){
-                _arg2.applyLight(this._light);
-            };
-        }
+		public function LightNode(light:LightBase)
+		{
+			super(light);
+			this._light = light;
+		}
+		
+		/**
+		 * 获取灯光
+		 * @return 
+		 */		
+		public function get light():LightBase
+		{
+			return this._light;
+		}
+		
+		override protected function updateBounds():void
+		{
+			if (this._light is DirectionalLight)
+			{
+				_boundsInvalid = false;
+			} else 
+			{
+				super.updateBounds();
+			}
+		}
+		
+		override protected function onVisibleTestResult(lastTestResult:uint, patitionTraverser:PartitionTraverser):void
+		{
+			if (lastTestResult != ViewTestResult.FULLY_OUT)
+			{
+				patitionTraverser.applyLight(this._light);
+			}
+		}
 
+		
+		
     }
-}//package deltax.graphic.scenegraph.partition 
+} 
