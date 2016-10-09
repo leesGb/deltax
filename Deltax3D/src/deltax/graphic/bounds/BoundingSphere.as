@@ -9,33 +9,46 @@
     import deltax.graphic.camera.DeltaXCamera3D;
     import deltax.graphic.camera.lenses.PerspectiveLens;
     import deltax.graphic.scenegraph.traverse.ViewTestResult;
+	
+	/**
+	 * 球形包围盒
+	 * @author lees
+	 * @date 2015/09/15
+	 */	
 
     public class BoundingSphere extends BoundingVolumeBase 
 	{
-		/***/
+		/**半径*/
         delta var _radius:Number = 0;
-		/***/
+		/**中心点X*/
         delta var _centerX:Number = 0;
-		/***/
+		/**中心点Y*/
         delta var _centerY:Number = 0;
-		/***/
+		/**中心点Z*/
         delta var _centerZ:Number = 0;
 
-        override public function nullify():void
+        public function BoundingSphere()
 		{
-            super.nullify();
-            this.delta::_centerX = (this.delta::_centerY = (this.delta::_centerZ = 0));
-            this.delta::_radius = 0;
-        }
+			//
+		}
 		
+		/**
+		 * 球体包围盒半径
+		 * @return 
+		 */		
         public function get radius():Number
 		{
-            return (this.delta::_radius);
+            return this.delta::_radius;
         }
 		
+		/**
+		 * 是否在相机视锥体内
+		 * @param v
+		 * @param camera
+		 * @return 
+		 */		
         public function isInFrustumFromCamera(v:Vector3D, camera:DeltaXCamera3D):uint
 		{
-            var _local14:Number;
             var lens:PerspectiveLens = camera.lens as PerspectiveLens;
             if (!lens)
 			{
@@ -45,38 +58,35 @@
             var tPos:Vector3D = MathUtl.TEMP_VECTOR3D;
 			tPos.setTo((v.x + this.delta::_centerX), (v.y + this.delta::_centerY), (v.z + this.delta::_centerZ));
             var sPos:Vector3D = camera.scenePosition;
-            var _local6:Vector3D = MathUtl.TEMP_VECTOR3D2;
-            _local6.copyFrom(tPos);
-            _local6.decrementBy(sPos);
-            var _local7:Number = _local6.dotProduct(camera.lookDirection);
-            var _local8:Number = lens.near;
-            var _local9:Number = lens.far;
-            if ((((_local7 < (_local8 - this.delta::_radius))) || ((_local7 > (_local9 + this.delta::_radius)))))
+            var dir:Vector3D = MathUtl.TEMP_VECTOR3D2;
+			dir.copyFrom(tPos);
+			dir.decrementBy(sPos);
+            var dist:Number = dir.dotProduct(camera.lookDirection);
+            var near:Number = lens.near;
+            var far:Number = lens.far;
+            if (dist < (near - this.delta::_radius) || dist > (far + this.delta::_radius))
 			{
                 return ViewTestResult.FULLY_OUT;
             }
 			
-            var _local10:Number = _local6.dotProduct(camera.lookRight);
-            var _local11:Number = ((lens.rFactor * _local7) + (this.delta::_radius * 1.4));
-            if ((((_local10 < -(_local11))) || ((_local10 > _local11))))
+            var r:Number = dir.dotProduct(camera.lookRight);
+            var rDist:Number = lens.rFactor * dist + this.delta::_radius * 1.4;
+            if (r < -(rDist) || r > rDist)
 			{
                 return ViewTestResult.FULLY_OUT;
             }
 			
-            var _local12:Number = _local6.dotProduct(camera.upAxis);
-            var _local13:Number = ((lens.uFactor * _local7) + (this.delta::_radius * 1.4));
-            if ((((_local12 < -(_local13))) || ((_local12 > _local13))))
+            var u:Number = dir.dotProduct(camera.upAxis);
+            var upDist:Number = lens.uFactor * dist + this.delta::_radius * 1.4;
+            if (u < -(upDist) || u > upDist)
 			{
                 return ViewTestResult.FULLY_OUT;
             }
 			
-            if ((((_local7 >= (_local8 + this.delta::_radius))) && ((_local7 <= (_local9 - this.delta::_radius)))))
+            if (dist >= (near + this.delta::_radius) && dist <= (far - this.delta::_radius))
 			{
-                _local14 = (this.delta::_radius * 2);
-                if ((((((((_local10 >= (-(_local11) + _local14))) && 
-					((_local10 <= (_local11 - _local14))))) && 
-					((_local12 >= (-(_local13) + _local14))))) && 
-					((_local12 <= (_local13 - _local14)))))
+				var extend:Number = this.delta::_radius * 2;
+                if ((r >= (-(rDist) + extend)) && (r <= (rDist - extend)) && (u >= (-(upDist) + extend)) && (u <= (upDist - extend)))
 				{
                     return ViewTestResult.FULLY_IN;
                 }
@@ -85,144 +95,177 @@
             return ViewTestResult.PARTIAL_IN;
         }
 		
+		override public function nullify():void
+		{
+			super.nullify();
+			this.delta::_centerX = 0;
+			this.delta::_centerY = 0;
+			this.delta::_centerZ = 0;
+			this.delta::_radius = 0;
+		}
+		
         override public function isInFrustum(mat:Matrix3D):uint
 		{
-            var _local19:Number;
-            var _local20:Number;
-            var _local21:Number;
-            var _local22:Number;
-            var _local23:Number;
-            var _local2:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
-			mat.copyRawDataTo(_local2);
-            var _local3:Number = _local2[uint(0)];
-            var _local4:Number = _local2[uint(4)];
-            var _local5:Number = _local2[uint(8)];
-            var _local6:Number = _local2[uint(12)];
-            var _local7:Number = _local2[uint(1)];
-            var _local8:Number = _local2[uint(5)];
-            var _local9:Number = _local2[uint(9)];
-            var _local10:Number = _local2[uint(13)];
-            var _local11:Number = _local2[uint(2)];
-            var _local12:Number = _local2[uint(6)];
-            var _local13:Number = _local2[uint(10)];
-            var _local14:Number = _local2[uint(14)];
-            var _local15:Number = _local2[uint(3)];
-            var _local16:Number = _local2[uint(7)];
-            var _local17:Number = _local2[uint(11)];
-            var _local18:Number = _local2[uint(15)];
-            var _local24:Number = this.delta::_radius;
-            _local19 = (_local15 + _local3);
-            _local20 = (_local16 + _local4);
-            _local21 = (_local17 + _local5);
-            _local22 = (_local18 + _local6);
-            _local23 = (((_local19 * this.delta::_centerX) + (_local20 * this.delta::_centerY)) + (_local21 * this.delta::_centerZ));
-            if (_local19 < 0)
+            var rawDatas:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
+			mat.copyRawDataTo(rawDatas);
+			var x11:Number = rawDatas[0];
+			var x21:Number = rawDatas[1];
+			var x31:Number = rawDatas[2];
+			var x41:Number = rawDatas[3];
+			var y11:Number = rawDatas[4];
+			var y21:Number = rawDatas[5];
+			var y31:Number = rawDatas[6];
+			var y41:Number = rawDatas[7];
+			var z11:Number = rawDatas[8];
+			var z21:Number = rawDatas[9];
+			var z31:Number = rawDatas[10];
+			var z41:Number = rawDatas[11];
+			var w11:Number = rawDatas[12];
+			var w21:Number = rawDatas[13];
+			var w31:Number = rawDatas[14];
+			var w41:Number = rawDatas[15];
+			
+            var radius:Number = this.delta::_radius;
+			
+			var xx:Number = x41 + x11;
+			var yy:Number = y41 + y11;
+			var zz:Number = z41 + z11;
+			var ww:Number = w41 + w11;
+			var centerDist:Number = xx * this.delta::_centerX + yy * this.delta::_centerY + zz * this.delta::_centerZ;
+            if (xx < 0)
 			{
-                _local19 = -(_local19);
+				xx = -(xx);
             }
-            if (_local20 < 0)
+            if (yy < 0)
 			{
-                _local20 = -(_local20);
+				yy = -(yy);
             }
-            if (_local21 < 0)
+            if (zz < 0)
 			{
-                _local21 = -(_local21);
+				zz = -(zz);
             }
-            _local24 = (((_local19 + _local20) + _local21) * this.delta::_radius);
-            if ((_local23 + _local24) < -(_local22)){
-                return (ViewTestResult.FULLY_OUT);
-            };
-            _local19 = (_local15 - _local3);
-            _local20 = (_local16 - _local4);
-            _local21 = (_local17 - _local5);
-            _local22 = (_local18 - _local6);
-            _local23 = (((_local19 * this.delta::_centerX) + (_local20 * this.delta::_centerY)) + (_local21 * this.delta::_centerZ));
-            if (_local19 < 0){
-                _local19 = -(_local19);
-            };
-            if (_local20 < 0){
-                _local20 = -(_local20);
-            };
-            if (_local21 < 0){
-                _local21 = -(_local21);
-            };
-            _local24 = (((_local19 + _local20) + _local21) * this.delta::_radius);
-            if ((_local23 + _local24) < -(_local22)){
-                return (ViewTestResult.FULLY_OUT);
-            };
-            _local19 = (_local15 + _local7);
-            _local20 = (_local16 + _local8);
-            _local21 = (_local17 + _local9);
-            _local22 = (_local18 + _local10);
-            _local23 = (((_local19 * this.delta::_centerX) + (_local20 * this.delta::_centerY)) + (_local21 * this.delta::_centerZ));
-            if (_local19 < 0){
-                _local19 = -(_local19);
-            };
-            if (_local20 < 0){
-                _local20 = -(_local20);
-            };
-            if (_local21 < 0){
-                _local21 = -(_local21);
-            };
-            _local24 = (((_local19 + _local20) + _local21) * this.delta::_radius);
-            if ((_local23 + _local24) < -(_local22)){
-                return (ViewTestResult.FULLY_OUT);
-            };
-            _local19 = (_local15 - _local7);
-            _local20 = (_local16 - _local8);
-            _local21 = (_local17 - _local9);
-            _local22 = (_local18 - _local10);
-            _local23 = (((_local19 * this.delta::_centerX) + (_local20 * this.delta::_centerY)) + (_local21 * this.delta::_centerZ));
-            if (_local19 < 0){
-                _local19 = -(_local19);
-            };
-            if (_local20 < 0){
-                _local20 = -(_local20);
-            };
-            if (_local21 < 0){
-                _local21 = -(_local21);
-            };
-            _local24 = (((_local19 + _local20) + _local21) * this.delta::_radius);
-            if ((_local23 + _local24) < -(_local22)){
-                return (ViewTestResult.FULLY_OUT);
-            };
-            _local19 = _local11;
-            _local20 = _local12;
-            _local21 = _local13;
-            _local22 = _local14;
-            _local23 = (((_local19 * this.delta::_centerX) + (_local20 * this.delta::_centerY)) + (_local21 * this.delta::_centerZ));
-            if (_local19 < 0){
-                _local19 = -(_local19);
-            };
-            if (_local20 < 0){
-                _local20 = -(_local20);
-            };
-            if (_local21 < 0){
-                _local21 = -(_local21);
-            };
-            _local24 = (((_local19 + _local20) + _local21) * this.delta::_radius);
-            if ((_local23 + _local24) < -(_local22)){
-                return (ViewTestResult.FULLY_OUT);
-            };
-            _local19 = (_local15 - _local11);
-            _local20 = (_local16 - _local12);
-            _local21 = (_local17 - _local13);
-            _local22 = (_local18 - _local14);
-            _local23 = (((_local19 * this.delta::_centerX) + (_local20 * this.delta::_centerY)) + (_local21 * this.delta::_centerZ));
-            if (_local19 < 0){
-                _local19 = -(_local19);
-            };
-            if (_local20 < 0){
-                _local20 = -(_local20);
-            };
-            if (_local21 < 0){
-                _local21 = -(_local21);
-            };
-            _local24 = (((_local19 + _local20) + _local21) * this.delta::_radius);
-            if ((_local23 + _local24) < -(_local22)){
-                return (ViewTestResult.FULLY_OUT);
-            };
-            return (ViewTestResult.PARTIAL_IN);
+			radius = (xx + yy + zz) * this.delta::_radius;
+            if ((centerDist + radius) < -(ww))
+			{
+                return ViewTestResult.FULLY_OUT;
+            }
+			
+			xx = x41 - x11;
+			yy = y41 - y11;
+			zz = z41 - z11;
+			ww = w41 - w11;
+			centerDist = xx * this.delta::_centerX + yy * this.delta::_centerY + zz * this.delta::_centerZ;
+            if (xx < 0)
+			{
+				xx = -(xx);
+            }
+            if (yy < 0)
+			{
+				yy = -(yy);
+            }
+            if (zz < 0)
+			{
+				zz = -(zz);
+            }
+			radius = (xx + yy + zz) * this.delta::_radius;
+            if ((centerDist + radius) < -(ww))
+			{
+                return ViewTestResult.FULLY_OUT;
+            }
+			
+			xx = x41 + x21;
+			yy = y41 + y21;
+			zz = z41 + z21;
+			ww = w41 + w21;
+			centerDist = xx * this.delta::_centerX + yy * this.delta::_centerY + zz * this.delta::_centerZ;
+            if (xx < 0)
+			{
+				xx = -(xx);
+            }
+            if (yy < 0)
+			{
+				yy = -(yy);
+            }
+            if (zz < 0)
+			{
+				zz = -(zz);
+            }
+			radius = (xx + yy + zz) * this.delta::_radius;
+            if ((centerDist + radius) < -(ww))
+			{
+                return ViewTestResult.FULLY_OUT;
+            }
+			
+			xx = x41 - x21;
+			yy = y41 - y21;
+			zz = z41 - z21;
+			ww = w41 - w21;
+			centerDist = xx * this.delta::_centerX + yy * this.delta::_centerY + zz * this.delta::_centerZ;
+            if (xx < 0)
+			{
+				xx = -(xx);
+            }
+            if (yy < 0)
+			{
+				yy = -(yy);
+            }
+            if (zz < 0)
+			{
+				zz = -(zz);
+            }
+			radius = (xx + yy + zz) * this.delta::_radius;
+            if ((centerDist + radius) < -(ww))
+			{
+                return ViewTestResult.FULLY_OUT;
+            }
+			
+			xx = x31;
+			yy = y31;
+			zz = z31;
+			ww = w31;
+			centerDist = xx * this.delta::_centerX + yy * this.delta::_centerY + zz * this.delta::_centerZ;
+            if (xx < 0)
+			{
+				xx = -(xx);
+            }
+            if (yy < 0)
+			{
+				yy = -(yy);
+            }
+            if (zz < 0)
+			{
+				zz = -(zz);
+            }
+			radius = (xx + yy + zz) * this.delta::_radius;
+            if ((centerDist + radius) < -(ww))
+			{
+                return ViewTestResult.FULLY_OUT;
+            }
+			
+			xx = x41 - x31;
+			yy = y41 - y31;
+			zz = z41 - z31;
+			ww = w41 - w31;
+			centerDist = xx * this.delta::_centerX + yy * this.delta::_centerY + zz * this.delta::_centerZ;
+            if (xx < 0)
+			{
+				xx = -(xx);
+            }
+            if (yy < 0)
+			{
+				yy = -(yy);
+            }
+            if (zz < 0)
+			{
+				zz = -(zz);
+            }
+			radius = (xx + yy + zz) * this.delta::_radius;
+            if ((centerDist + radius) < -(ww))
+			{
+                return ViewTestResult.FULLY_OUT;
+            }
+			
+            return ViewTestResult.PARTIAL_IN;
         }
 		
         override public function fromSphere(center:Vector3D, radius:Number):void
