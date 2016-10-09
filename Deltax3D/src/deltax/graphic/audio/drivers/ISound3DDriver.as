@@ -1,21 +1,35 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.audio.drivers {
-    import flash.media.*;
+﻿package deltax.graphic.audio.drivers 
+{
+    import flash.media.Sound;
 
-    public interface ISound3DDriver {
-
+	/**
+	 * 3D音效控制器接口
+	 * @author lees
+	 * @date 2015/11/05
+	 */	
+	
+    public interface ISound3DDriver 
+	{
+		/**声音类*/
         function get sourceSound():Sound;
-        function set sourceSound(_arg1:Sound):void;
+        function set sourceSound(va:Sound):void;
+		/**缩放值*/
         function get scale():Number;
-        function set scale(_arg1:Number):void;
+        function set scale(va:Number):void;
+		/**音量值*/
         function get volume():Number;
-        function set volume(_arg1:Number):void;
+        function set volume(va:Number):void;
+		/**静音*/
         function get mute():Boolean;
-        function set mute(_arg1:Boolean):void;
+        function set mute(va:Boolean):void;
+		/**更新*/
         function update():void;
+		/**播放*/
         function play():void;
+		/**暂停*/
         function pause():void;
+		/**停止*/
         function stop():void;
 
     }
-}//package deltax.graphic.audio.drivers 
+} 

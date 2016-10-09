@@ -1,53 +1,103 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.audio.drivers {
-    import flash.media.*;
+﻿package deltax.graphic.audio.drivers 
+{
+    import flash.media.Sound;
+	
+	/**
+	 * 3D声音控制器基类
+	 * @author lees
+	 * @date 2015/11/05
+	 */	
 
-    public class AbstractSound3DDriver {
-
+    public class AbstractSound3DDriver 
+	{
+		/**声音*/
         protected var _src:Sound;
+		/**音量*/
         protected var _volume:Number;
+		/**缩放值*/
         protected var _scale:Number;
+		/**静音*/
         protected var _mute:Boolean;
+		/**是否暂停*/
         protected var _paused:Boolean;
+		/**是否播放*/
         protected var _playing:Boolean;
 
-        public function AbstractSound3DDriver(){
+        public function AbstractSound3DDriver()
+		{
             this._volume = 1;
             this._scale = 1000;
             this._playing = false;
         }
-        public function get sourceSound():Sound{
-            return (this._src);
+		
+		/**
+		 * 声音类
+		 * @return 
+		 */		
+        public function get sourceSound():Sound
+		{
+            return this._src;
         }
-        public function set sourceSound(_arg1:Sound):void{
-            if (this._src == _arg1){
+        public function set sourceSound(va:Sound):void
+		{
+            if (this._src == va)
+			{
                 return;
-            };
-            this._src = _arg1;
+            }
+            this._src = va;
         }
-        public function get volume():Number{
-            return (this._volume);
+		
+		/**
+		 * 音量
+		 * @return 
+		 */		
+        public function get volume():Number
+		{
+            return this._volume;
         }
-        public function set volume(_arg1:Number):void{
-            this._volume = _arg1;
+        public function set volume(va:Number):void
+		{
+            this._volume = va;
         }
-        public function get scale():Number{
-            return (this._scale);
+		
+		/**
+		 * 缩放值
+		 * @return 
+		 */		
+        public function get scale():Number
+		{
+            return this._scale;
         }
-        public function set scale(_arg1:Number):void{
-            this._scale = _arg1;
+        public function set scale(va:Number):void
+		{
+            this._scale = va;
         }
-        public function get mute():Boolean{
-            return (this._mute);
+		
+		/**
+		 * 静音
+		 * @return 
+		 */		
+        public function get mute():Boolean
+		{
+            return this._mute;
         }
-        public function set mute(_arg1:Boolean):void{
-            if (this._mute == _arg1){
+        public function set mute(va:Boolean):void
+		{
+            if (this._mute == va)
+			{
                 return;
-            };
-            this._mute = _arg1;
+            }
+            this._mute = va;
         }
-        public function update():void{
+		
+		/**
+		 * 更新
+		 */		
+        public function update():void
+		{
+			//
         }
 
+		
     }
-}//package deltax.graphic.audio.drivers 
+} 
