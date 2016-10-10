@@ -1,22 +1,28 @@
 ﻿package deltax.graphic.camera 
 {
-    import deltax.appframe.*;
-    import deltax.common.*;
-    import deltax.common.math.*;
-    import deltax.common.respackage.common.*;
-    import deltax.common.respackage.loader.*;
-    import deltax.graphic.map.*;
-    import deltax.graphic.model.*;
-    import deltax.graphic.render.*;
-    import deltax.graphic.scenegraph.object.*;
-    import deltax.gui.component.*;
-    import deltax.gui.component.event.*;
-    import deltax.gui.manager.*;
-    
-    import flash.geom.*;
-    import flash.net.*;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    import flash.net.URLLoaderDataFormat;
     import flash.ui.Keyboard;
-    import flash.utils.*;
+    import flash.utils.getTimer;
+    
+    import deltax.appframe.BaseApplication;
+    import deltax.appframe.LogicScene;
+    import deltax.common.TickFuncWrapper;
+    import deltax.common.math.MathConsts;
+    import deltax.common.math.MathUtl;
+    import deltax.common.math.VectorUtil;
+    import deltax.common.respackage.common.LoaderCommon;
+    import deltax.common.respackage.loader.LoaderManager;
+    import deltax.graphic.map.SceneCameraInfo;
+    import deltax.graphic.model.Animation;
+    import deltax.graphic.render.DeltaXRenderer;
+    import deltax.graphic.scenegraph.object.ObjectContainer3D;
+    import deltax.graphic.scenegraph.object.RenderScene;
+    import deltax.gui.component.DeltaXWindow;
+    import deltax.gui.component.event.DXWndKeyEvent;
+    import deltax.gui.component.event.DXWndMouseEvent;
+    import deltax.gui.manager.GUIManager;
 
     public class CameraController 
 	{

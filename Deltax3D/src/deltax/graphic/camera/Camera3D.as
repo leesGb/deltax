@@ -171,22 +171,6 @@
         }
 		
 		/**
-		 * 每帧开始
-		 */		
-        public function onFrameBegin():void
-		{
-			//
-        }
-		
-		/**
-		 * 每帧结束
-		 */		
-        public function onFrameEnd():void
-		{
-			//
-        }
-		
-		/**
 		 * 更新相机视锥体
 		 */		
         public function updateFrustom():void
@@ -343,6 +327,12 @@
             return (pIdx == FrustumPlane.COUNT ? ViewTestResult.FULLY_IN : ViewTestResult.PARTIAL_IN);
         }
 		
+		/**
+		 * 摄像机锥体渲染(测试视锥体裁剪时使用)
+		 * @param context
+		 * @param cornerPointList
+		 * @param mat
+		 */		
         public function render(context:Context3D, cornerPointList:Vector.<Number>, mat:Matrix3D=null):void
 		{
             var vertexData:ByteArray;
@@ -398,33 +388,50 @@
             }
 			vertexData = this.m_geometry.vertexData;
 			vertexData.position = 0;
-            var _local5:Array = [2164260863, 2164260863, 2164260863, 2164260863, 2164260608, 2164260608, 2164260608, 2164260608];
-            var _local6:uint;
-            while (_local6 < cornerPointList.length) 
+            var colorList:Array = [2164260863, 2164260863, 2164260863, 2164260863, 2164260608, 2164260608, 2164260608, 2164260608];
+            var idx:uint;
+            while (idx < cornerPointList.length) 
 			{
-				vertexData.writeFloat(cornerPointList[_local6]);
-				vertexData.writeFloat(cornerPointList[(_local6 + 1)]);
-				vertexData.writeFloat(cornerPointList[(_local6 + 2)]);
-				vertexData.writeUnsignedInt(_local5[(_local6 / 3)]);
-                _local6 = (_local6 + 3);
+				vertexData.writeFloat(cornerPointList[idx]);
+				vertexData.writeFloat(cornerPointList[(idx + 1)]);
+				vertexData.writeFloat(cornerPointList[(idx + 2)]);
+				vertexData.writeUnsignedInt(colorList[(idx / 3)]);
+				idx += 3;
             }
+			
             this.m_geometry.vertexData = vertexData;
-            var _local7:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_DEBUG);
+            var program:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_DEBUG);
 			context.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
 			context.setCulling(Context3DTriangleFace.BACK);
-			context.setProgram(_local7.getProgram3D(context));
+			context.setProgram(program.getProgram3D(context));
             if (!mat)
 			{
 				mat = this.sceneTransform;
             }
-            _local7.setParamMatrix(DeltaXProgram3D.WORLD, mat, true);
-            _local7.setParamMatrix(DeltaXProgram3D.VIEW, this.inverseSceneTransform, true);
-            _local7.setParamMatrix(DeltaXProgram3D.PROJECTION, this.lens.matrix, true);
-            _local7.update(context);
-            _local7.setVertexBuffer(context, this.m_geometry.getVertexBuffer(context));
+			program.setParamMatrix(DeltaXProgram3D.WORLD, mat, true);
+			program.setParamMatrix(DeltaXProgram3D.VIEW, this.inverseSceneTransform, true);
+			program.setParamMatrix(DeltaXProgram3D.PROJECTION, this.lens.matrix, true);
+			program.update(context);
+			program.setVertexBuffer(context, this.m_geometry.getVertexBuffer(context));
 			context.drawTriangles(this.m_geometry.getIndexBuffer(context), 0, this.m_geometry.numTriangles);
-            _local7.deactivate(context);
+			program.deactivate(context);
         }
+		
+		/**
+		 * 每帧开始
+		 */		
+		public function onFrameBegin():void
+		{
+			//
+		}
+		
+		/**
+		 * 每帧结束
+		 */		
+		public function onFrameEnd():void
+		{
+			//
+		}
 		
 		override protected function invalidateSceneTransform():void
 		{

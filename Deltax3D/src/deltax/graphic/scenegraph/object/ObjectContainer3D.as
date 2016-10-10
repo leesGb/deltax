@@ -531,35 +531,35 @@
 		 * @param target
 		 * @param axis
 		 */		
-		public function lookAt(target:Vector3D, axis:Vector3D=null):void
+		public function lookAt(pos:Vector3D, axis:Vector3D=null):void
 		{
 			var axisX:Vector3D;
 			var axisY:Vector3D;
 			var axisZ:Vector3D;
 			var matrixRawVec:Vector.<Number>;
 			axis = ((axis) || (Vector3D.Y_AXIS));
-			axisZ = target.subtract(this.position);//因为摄像机的方向一般与z轴平行
+			axisZ = pos.subtract(this.position);//因为摄像机的方向一般与z轴平行
 			axisZ.normalize();
 			axisX = axis.crossProduct(axisZ);//根据叉值求出x轴
 			axisX.normalize();
 			axisY = axisZ.crossProduct(axisX);//根据叉值求出y值
 			matrixRawVec = Matrix3DUtils.RAW_DATA_CONTAINER;
-			matrixRawVec[uint(0)] = (this._scaleX * axisX.x);
-			matrixRawVec[uint(1)] = (this._scaleX * axisX.y);
-			matrixRawVec[uint(2)] = (this._scaleX * axisX.z);
-			matrixRawVec[uint(3)] = 0;
-			matrixRawVec[uint(4)] = (this._scaleY * axisY.x);
-			matrixRawVec[uint(5)] = (this._scaleY * axisY.y);
-			matrixRawVec[uint(6)] = (this._scaleY * axisY.z);
-			matrixRawVec[uint(7)] = 0;
-			matrixRawVec[uint(8)] = (this._scaleZ * axisZ.x);
-			matrixRawVec[uint(9)] = (this._scaleZ * axisZ.y);
-			matrixRawVec[uint(10)] = (this._scaleZ * axisZ.z);
-			matrixRawVec[uint(11)] = 0;
-			matrixRawVec[uint(12)] = this._x;
-			matrixRawVec[uint(13)] = this._y;
-			matrixRawVec[uint(14)] = this._z;
-			matrixRawVec[uint(15)] = 1;
+			matrixRawVec[0] = this._scaleX * axisX.x;
+			matrixRawVec[1] = this._scaleX * axisX.y;
+			matrixRawVec[2] = this._scaleX * axisX.z;
+			matrixRawVec[3] = 0;
+			matrixRawVec[4] = this._scaleY * axisY.x;
+			matrixRawVec[5] = this._scaleY * axisY.y;
+			matrixRawVec[6] = this._scaleY * axisY.z;
+			matrixRawVec[7] = 0;
+			matrixRawVec[8] = this._scaleZ * axisZ.x;
+			matrixRawVec[9] = this._scaleZ * axisZ.y;
+			matrixRawVec[10] = this._scaleZ * axisZ.z;
+			matrixRawVec[11] = 0;
+			matrixRawVec[12] = this._x;
+			matrixRawVec[13] = this._y;
+			matrixRawVec[14] = this._z;
+			matrixRawVec[15] = 1;
 			this._transform.copyRawDataFrom(matrixRawVec);
 			this._rotationValuesDirty = true;
 			
@@ -577,9 +577,9 @@
 			var dy:Number = direction.y;
 			var dz:Number = direction.z;
 			var normalization:Number = value / Math.sqrt(dx * dx + dy * dy + dz * dz);
-			this._x = this._x + dx * normalization;
-			this._y = this._y + dy * normalization;
-			this._z = this._z + dz * normalization;
+			this._x += dx * normalization;
+			this._y += dy * normalization;
+			this._z += dz * normalization;
 			
 			this._transformDirty = true;
 		}
@@ -816,7 +816,7 @@
 				this.updateSceneTransform();
 			}
 			//
-			return (this._sceneTransform);
+			return this._sceneTransform;
 		}
 		
 		/**
@@ -831,7 +831,7 @@
 				this._inverseSceneTransform.invert();
 				this._inverseSceneTransformDirty = false;
 			}
-			return (this._inverseSceneTransform);
+			return this._inverseSceneTransform;
 		}
 		
 		/**
