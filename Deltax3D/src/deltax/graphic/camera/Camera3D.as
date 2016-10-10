@@ -98,6 +98,10 @@
             }
         }
 		
+		/**
+		 * 投影
+		 * @return 
+		 */		
         public function get lens():LensBase
 		{
             return this._lens;
@@ -119,6 +123,10 @@
             this._lens.delta::onMatrixUpdate = this.onLensUpdate;
         }
 		
+		/**
+		 * 获取相机投影矩阵
+		 * @return 
+		 */		
         public function get viewProjection():Matrix3D
 		{
             if (this._viewProjectionInvalid)
@@ -131,6 +139,12 @@
             return this._viewProjection;
         }
 		
+		/**
+		 * 转换屏幕的点到世界坐标系
+		 * @param px
+		 * @param py
+		 * @return 
+		 */		
 		public function unproject(px:Number, py:Number):Vector3D
 		{
 			if (this._unprojectionInvalid)
@@ -146,6 +160,9 @@
 			return v;
 		}
 		
+		/**
+		 * 投影更新
+		 */		
         protected function onLensUpdate():void
 		{
             this._viewProjectionInvalid = true;
@@ -153,16 +170,25 @@
             this.delta::m_worldFrustumInvalid = true;
         }
 		
+		/**
+		 * 每帧开始
+		 */		
         public function onFrameBegin():void
 		{
 			//
         }
 		
+		/**
+		 * 每帧结束
+		 */		
         public function onFrameEnd():void
 		{
 			//
         }
 		
+		/**
+		 * 更新相机视锥体
+		 */		
         public function updateFrustom():void
 		{
             this.sceneTransform.transformVectors(this.lens.frustumCorners, this.delta::m_frustumWorldCornersVNumber);
@@ -194,194 +220,210 @@
             this.delta::m_worldFrustumInvalid = false;
         }
 		
-        public function isInFrustum(_arg1:AxisAlignedBoundingBox, _arg2:Matrix3D=null):uint
+		/**
+		 * 判断场景实体对象是否在摄像机的视锥体内
+		 * 这里使用的方法是判断裁剪体的每个裁剪面与包围盒的关系
+		 * 是在裁剪面的正面还是反面，如果是反面还要判断是否有相交，有相交的还要判断相交的那部分是否大于包围盒的一半
+		 * @param aabb
+		 * @param entityMat
+		 * @return 
+		 */		
+        public function isInFrustum(aabb:AxisAlignedBoundingBox, entityMat:Matrix3D=null):uint
 		{
-            var _local7:Number;
-            var _local9:uint;
-            var _local10:Number;
-            var _local11:Plane3D;
-            if (_arg2)
+            if (entityMat)
 			{
-                _arg2.transformVectors(_arg1.aabbPoints, this.m_entityWorldBoundsVertice);
+				entityMat.transformVectors(aabb.aabbPoints, this.m_entityWorldBoundsVertice);
                 this.m_entityWorldBound.fromVertices(this.m_entityWorldBoundsVertice);
-                _arg1 = this.m_entityWorldBound;
+				aabb = this.m_entityWorldBound;
             }
 			
-            var _local3:uint = ViewTestResult.FULLY_OUT;
-            if (_arg1.contain(this.m_frustumAABB))
+            var result:uint = ViewTestResult.FULLY_OUT;
+            if (aabb.contain(this.m_frustumAABB))
 			{
-                return (ViewTestResult.PARTIAL_IN);
+                return ViewTestResult.PARTIAL_IN;
             }
 			
-            if (!_arg1.intersect(this.m_frustumAABB))
+            if (!aabb.intersect(this.m_frustumAABB))
 			{
-                return (ViewTestResult.FULLY_OUT);
+                return ViewTestResult.FULLY_OUT;
             }
 			
-            if (_arg1.containPoint(this.scenePosition))
+            if (aabb.containPoint(this.scenePosition))
 			{
-                return (ViewTestResult.PARTIAL_IN);
+                return ViewTestResult.PARTIAL_IN;
             }
 			
-            var _local4:Vector3D = _arg1.center;
-            var _local5:Vector3D = MathUtl.TEMP_VECTOR3D;
-            _local5.copyFrom(_arg1.extent);
-            _local5.scaleBy(0.5);
-            var _local6:Number = _local5.length;
-            var _local8:uint;
-            while (_local8 < FrustumPlane.COUNT) 
+            var center:Vector3D = aabb.center;
+            var half:Vector3D = MathUtl.TEMP_VECTOR3D;
+			half.copyFrom(aabb.extent);
+			half.scaleBy(0.5);
+            var halfDist:Number = half.length;
+            var idx:uint;
+			var centerToPlaneDist:Number;
+            while (idx < FrustumPlane.COUNT) 
 			{
-                _local7 = (this.m_centerDistToPlanes[_local8] = this.m_frustumPlanes[_local8].distance(_local4));
-                if (_local7 < -(_local6))
+				centerToPlaneDist = this.m_frustumPlanes[idx].distance(center);
+				this.m_centerDistToPlanes[idx] = centerToPlaneDist;
+                if (centerToPlaneDist < -(halfDist))//这里因为包围盒有可能在裁剪面的外面，这时计算出来的距离是负值，如果距离还小于包围盒的一半的话，那就是说包围盒与裁剪面没相交了
 				{
-                    return (ViewTestResult.FULLY_OUT);
+                    return ViewTestResult.FULLY_OUT;
                 }
-                _local8++;
+				idx++;
             }
 			
-            _local3 = ViewTestResult.PARTIAL_IN;
-            _local8 = 0;
-            while (_local8 < FrustumPlane.COUNT) 
+			var pIdx:uint;
+			var pointDist:Number;
+			var p:Plane3D;
+			result = ViewTestResult.PARTIAL_IN;
+			idx = 0;
+            while (idx < FrustumPlane.COUNT) 
 			{
-                _local7 = this.m_centerDistToPlanes[_local8];
-                _local11 = this.m_frustumPlanes[_local8];
-                _local10 = Math.abs((_local11.a * _local5.x));
-                _local10 = (_local10 + Math.abs((_local11.b * _local5.y)));
-                _local10 = (_local10 + Math.abs((_local11.c * _local5.z)));
-                if (_local7 < -(_local10))
+				centerToPlaneDist = this.m_centerDistToPlanes[idx];
+                p = this.m_frustumPlanes[idx];
+				pointDist = Math.abs(p.a * half.x);
+				pointDist += Math.abs(p.b * half.y);
+				pointDist += Math.abs(p.c * half.z);
+                if (centerToPlaneDist < -(pointDist))//这里再判断包围盒与裁剪面相交时，如果相交的那部分没有占据到包围盒的一半，则判断为不在视锥体内
 				{
-                    return (ViewTestResult.FULLY_OUT);
+                    return ViewTestResult.FULLY_OUT;
                 }
 				
-                if (_local7 > _local10)
+                if (centerToPlaneDist > pointDist)
 				{
-                    _local9++;
+					pIdx++;
                 }
-                _local8++;
+				idx++;
             }
 			
-            if (_local9 == FrustumPlane.COUNT)
+            if (pIdx == FrustumPlane.COUNT)
 			{
-                return (ViewTestResult.FULLY_IN);
+                return ViewTestResult.FULLY_IN;
             }
 			
-            return (_local3);
+            return result;
         }
 		
-        public function isSphereInFrustum(_arg1:BoundingSphere, _arg2:Matrix3D=null):uint
+		/**
+		 * 球体包围盒在摄像机裁剪体内的检测
+		 * @param bs
+		 * @param mat
+		 * @return 
+		 */		
+        public function isSphereInFrustum(bs:BoundingSphere, mat:Matrix3D=null):uint
 		{
-            var _local5:Number;
-            var _local6:uint;
-            var _local3:Vector3D = MathUtl.TEMP_VECTOR3D;
-            var _local4:Number = _arg1.delta::_radius;
-            if (_arg2)
+            var center:Vector3D = MathUtl.TEMP_VECTOR3D;
+            var radius:Number = bs.delta::_radius;
+            if (mat)
 			{
-                _local3.copyFrom(_arg1.center);
-                _local3.incrementBy(_arg2.position);
+				center.copyFrom(bs.center);
+				center.incrementBy(mat.position);
             } else 
 			{
-                _local3.setTo(_arg1.delta::_centerX, _arg1.delta::_centerY, _arg1.delta::_centerZ);
+				center.setTo(bs.delta::_centerX, bs.delta::_centerY, bs.delta::_centerZ);
             }
 			
-            var _local7:uint;
-            while (_local7 < FrustumPlane.COUNT) 
+            var idx:uint;
+			var dist:Number;
+			var pIdx:uint;
+            while (idx < FrustumPlane.COUNT) 
 			{
-                _local5 = this.m_frustumPlanes[_local7].distance(_local3);
-                if (_local5 < -(_local4))
+				dist = this.m_frustumPlanes[idx].distance(center);
+                if (dist < -(radius))
 				{
-                    return (ViewTestResult.FULLY_OUT);
+                    return ViewTestResult.FULLY_OUT;
                 }
 				
-                if (_local5 >= _local4)
+                if (dist >= radius)
 				{
-                    _local6++;
+					pIdx++;
                 }
-                _local7++;
-            }
-            return (((_local6 == FrustumPlane.COUNT)) ? ViewTestResult.FULLY_IN : ViewTestResult.PARTIAL_IN);
-        }
-		
-        public function render(_arg1:Context3D, _arg2:Vector.<Number>, _arg3:Matrix3D=null):void
-		{
-            var _local4:ByteArray;
-            var _local8:ByteArray;
-            if (!this.m_geometry)
-			{
-                this.m_geometry = new DeltaXSubGeometry(((3 * 4) + 4));
-                _local4 = new LittleEndianByteArray((this.m_geometry.sizeofVertex * 8));
-                _local8 = new LittleEndianByteArray(((2 * 3) * 12));
-                _local8.writeShort(0);
-                _local8.writeShort(2);
-                _local8.writeShort(1);
-                _local8.writeShort(0);
-                _local8.writeShort(3);
-                _local8.writeShort(2);
-                _local8.writeShort(4);
-                _local8.writeShort(7);
-                _local8.writeShort(5);
-                _local8.writeShort(7);
-                _local8.writeShort(6);
-                _local8.writeShort(5);
-                _local8.writeShort(2);
-                _local8.writeShort(3);
-                _local8.writeShort(6);
-                _local8.writeShort(3);
-                _local8.writeShort(7);
-                _local8.writeShort(6);
-                _local8.writeShort(0);
-                _local8.writeShort(1);
-                _local8.writeShort(5);
-                _local8.writeShort(0);
-                _local8.writeShort(5);
-                _local8.writeShort(4);
-                _local8.writeShort(0);
-                _local8.writeShort(7);
-                _local8.writeShort(3);
-                _local8.writeShort(0);
-                _local8.writeShort(4);
-                _local8.writeShort(7);
-                _local8.writeShort(1);
-                _local8.writeShort(2);
-                _local8.writeShort(6);
-                _local8.writeShort(1);
-                _local8.writeShort(6);
-                _local8.writeShort(5);
-                this.m_geometry.vertexData = _local4;
-                this.m_geometry.indiceData = _local8;
+				idx++;
             }
 			
-            if (!_arg2)
+            return (pIdx == FrustumPlane.COUNT ? ViewTestResult.FULLY_IN : ViewTestResult.PARTIAL_IN);
+        }
+		
+        public function render(context:Context3D, cornerPointList:Vector.<Number>, mat:Matrix3D=null):void
+		{
+            var vertexData:ByteArray;
+            var indiceData:ByteArray;
+            if (!this.m_geometry)
 			{
-                _arg2 = this._lens.frustumCorners;
+                this.m_geometry = new DeltaXSubGeometry(16);//(3 * 4) + 4
+				vertexData = new LittleEndianByteArray((this.m_geometry.sizeofVertex * 8));
+				indiceData = new LittleEndianByteArray(72);//(2 * 3) * 12
+				indiceData.writeShort(0);
+				indiceData.writeShort(2);
+				indiceData.writeShort(1);
+				indiceData.writeShort(0);
+				indiceData.writeShort(3);
+				indiceData.writeShort(2);
+				indiceData.writeShort(4);
+				indiceData.writeShort(7);
+				indiceData.writeShort(5);
+				indiceData.writeShort(7);
+				indiceData.writeShort(6);
+				indiceData.writeShort(5);
+				indiceData.writeShort(2);
+				indiceData.writeShort(3);
+				indiceData.writeShort(6);
+				indiceData.writeShort(3);
+				indiceData.writeShort(7);
+				indiceData.writeShort(6);
+				indiceData.writeShort(0);
+				indiceData.writeShort(1);
+				indiceData.writeShort(5);
+				indiceData.writeShort(0);
+				indiceData.writeShort(5);
+				indiceData.writeShort(4);
+				indiceData.writeShort(0);
+				indiceData.writeShort(7);
+				indiceData.writeShort(3);
+				indiceData.writeShort(0);
+				indiceData.writeShort(4);
+				indiceData.writeShort(7);
+				indiceData.writeShort(1);
+				indiceData.writeShort(2);
+				indiceData.writeShort(6);
+				indiceData.writeShort(1);
+				indiceData.writeShort(6);
+				indiceData.writeShort(5);
+                this.m_geometry.vertexData = vertexData;
+                this.m_geometry.indiceData = indiceData;
             }
-            _local4 = this.m_geometry.vertexData;
-            _local4.position = 0;
+			
+            if (!cornerPointList)
+			{
+				cornerPointList = this._lens.frustumCorners;
+            }
+			vertexData = this.m_geometry.vertexData;
+			vertexData.position = 0;
             var _local5:Array = [2164260863, 2164260863, 2164260863, 2164260863, 2164260608, 2164260608, 2164260608, 2164260608];
             var _local6:uint;
-            while (_local6 < _arg2.length) 
+            while (_local6 < cornerPointList.length) 
 			{
-                _local4.writeFloat(_arg2[_local6]);
-                _local4.writeFloat(_arg2[(_local6 + 1)]);
-                _local4.writeFloat(_arg2[(_local6 + 2)]);
-                _local4.writeUnsignedInt(_local5[(_local6 / 3)]);
+				vertexData.writeFloat(cornerPointList[_local6]);
+				vertexData.writeFloat(cornerPointList[(_local6 + 1)]);
+				vertexData.writeFloat(cornerPointList[(_local6 + 2)]);
+				vertexData.writeUnsignedInt(_local5[(_local6 / 3)]);
                 _local6 = (_local6 + 3);
             }
-            this.m_geometry.vertexData = _local4;
+            this.m_geometry.vertexData = vertexData;
             var _local7:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_DEBUG);
-            _arg1.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
-            _arg1.setCulling(Context3DTriangleFace.BACK);
-            _arg1.setProgram(_local7.getProgram3D(_arg1));
-            if (!_arg3)
+			context.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
+			context.setCulling(Context3DTriangleFace.BACK);
+			context.setProgram(_local7.getProgram3D(context));
+            if (!mat)
 			{
-                _arg3 = this.sceneTransform;
+				mat = this.sceneTransform;
             }
-            _local7.setParamMatrix(DeltaXProgram3D.WORLD, _arg3, true);
+            _local7.setParamMatrix(DeltaXProgram3D.WORLD, mat, true);
             _local7.setParamMatrix(DeltaXProgram3D.VIEW, this.inverseSceneTransform, true);
             _local7.setParamMatrix(DeltaXProgram3D.PROJECTION, this.lens.matrix, true);
-            _local7.update(_arg1);
-            _local7.setVertexBuffer(_arg1, this.m_geometry.getVertexBuffer(_arg1));
-            _arg1.drawTriangles(this.m_geometry.getIndexBuffer(_arg1), 0, this.m_geometry.numTriangles);
-            _local7.deactivate(_arg1);
+            _local7.update(context);
+            _local7.setVertexBuffer(context, this.m_geometry.getVertexBuffer(context));
+			context.drawTriangles(this.m_geometry.getIndexBuffer(context), 0, this.m_geometry.numTriangles);
+            _local7.deactivate(context);
         }
 		
 		override protected function invalidateSceneTransform():void
