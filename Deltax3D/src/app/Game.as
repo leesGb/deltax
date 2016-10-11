@@ -148,14 +148,12 @@
 		{
 			super.onStarted();
 			this.camController.selfControlEvent = true;
-			this.camController.freeMode = false;
 			this.camController.enableSelfMouseWheel = true;
 			this.m_gameMainPane = new GameMainState();
 			this.m_gameMainPane.creatAsEmptyContain(GUIManager.instance.rootWnd);
 			this.newLoginUI();
 			EffectManager.instance.screenDisturbEnable = true;
 			EffectManager.instance.screenFilterEnable = true;
-			camController.loadConfig((Enviroment.ConfigRootPath + "camera.xml"));
 		}
 		public function newLoginUI():void
 		{

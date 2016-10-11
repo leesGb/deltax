@@ -60,9 +60,7 @@ package deltax.appframe {
         override protected function onPosUpdated():void{
             super.onPosUpdated();
             var _local1:CameraController = BaseApplication.instance.camController;
-            if (!_local1.freeMode){
-                _local1.needInvalid = true;
-            };
+            _local1.needInvalid = true;
             if (((scene) && (scene.renderScene))){
                 scene.renderScene.updateView(position);
                 if (!scene.metaScene.isBarrier(m_gridPos.x, m_gridPos.y)){

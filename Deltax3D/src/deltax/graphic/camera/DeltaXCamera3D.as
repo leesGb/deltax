@@ -17,35 +17,35 @@
 	{
         private static var m_tempPosForCalc:Vector3D = new Vector3D();
 
-		/***/
+		/**摄像机往上方向*/
         private var m_upAxis:Vector3D;
-		/***/
+		/**摄像机朝向目标位置*/
         private var m_lookAtPos:Vector3D;
-		/***/
+		/**摄像机朝向目标位置失效*/
         private var m_lookAtPosInvalid:Boolean = true;
-		/***/
+		/**是否需要重设摄像机的朝向*/
         private var m_needReLookAt:Boolean = true;
-		/***/
+		/**相机视图是否失效*/
         private var m_viewInvalid:Boolean = true;
-		/***/
+		/**摄像机的方向*/
         private var m_direction:Vector3D;
-		/***/
+		/**摄像机往右方向*/
         private var m_rightVector:Vector3D;
-		/***/
+		/**摄像机往右方向失效*/
         private var m_rightValid:Boolean = true;
-		/***/
+		/**公告板矩阵是否失效*/
         private var m_billboardInvalid:Boolean = true;
-		/***/
+		/**公告板矩阵*/
         private var m_billboardMatrix:Matrix3D;
-		/***/
+		/**相机抖动的偏移位置*/
         public var m_preExtraCameraOffset:Vector3D;
-		/***/
+		/**摄像机偏移*/
         private var m_extraCameraOffset:Vector3D;
-		/***/
+		/**摄像机更新函数*/
         private var m_onCameraUpdatedHandler:Function;
-		/***/
+		/**目标与摄像机的距离*/
         private var m_distanceFromTarget:Number = 1;
-		/***/
+		/**摄像机能否抖动*/
         private var m_enableCameraShake:Boolean = true;
 
         public function DeltaXCamera3D($lens:LensBase=null)
@@ -61,11 +61,19 @@
             super($lens);
         }
 		
+		/**
+		 * 摄像机更新函数
+		 * @param va
+		 */		
         public function set onCameraUpdatedHandler(va:Function):void
 		{
             this.m_onCameraUpdatedHandler = va;
         }
 		
+		/**
+		 * 获取摄像机朝向
+		 * @return 
+		 */		
         public function get lookDirection():Vector3D
 		{
             if (this.m_viewInvalid)
@@ -86,6 +94,10 @@
             return this.m_direction;
         }
 		
+		/**
+		 * 获取公告板矩阵
+		 * @return 
+		 */		
 		public function get billboardMatrix():Matrix3D
 		{
 			if (this.m_billboardInvalid)
@@ -98,11 +110,19 @@
 			return this.m_billboardMatrix;
 		}
 		
+		/**
+		 * 获取相机视图矩阵
+		 * @return 
+		 */		
 		public function get viewMatrix():Matrix3D
 		{
 			return this.inverseSceneTransform;
 		}
 		
+		/**
+		 * 能否镜头抖动
+		 * @return 
+		 */		
 		public function get enableCameraShake():Boolean
 		{
 			return this.m_enableCameraShake;
@@ -116,6 +136,10 @@
 			}
 		}
 		
+		/**
+		 * 摄像机朝向的目标位置
+		 * @return 
+		 */		
 		public function get lookAtPos():Vector3D
 		{
 			if (this.m_lookAtPosInvalid)
@@ -128,11 +152,19 @@
 			return this.m_lookAtPos;
 		}
 		
+		/**
+		 * 摄像机的向上轴
+		 * @return 
+		 */		
 		public function get upAxis():Vector3D
 		{
 			return this.m_upAxis;
 		}
 		
+		/**
+		 * 摄像机的向右轴
+		 * @return 
+		 */
 		public function get lookRight():Vector3D
 		{
 			if (this.m_rightValid)
@@ -145,6 +177,10 @@
 			return this.m_rightVector;
 		}
 		
+		/**
+		 * 摄像机位置与朝向目标的距离
+		 * @return 
+		 */		
 		public function get offsetFromLookAt():Vector3D
 		{
 			return this.scenePosition.subtract(this.lookAtPos);
@@ -155,6 +191,10 @@
 			this.m_distanceFromTarget = va.length;
 		}
 		
+		/**
+		 * 摄像机抖动偏移值
+		 * @param offset
+		 */		
 		public function addShakeOffset(offset:Vector3D):void
 		{
 			this.m_extraCameraOffset.scaleBy(0.3);
@@ -162,11 +202,19 @@
 			this.invalidateSceneTransform();
 		}
 		
+		/**
+		 * 重设相机目标朝向
+		 */		
 		public function relookAt():void
 		{
 			super.lookAt(this.m_lookAtPos, this.m_upAxis);
 		}
 		
+		/**
+		 * 相机X轴平移
+		 * @param distance
+		 * @param local
+		 */		
 		public function translateX(distance:Number, local:Boolean=true):void
 		{
 			var xx:Number = _x;
@@ -200,6 +248,11 @@
 			invalidateTransform();
 		}
 		
+		/**
+		 * 相机Y轴平移
+		 * @param distance
+		 * @param local
+		 */		
 		public function translateY(distance:Number, local:Boolean=true):void
 		{
 			var xx:Number = _x;
@@ -233,6 +286,9 @@
 			invalidateTransform();
 		}
 		
+		/**
+		 * 从变换中更改相机朝向目标的位置
+		 */		
 		private function extractLookAtPosFromTransform():void
 		{
 			this.m_direction.x = 0;
