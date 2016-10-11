@@ -1,14 +1,20 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common.math {
-    import flash.geom.*;
-    import __AS3__.vec.*;
-
-    public class Matrix3DUtils {
-
+﻿package deltax.common.math 
+{
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+	
+	/**
+	 * 3D矩阵工具类
+	 * @author lees
+	 * @date 2015/03/25
+	 */	
+    
+    public class Matrix3DUtils 
+	{
         public static const RAW_DATA_CONTAINER:Vector.<Number> = new Vector.<Number>(16);
-;
 
-        public static function quaternion2matrix(_arg1:Quaternion, _arg2:Matrix3D=null):Matrix3D{
+        public static function quaternion2matrix(_arg1:Quaternion, _arg2:Matrix3D=null):Matrix3D
+		{
             var _local3:Number = _arg1.x;
             var _local4:Number = _arg1.y;
             var _local5:Number = _arg1.z;
@@ -34,44 +40,58 @@ package deltax.common.math {
             _local16[10] = (1 - (2 * (_local7 + _local11)));
             _local16[3] = (_local16[7] = (_local16[11] = (_local16[12] = (_local16[13] = (_local16[14] = 0)))));
             _local16[15] = 1;
-            if (_arg2){
+            if (_arg2)
+			{
                 _arg2.copyRawDataFrom(_local16);
                 return (_arg2);
-            };
+            }
             return (new Matrix3D(_local16));
         }
-        public static function getForward(_arg1:Matrix3D, _arg2:Vector3D=null):Vector3D{
+		
+        public static function getForward(_arg1:Matrix3D, _arg2:Vector3D=null):Vector3D
+		{
             _arg2 = ((_arg2) || (new Vector3D(0, 0, 0)));
             _arg1.copyColumnTo(2, _arg2);
             _arg2.normalize();
             return (_arg2);
         }
-        public static function getUp(_arg1:Matrix3D, _arg2:Vector3D=null):Vector3D{
+		
+        public static function getUp(_arg1:Matrix3D, _arg2:Vector3D=null):Vector3D
+		{
             _arg2 = ((_arg2) || (new Vector3D(0, 0, 0)));
             _arg1.copyColumnTo(1, _arg2);
             _arg2.normalize();
             return (_arg2);
         }
-        public static function getRight(_arg1:Matrix3D, _arg2:Vector3D=null):Vector3D{
+		
+        public static function getRight(_arg1:Matrix3D, _arg2:Vector3D=null):Vector3D
+		{
             _arg2 = ((_arg2) || (new Vector3D(0, 0, 0)));
             _arg1.copyColumnTo(0, _arg2);
             _arg2.normalize();
             return (_arg2);
         }
-        public static function compare(_arg1:Matrix3D, _arg2:Matrix3D):Boolean{
+		
+        public static function compare(_arg1:Matrix3D, _arg2:Matrix3D):Boolean
+		{
             var _local3:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
             var _local4:Vector.<Number> = _arg2.rawData;
             _arg1.copyRawDataTo(_local3);
             var _local5:uint;
-            while (_local5 < 16) {
-                if (_local3[_local5] != _local4[_local5]){
+            while (_local5 < 16) 
+			{
+                if (_local3[_local5] != _local4[_local5])
+				{
                     return (false);
-                };
+                }
                 _local5++;
-            };
+            }
+			
             return (true);
         }
-        public static function lookAt(_arg1:Matrix3D, _arg2:Vector3D, _arg3:Vector3D, _arg4:Vector3D):void{
+		
+        public static function lookAt(_arg1:Matrix3D, _arg2:Vector3D, _arg3:Vector3D, _arg4:Vector3D):void
+		{
             var _local5:Vector3D;
             var _local6:Vector3D;
             var _local7:Vector3D;
@@ -100,7 +120,9 @@ package deltax.common.math {
             _local8[15] = 1;
             _arg1.copyRawDataFrom(_local8);
         }
-        public static function SetRotateX(_arg1:Matrix3D, _arg2:Number):Matrix3D{
+		
+        public static function SetRotateX(_arg1:Matrix3D, _arg2:Number):Matrix3D
+		{
             var _local3:Vector.<Number> = RAW_DATA_CONTAINER;
             var _local4:Number = Math.cos(_arg2);
             var _local5:Number = Math.sin(_arg2);
@@ -123,7 +145,9 @@ package deltax.common.math {
             _arg1.copyRawDataFrom(_local3);
             return (_arg1);
         }
-        public static function SetRotateY(_arg1:Matrix3D, _arg2:Number):Matrix3D{
+		
+        public static function SetRotateY(_arg1:Matrix3D, _arg2:Number):Matrix3D
+		{
             var _local3:Vector.<Number> = RAW_DATA_CONTAINER;
             var _local4:Number = Math.cos(_arg2);
             var _local5:Number = Math.sin(_arg2);
@@ -146,7 +170,9 @@ package deltax.common.math {
             _arg1.copyRawDataFrom(_local3);
             return (_arg1);
         }
-        public static function SetRotateZ(_arg1:Matrix3D, _arg2:Number):Matrix3D{
+		
+        public static function SetRotateZ(_arg1:Matrix3D, _arg2:Number):Matrix3D
+		{
             var _local3:Vector.<Number> = RAW_DATA_CONTAINER;
             var _local4:Number = Math.cos(_arg2);
             var _local5:Number = Math.sin(_arg2);
@@ -170,5 +196,6 @@ package deltax.common.math {
             return (_arg1);
         }
 
+		
     }
-}//package deltax.common.math 
+}

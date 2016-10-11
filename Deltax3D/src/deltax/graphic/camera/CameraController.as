@@ -2,8 +2,6 @@
 {
     import flash.geom.Matrix3D;
     import flash.geom.Vector3D;
-    import flash.net.URLLoaderDataFormat;
-    import flash.ui.Keyboard;
     import flash.utils.getTimer;
     
     import deltax.appframe.BaseApplication;
@@ -12,8 +10,6 @@
     import deltax.common.math.MathConsts;
     import deltax.common.math.MathUtl;
     import deltax.common.math.VectorUtil;
-    import deltax.common.respackage.common.LoaderCommon;
-    import deltax.common.respackage.loader.LoaderManager;
     import deltax.graphic.map.SceneCameraInfo;
     import deltax.graphic.model.Animation;
     import deltax.graphic.render.DeltaXRenderer;
@@ -37,108 +33,62 @@
         private static const DEFAULT_PITCH_MAX:Number = 1.55334303427495;
         private static const DEFAULT_PITCH_MIN:Number = 0.0174532925199433;
 
-		/***/
+		/**摄像机*/
         protected var m_camera:DeltaXCamera3D;
-		/***/
-        protected var m_dragSpeed:Number = 0.005;
-		/***/
-        protected var m_smoothing:Number = 0.1;
-		/***/
+		/**鼠标拖动*/
         protected var m_drag:Boolean;
-		/***/
+		/**x偏移*/
         protected var m_referenceX:Number = 0;
-		/***/
+		/**y偏移*/
         protected var m_referenceY:Number = 0;
-		/***/
-        protected var m_xRad:Number = 0;
-		/***/
-        protected var m_yRad:Number = 0.5;
-		/***/
-        protected var m_targetXRad:Number = 0;
-		/***/
-        protected var m_targetYRad:Number = 0.5;
-		/***/
-        protected var m_moveSpeed:Number = 5;
-		/***/
-        protected var m_xSpeed:Number = 0;
-		/***/
-        protected var m_zSpeed:Number = 0;
-		/***/
-        protected var m_targetXSpeed:Number = 0;
-		/***/
-        protected var m_targetZSpeed:Number = 0;
-		/***/
-        protected var m_runMult:Number = 1;
-		/***/
+		/**摄像机朝向目标*/
         private var m_lookAtTarget:ObjectContainer3D;
-		/***/
+		/**暂存变量*/
         private var m_tempVectorForCaculate:Vector3D;
-		/***/
+		/**旋转矩阵*/
         private var m_rotateMatrix:Matrix3D;
-		/***/
+		/**是否需要更新*/
         private var m_needInvalid:Boolean = true;
-		/***/
+		/**能否绕x轴旋转*/
         private var m_pitchEnable:Boolean = true;
-		/***/
+		/**自身控制事件*/
         private var m_selfControlEvent:Boolean = false;
-		/***/
+		/**镜头锁定*/
         private var m_lock:Boolean;
-		/***/
+		/**能否使用鼠标滚轮*/
         private var m_enableSelfMouseWheel:Boolean = true;
-		/***/
+		/**忽略缩放限制*/
         private var m_ignoreZoomLimit:Boolean;
-		/***/
+		/**摄像机跟踪器*/
         private var m_cameraTrackReplayer:CameraTrackReplayer;
-		/***/
+		/**摄像机开始平移之前的偏移位置*/
         private var m_offsetBeforeTrackReplay:Vector3D;
-		/***/
+		/**摄像机开始偏移之前的朝向目标位置*/
         private var m_lookAtBeforeTrackReplay:Vector3D;
-		/***/
+		/**旋转计时器*/
         private var m_durateRotateTick:TickFuncWrapper;
-		/***/
+		/**旋转速度*/
         private var m_degreeSpeedOnDurationRotateTick:Number;
-		/***/
+		/**是否以自身或目标中心为旋转*/
         private var m_selfOrDestCenterOnRotate:Boolean;
-		/***/
+		/**旋转结束时间*/
         private var m_rotateEndTime:uint;
-		/***/
+		/**镜头缩放计时器*/
         private var m_zoomTick:TickFuncWrapper;
-		/***/
+		/**镜头缩放速度*/
         private var m_zoomSpeedOnTick:Number;
-		/***/
+		/**镜头缩放结束时间*/
         private var m_zoomEndTime:uint;
-		/***/
-        private var m_totalZoomImpulse:Number;
-		/***/
-        private var m_zoomFriction:Number;
-		/***/
-        private var m_cameraDistBeforeHitBlock:Number;
-		/***/
-        private var m_needZoomWhenCameraLeaveBlock:Boolean;
-		/***/
-        private var m_defaultZoomSpeed:Number = 5;
-		/***/
+		/**镜头缩放速度*/
         private var m_cameraZoomSpeed:Number = 20;
-		/***/
+		/**缩放偏移值*/
         private var m_initialZoomOffset:Number = 0;
-		/***/
-        private var m_pitchDegreeRangeMin:Number = 0;
-		/***/
-        private var m_pitchDegreeRangeMax:Number = 1.3962634015954638;
-		/***/
+		/**缩放最小值*/
         private var m_zoomInMin:Number = 2;
-		/***/
+		/**旋转速度*/
         private var m_cameraRotateSpeed:Number = 0.005;
-		/***/
-        private var m_cameraRotateSpeedMin:Number = 0.01;
-		/***/
-        private var m_cameraRotateSpeedMax:Number = 0.1;
-		/***/
-        private var m_defaultRotateSpeed:Number = 0.05;
-		/***/
+		/**摄像机场景信息*/
         private var m_sceneCameraInfo:SceneCameraInfo;
-		/***/
-        private var m_ignorePitchLimit:Boolean;
 		
         public function CameraController($camera:Camera3D, $selfControlEvent:Boolean=true)
 		{
@@ -155,6 +105,10 @@
             this.selfControlEvent = $selfControlEvent;
         }
 		
+		/**
+		 * 自身控制事件
+		 * @return 
+		 */		
         public function get selfControlEvent():Boolean
 		{
             return this.m_selfControlEvent;
@@ -185,6 +139,10 @@
             }
         }
 		
+		/**
+		 * 能否俯仰（绕x轴旋转）
+		 * @return 
+		 */		
         public function get pitchEnable():Boolean
 		{
             return this.m_pitchEnable;
@@ -194,6 +152,10 @@
             this.m_pitchEnable = va;
         }
 		
+		/**
+		 * 是否需要更新摄像机
+		 * @return 
+		 */		
         public function get needInvalid():Boolean
 		{
             return (this.m_needInvalid);
@@ -203,6 +165,10 @@
             this.m_needInvalid = va;
         }
 		
+		/**
+		 * 朝向目标
+		 * @return 
+		 */		
         public function get lookAtTarget():ObjectContainer3D
 		{
             return this.m_lookAtTarget;
@@ -213,6 +179,10 @@
             this.invalidCamera();
         }
 		
+		/**
+		 * 是否锁定镜头
+		 * @return 
+		 */		
         public function get lock():Boolean
 		{
             return this.m_lock;
@@ -222,36 +192,10 @@
             this.m_lock = va;
         }
 		
-		public function get smoothing():Number
-		{
-			return this.m_smoothing;
-		}
-		public function set smoothing(va:Number):void
-		{
-			this.m_smoothing = va;
-			this.invalidCamera();
-		}
-		
-		public function get dragSpeed():Number
-		{
-			return this.m_dragSpeed;
-		}
-		public function set dragSpeed(va:Number):void
-		{
-			this.m_dragSpeed = va;
-			this.invalidCamera();
-		}
-		
-		public function get moveSpeed():Number
-		{
-			return (this.m_moveSpeed);
-		}
-		public function set moveSpeed(va:Number):void
-		{
-			this.m_moveSpeed = va;
-			this.invalidCamera();
-		}
-		
+		/**
+		 * 能否使用滚轮事件
+		 * @return 
+		 */		
 		public function get enableSelfMouseWheel():Boolean
 		{
 			return (this.m_enableSelfMouseWheel);
@@ -272,11 +216,19 @@
 			}
 		}
 		
+		/**
+		 * 摄像机缩放速度
+		 * @return 
+		 */		
 		public function get cameraZoomSpeed():Number
 		{
 			return this.m_cameraZoomSpeed;
 		}
 		
+		/**
+		 * 是否忽略摄像机缩放限制
+		 * @return 
+		 */		
 		public function get ignoreZoomLimit():Boolean
 		{
 			return this.m_ignoreZoomLimit;
@@ -286,6 +238,10 @@
 			this.m_ignoreZoomLimit = va;
 		}
 		
+		/**
+		 * 摄像机信息
+		 * @return 
+		 */		
 		public function get sceneCameraInfo():SceneCameraInfo
 		{
 			return this.m_sceneCameraInfo;
@@ -296,15 +252,10 @@
 			this.setCameraDistToTarget(va.m_distToTarget + this.m_initialZoomOffset);
 		}
 		
-		public function get ignorePitchLimit():Boolean
-		{
-			return this.m_ignorePitchLimit;
-		}
-		public function set ignorePitchLimit(va:Boolean):void
-		{
-			this.m_ignorePitchLimit = va;
-		}
-		
+		/**
+		 * 设置摄像机与目标的距离
+		 * @param va
+		 */		
 		public function setCameraDistToTarget(va:Number):void
 		{
 			var dir:Vector3D = this.m_camera.lookDirection.clone();
@@ -319,36 +270,12 @@
 			}
 		}
 		
-		public function moveForward():void
-		{
-			this.m_targetZSpeed = this.m_moveSpeed;
-			this.invalidCamera();
-		}
-		
-		public function moveBack():void
-		{
-			this.m_targetZSpeed = -(this.m_moveSpeed);
-			this.invalidCamera();
-		}
-		
-		public function moveRight():void
-		{
-			this.m_targetXSpeed = this.m_moveSpeed;
-			this.invalidCamera();
-		}
-		
-		public function moveLeft():void
-		{
-			this.m_targetXSpeed = -(this.m_moveSpeed);
-			this.invalidCamera();
-		}
-		
-		public function sprint(va:Number):void
-		{
-			this.m_runMult = va;
-			this.invalidCamera();
-		}
-		
+		/**
+		 * xz平面平移
+		 * @param dx
+		 * @param dy
+		 * @param local
+		 */		
 		public function translateXZ(dx:Number, dy:Number, local:Boolean=true):void
 		{
 			m_camera.translateX(dx,local);
@@ -361,6 +288,9 @@
 			this.invalidCamera();
 		}
 		
+		/**
+		 * 移除控制事件
+		 */		
         private function removeControlListeners():void
 		{
             var wnd:DeltaXWindow = GUIManager.instance.rootWnd;
@@ -374,11 +304,17 @@
 			wnd.removeEventListener(DXWndKeyEvent.KEY_UP, this.onKeyUp);
         }
 		
+		/**
+		 * 数据销毁
+		 */		
         public function destroy():void
 		{
             this.removeControlListeners();
         }
 		
+		/**
+		 * 摄像机更新
+		 */		
         public function updateCamera():void
 		{
             if (!this.m_needInvalid)
@@ -443,11 +379,18 @@
             this.m_needInvalid = false;
         }
 		
+		/**
+		 * 更新旋转目标
+		 */		
         protected function updateRotationTarget():void
 		{
             this.invalidCamera();
         }
 		
+		/**
+		 * 鼠标左键按下事件
+		 * @param evt
+		 */		
         public function onMouseDown(evt:DXWndMouseEvent):void
 		{
             if (this.m_lock)
@@ -463,11 +406,19 @@
             }
         }
 		
+		/**
+		 * 鼠标左键释放
+		 * @param evt
+		 */		
         public function onMouseUp(evt:DXWndMouseEvent):void
 		{
             this.m_drag = false;
         }
 		
+		/**
+		 * 鼠标右键按下事件
+		 * @param evt
+		 */		
         public function onRightMouseDown(evt:DXWndMouseEvent):void
 		{
             if (this.m_lock)
@@ -480,16 +431,28 @@
             this.m_referenceY = evt.globalY;
         }
 		
+		/**
+		 * 鼠标右键释放事件
+		 * @param evt
+		 */		
         public function onRightMouseUp(evt:DXWndMouseEvent):void
 		{
             this.m_drag = false;
         }
 		
+		/**
+		 * 鼠标滚轮事件
+		 * @param evt
+		 */		
         public function onMouseWheel(evt:DXWndMouseEvent):void
 		{
             this.zoom((-(evt.delta) * this.m_cameraZoomSpeed));
         }
 		
+		/**
+		 * 鼠标移动事件
+		 * @param evt
+		 */		
         public function onMouseMove(evt:DXWndMouseEvent):void
 		{
             if (this.m_drag)
@@ -498,16 +461,28 @@
             }
         }
 		
+		/**
+		 * 按键按下事件
+		 * @param evt
+		 */		
         public function onKeyDown(evt:DXWndKeyEvent):void
 		{
 			//
         }
 		
+		/**
+		 * 按键释放事件
+		 * @param evt
+		 */		
         public function onKeyUp(evt:DXWndKeyEvent):void
 		{
 			//
         }
 		
+		/**
+		 * 镜头缩放
+		 * @param va
+		 */		
 		public function zoom(va:Number):void
 		{
 			if (this.m_lock)
@@ -528,33 +503,50 @@
 			this.m_camera.offsetFromLookAt = dist;
 		}
 		
-        public function isPlayerTrack():Boolean
+		/**
+		 * 在指定时间内缩放镜头
+		 * @param speed
+		 * @param duration
+		 */		
+		public function zoomDuration(speed:Number, duration:uint):void
 		{
-            return this.m_cameraTrackReplayer.playing;
-        }
+			this.m_zoomSpeedOnTick = (speed / 1000) * Animation.DEFAULT_FRAME_INTERVAL;
+			this.m_zoomEndTime = getTimer() + duration;
+			BaseApplication.instance.addTick(this.m_zoomTick, Animation.DEFAULT_FRAME_INTERVAL);
+		}
 		
-        public function setCameraOffset(offset:Vector3D, time:uint=0):void
+		/**
+		 * 镜头缩放计时器
+		 */		
+		private function onZoomTick():void
 		{
-            this.startCameraTransition(this.m_camera.lookAtPos.add(offset), this.m_camera.lookAtPos, time);
-        }
-		
-        public function startCameraTrack():void
-		{
-            this.m_offsetBeforeTrackReplay.copyFrom(this.m_camera.offsetFromLookAt);
-            this.m_lookAtBeforeTrackReplay.copyFrom(this.m_camera.lookAtPos);
-        }
-		
-        public function stopCameraTrack(time:uint=0):void
-		{
-            BaseApplication.instance.removeTick(this.m_durateRotateTick);
-            BaseApplication.instance.removeTick(this.m_zoomTick);
-            if (!this.m_offsetBeforeTrackReplay.equals(MathUtl.EMPTY_VECTOR3D))
+			if (!this.checkSceneValid())
 			{
-                this.startCameraTransition(this.m_lookAtBeforeTrackReplay.add(this.m_offsetBeforeTrackReplay), this.m_lookAtBeforeTrackReplay, time);
-                this.m_offsetBeforeTrackReplay.copyFrom(MathUtl.EMPTY_VECTOR3D);
-            }
-        }
+				BaseApplication.instance.removeTick(this.m_zoomTick);
+				return;
+			}
+			
+			var curTime:int = getTimer();
+			if (curTime >= this.m_zoomEndTime)
+			{
+				BaseApplication.instance.removeTick(this.m_zoomTick);
+				return;
+			}
+			
+			var pos:Vector3D = this.m_camera.offsetFromLookAt;
+			var dir:Vector3D = this.m_camera.lookDirection.clone();
+			dir.scaleBy(this.m_zoomSpeedOnTick);
+			pos.incrementBy(dir);
+			this.m_camera.offsetFromLookAt = pos;
+		}
 		
+		/**
+		 * 指定时间内旋转镜头
+		 * @param axis
+		 * @param selfOrDestCenter
+		 * @param degreeSpeed
+		 * @param duration
+		 */		
         public function rotateCameraDuration(axis:Vector3D, selfOrDestCenter:Boolean, degreeSpeed:Number, duration:uint):void
 		{
             this.m_degreeSpeedOnDurationRotateTick = (degreeSpeed / 1000) * Animation.DEFAULT_FRAME_INTERVAL;
@@ -563,6 +555,9 @@
             BaseApplication.instance.addTick(this.m_durateRotateTick, Animation.DEFAULT_FRAME_INTERVAL);
         }
 		
+		/**
+		 * 镜头旋转计时器
+		 */		
 		private function onDurateRotateTick():void
 		{
 			if (!this.checkSceneValid())
@@ -589,36 +584,57 @@
 			}
 		}
 		
-        public function zoomDuration(speed:Number, duration:uint):void
+		/**
+		 * 摄像机是否正在跟踪
+		 * @return 
+		 */		
+		public function isPlayerTrack():Boolean
 		{
-            this.m_zoomSpeedOnTick = (speed / 1000) * Animation.DEFAULT_FRAME_INTERVAL;
-            this.m_zoomEndTime = getTimer() + duration;
-            BaseApplication.instance.addTick(this.m_zoomTick, Animation.DEFAULT_FRAME_INTERVAL);
-        }
-		
-		private function onZoomTick():void
-		{
-			if (!this.checkSceneValid())
-			{
-				BaseApplication.instance.removeTick(this.m_zoomTick);
-				return;
-			}
-			
-			var curTime:int = getTimer();
-			if (curTime >= this.m_zoomEndTime)
-			{
-				BaseApplication.instance.removeTick(this.m_zoomTick);
-				return;
-			}
-			
-			var pos:Vector3D = this.m_camera.offsetFromLookAt;
-			var dir:Vector3D = this.m_camera.lookDirection.clone();
-			dir.scaleBy(this.m_zoomSpeedOnTick);
-			pos.incrementBy(dir);
-			this.m_cameraDistBeforeHitBlock = Math.min(this.m_sceneCameraInfo.m_distToTarget, pos.length);
-			this.m_camera.offsetFromLookAt = pos;
+			return this.m_cameraTrackReplayer.playing;
 		}
 		
+		/**
+		 * 设置摄像机偏移
+		 * @param offset
+		 * @param time
+		 */		
+		public function setCameraOffset(offset:Vector3D, time:uint=0):void
+		{
+			this.startCameraTransition(this.m_camera.lookAtPos.add(offset), this.m_camera.lookAtPos, time);
+		}
+		
+		/**
+		 * 开始摄像机跟踪
+		 */		
+		public function startCameraTrack():void
+		{
+			this.m_offsetBeforeTrackReplay.copyFrom(this.m_camera.offsetFromLookAt);
+			this.m_lookAtBeforeTrackReplay.copyFrom(this.m_camera.lookAtPos);
+		}
+		
+		/**
+		 * 停止摄像机跟踪
+		 * @param time
+		 */		
+		public function stopCameraTrack(time:uint=0):void
+		{
+			BaseApplication.instance.removeTick(this.m_durateRotateTick);
+			BaseApplication.instance.removeTick(this.m_zoomTick);
+			if (!this.m_offsetBeforeTrackReplay.equals(MathUtl.EMPTY_VECTOR3D))
+			{
+				this.startCameraTransition(this.m_lookAtBeforeTrackReplay.add(this.m_offsetBeforeTrackReplay), this.m_lookAtBeforeTrackReplay, time);
+				this.m_offsetBeforeTrackReplay.copyFrom(MathUtl.EMPTY_VECTOR3D);
+			}
+		}
+		
+		/**
+		 * 开始摄像机平移
+		 * @param target
+		 * @param lookAtPos
+		 * @param time
+		 * @param cParam
+		 * @param isSyn
+		 */		
         public function startCameraTransition(target:Vector3D, lookAtPos:Vector3D, time:uint, cParam:CameraTransitParam=null, isSyn:Boolean=false):void
 		{
             var logicScene:LogicScene = BaseApplication.instance.curLogicScene;
@@ -689,16 +705,26 @@
             }
         }
 		
+		/**
+		 * 停止摄像机平移
+		 */		
         public function stopCameraTransition():void
 		{
             this.m_cameraTrackReplayer.stop();
         }
 		
+		/**
+		 * 检测场景是否有效
+		 * @return 
+		 */		
         private function checkSceneValid():Boolean
 		{
             return (BaseApplication.instance.renderer as DeltaXRenderer).mainRenderScene != null;
         }
 		
+		/**
+		 * 摄像机失效
+		 */		
         private function invalidCamera():void
 		{
             this.m_needInvalid = true;

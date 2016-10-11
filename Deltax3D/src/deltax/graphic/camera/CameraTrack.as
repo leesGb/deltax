@@ -1,68 +1,136 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.camera {
-    import __AS3__.vec.*;
-
-    public class CameraTrack {
-
+﻿package deltax.graphic.camera 
+{
+	/**
+	 * 摄像机跟踪器
+	 * @author lees
+	 * @date 2015/09/08
+	 */	
+    public class CameraTrack 
+	{
+		/**摄像机关键帧列表*/
         private var m_keyFrames:Vector.<CameraTrackKeyFrame>;
+		/**总时间*/
         private var m_totalTime:uint;
+		/**总时间是否失效*/
         private var m_totalTimeInvalid:Boolean = true;
 
-        public function CameraTrack(){
+        public function CameraTrack()
+		{
             this.m_keyFrames = new Vector.<CameraTrackKeyFrame>();
-            super();
         }
-        public function addKeyFrame(_arg1:CameraTrackKeyFrame):uint{
-            if (this.m_keyFrames.length == 0){
-                _arg1.durationFromPrevFrame = 0;
-            };
-            this.m_keyFrames.push(_arg1);
+		
+		/**
+		 * 添加关键帧
+		 * @param keyFrame
+		 * @return 
+		 */		
+        public function addKeyFrame(keyFrame:CameraTrackKeyFrame):uint
+		{
+            if (this.m_keyFrames.length == 0)
+			{
+				keyFrame.durationFromPrevFrame = 0;
+            }
+			
+            this.m_keyFrames.push(keyFrame);
             this.m_totalTimeInvalid = true;
-            return ((this.m_keyFrames.length - 1));
+            return (this.m_keyFrames.length - 1);
         }
-        public function getKeyFrame(_arg1:uint):CameraTrackKeyFrame{
-            return (((_arg1 >= this.m_keyFrames.length)) ? null : this.m_keyFrames[_arg1]);
+		
+		/**
+		 * 获取关键帧
+		 * @param idx
+		 * @return 
+		 */		
+        public function getKeyFrame(idx:uint):CameraTrackKeyFrame
+		{
+            return idx >= this.m_keyFrames.length ? null : this.m_keyFrames[idx];
         }
-        public function setKeyFrame(_arg1:uint, _arg2:CameraTrackKeyFrame):void{
-            if (_arg1 < this.m_keyFrames.length){
-                this.m_keyFrames[_arg1].copyFrom(_arg2);
+		
+		/**
+		 * 设置关键帧
+		 * @param idx
+		 * @param keyFrame
+		 */		
+        public function setKeyFrame(idx:uint, keyFrame:CameraTrackKeyFrame):void
+		{
+            if (idx < this.m_keyFrames.length)
+			{
+                this.m_keyFrames[idx].copyFrom(keyFrame);
                 this.m_totalTimeInvalid = true;
-            };
+            }
         }
-        public function insertKeyFrame(_arg1:uint, _arg2:CameraTrackKeyFrame):void{
-            this.m_keyFrames.splice(_arg1, 0, _arg2);
+		
+		/**
+		 * 插入关键帧
+		 * @param idx
+		 * @param keyFrame
+		 */		
+        public function insertKeyFrame(idx:uint, keyFrame:CameraTrackKeyFrame):void
+		{
+            this.m_keyFrames.splice(idx, 0, keyFrame);
             this.m_totalTimeInvalid = true;
         }
-        public function getKeyFrameCount():uint{
-            return (this.m_keyFrames.length);
+		
+		/**
+		 * 获取关键帧数量
+		 * @return 
+		 */		
+        public function getKeyFrameCount():uint
+		{
+            return this.m_keyFrames.length;
         }
-        public function removeKeyFrame(_arg1:uint):void{
-            if (_arg1 >= this.m_keyFrames.length){
+		
+		/**
+		 * 移除指定索引的关键帧
+		 * @param idx
+		 */		
+        public function removeKeyFrame(idx:uint):void
+		{
+            if (idx >= this.m_keyFrames.length)
+			{
                 return;
-            };
-            this.m_keyFrames.splice(_arg1, 1);
+            }
+            this.m_keyFrames.splice(idx, 1);
             this.m_totalTimeInvalid = true;
         }
-        public function removeAllKeyFrames():void{
+		
+		/**
+		 * 移除所有关键帧
+		 */		
+        public function removeAllKeyFrames():void
+		{
             this.m_keyFrames.length = 0;
             this.m_totalTimeInvalid = true;
         }
-        private function calcTotalTime():void{
+		
+		/**
+		 * 计算跟踪的总时间
+		 */		
+        private function calcTotalTime():void
+		{
             this.m_totalTime = 0;
-            var _local1:uint = this.getKeyFrameCount();
-            var _local2:uint;
-            while (_local2 < _local1) {
-                this.m_totalTime = (this.m_totalTime + this.m_keyFrames[_local2].durationFromPrevFrame);
-                _local2++;
-            };
+            var count:uint = this.getKeyFrameCount();
+            var idx:uint;
+            while (idx < count) 
+			{
+                this.m_totalTime += this.m_keyFrames[idx].durationFromPrevFrame;
+				idx++;
+            }
         }
-        public function getTrackTotalTime():uint{
-            if (this.m_totalTimeInvalid){
+		
+		/**
+		 * 获取跟踪总时间
+		 * @return 
+		 */		
+        public function getTrackTotalTime():uint
+		{
+            if (this.m_totalTimeInvalid)
+			{
                 this.calcTotalTime();
                 this.m_totalTimeInvalid = false;
-            };
-            return (this.m_totalTime);
+            }
+            return this.m_totalTime;
         }
 
     }
-}//package deltax.graphic.camera 
+} 
