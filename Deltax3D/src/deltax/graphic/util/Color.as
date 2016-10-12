@@ -1,5 +1,7 @@
 ﻿package deltax.graphic.util 
 {
+	import deltax.common.math.MathConsts;
+
     public final class Color 
 	{
         public static const WHITE:uint = 0xffffffff;
@@ -25,10 +27,10 @@
         }
         public static function copyToRGBAVector(colorV:uint, colorVec:Vector.<Number>, index:uint=0):void
 		{
-			colorVec[index] = (((colorV >>> 16) & 0xFF) / 0xFF);
-			colorVec[(index + 1)] = (((colorV >>> 8) & 0xFF) / 0xFF);
-			colorVec[(index + 2)] = ((colorV & 0xFF) / 0xFF);
-			colorVec[(index + 3)] = ((colorV >>> 24) / 0xFF);
+			colorVec[index] = ((colorV >>> 16) & 0xFF) * MathConsts.PER_255;
+			colorVec[(index + 1)] = ((colorV >>> 8) & 0xFF) * MathConsts.PER_255;
+			colorVec[(index + 2)] = (colorV & 0xFF) * MathConsts.PER_255;
+			colorVec[(index + 3)] = (colorV >>> 24) * MathConsts.PER_255;
         }
 
         public function get A():uint

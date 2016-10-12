@@ -33,7 +33,6 @@ package deltax.common.error {
                 serverName = ((StartUpParams.getParam("server_name")) || ("null"));
                 accountName = ((StartUpParams.getParam("account")) || ("null"));
                 charName = ((StartUpParams.getParam("charName")) || ("null"));
-                date = ConnectionToGameServer.getServerDate();
                 dateStr = printf("%04d-%02d-%02d %02d:%02d:%02d", date.fullYear, (date.month + 1), date.date, date.hours, date.minutes, date.seconds);
                 errorStr = e.message;
                 if (Capabilities.isDebugger){

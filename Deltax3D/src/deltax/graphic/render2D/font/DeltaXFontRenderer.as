@@ -1,14 +1,19 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.render2D.font {
-    import flash.display3D.*;
-    import deltax.graphic.manager.*;
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import flash.utils.*;
-    import deltax.graphic.shader.*;
-    import deltax.graphic.render2D.rect.*;
+﻿package deltax.graphic.render2D.font 
+{
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DBlendFactor;
+    import flash.display3D.Context3DCompareMode;
+    import flash.display3D.Context3DTriangleFace;
+    import flash.geom.Rectangle;
+    import flash.utils.Dictionary;
+    
+    import deltax.graphic.manager.DeltaXSubGeometryManager;
+    import deltax.graphic.manager.ShaderManager;
+    import deltax.graphic.render2D.rect.DeltaXRectRenderer;
+    import deltax.graphic.shader.DeltaXProgram3D;
 
-    public class DeltaXFontRenderer {
+    public class DeltaXFontRenderer 
+	{
 
         public static var FLUSH_COUNT:uint;
         private static var m_instance:DeltaXFontRenderer;
@@ -133,7 +138,7 @@ package deltax.graphic.render2D.font {
         }
 
     }
-}//package deltax.graphic.render2D.font 
+}
 
 class SingletonEnforcer {
 

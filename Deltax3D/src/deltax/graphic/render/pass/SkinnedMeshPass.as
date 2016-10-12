@@ -1,117 +1,131 @@
 ﻿package deltax.graphic.render.pass 
 {
-    import __AS3__.vec.*;
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DBlendFactor;
+    import flash.display3D.Context3DCompareMode;
+    import flash.display3D.Context3DTriangleFace;
+    import flash.display3D.IndexBuffer3D;
+    import flash.display3D.VertexBuffer3D;
+    import flash.geom.Matrix3D;
     
-    import deltax.*;
-    import deltax.common.math.*;
-    import deltax.graphic.animation.*;
-    import deltax.graphic.camera.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.material.*;
-    import deltax.graphic.render.*;
-    import deltax.graphic.scenegraph.object.*;
-    import deltax.graphic.scenegraph.traverse.*;
-    import deltax.graphic.shader.*;
-    import deltax.graphic.texture.*;
-    
-    import flash.display3D.*;
-    import flash.geom.*;
+    import deltax.delta;
+    import deltax.common.math.MathUtl;
+    import deltax.graphic.animation.EnhanceSkeletonAnimationState;
+    import deltax.graphic.animation.EnhanceSkinnedSubGeometry;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.manager.BitmapMergeInfo;
+    import deltax.graphic.manager.DeltaXTextureManager;
+    import deltax.graphic.manager.OcclusionManager;
+    import deltax.graphic.manager.ShaderManager;
+    import deltax.graphic.material.SkinnedMeshMaterial;
+    import deltax.graphic.render.DeltaXRenderer;
+    import deltax.graphic.scenegraph.object.IRenderable;
+    import deltax.graphic.scenegraph.object.RenderObject;
+    import deltax.graphic.scenegraph.object.RenderScene;
+    import deltax.graphic.scenegraph.object.SubMesh;
+    import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
+    import deltax.graphic.shader.DeltaXProgram3D;
+    import deltax.graphic.texture.DeltaXTexture;
+	
+	/**
+	 * 蒙皮网格材质渲染程序类
+	 * @author lees
+	 * @date 2015/09/25
+	 */	
 
     public class SkinnedMeshPass extends MaterialPassBase 
 	{
 
         protected static var m_tempMatrixVector:Vector.<Number> = new Vector.<Number>(16);
-
+		
+		/**着色器程序*/
         protected var m_program3D:DeltaXProgram3D;
+		/**纹理列表*/
         protected var m_aryTexture:Vector.<DeltaXTexture>;
+		/**渲染前的透明度*/
         private var m_preAlphaInRender:Number = 1;
+		/**能否进行材质修改*/
         delta var m_enableMaterialModifier:Boolean = true;
 
-        public function SkinnedMeshPass(_arg1:Vector.<Vector.<BitmapMergeInfo>>, _arg2:SkinnedMeshMaterial)
+        public function SkinnedMeshPass($bitmapList:Vector.<Vector.<BitmapMergeInfo>>, $material:SkinnedMeshMaterial)
 		{
-            var _local3:uint;
-            if (_arg1.length == 0)
+            if ($bitmapList.length == 0)
 			{
                 this.m_aryTexture = new Vector.<DeltaXTexture>(1);
-                this.m_aryTexture[_local3] = DeltaXTextureManager.instance.createTexture(null);
+                this.m_aryTexture[0] = DeltaXTextureManager.instance.createTexture(null);
             } else
 			{
-                this.m_aryTexture = new Vector.<DeltaXTexture>(_arg1.length);
-                _local3 = 0;
-                while (_local3 < this.m_aryTexture.length) 
+                this.m_aryTexture = new Vector.<DeltaXTexture>($bitmapList.length);
+				var idx:uint = 0;
+                while (idx < this.m_aryTexture.length) 
 				{
-                    this.m_aryTexture[_local3] = DeltaXTextureManager.instance.createTexture(_arg1[_local3]);
-                    _local3++;
+                    this.m_aryTexture[idx] = DeltaXTextureManager.instance.createTexture($bitmapList[idx]);
+					idx++;
                 }
             }
-            material = _arg2;
-            this.m_program3D = ShaderManager.instance.getProgram3D(_arg2.shader);
+			
+            material = $material;
+            this.m_program3D = ShaderManager.instance.getProgram3D($material.shader);
         }
 		
-        override public function dispose():void
-		{
-            var _local1:uint;
-            while (_local1 < this.m_aryTexture.length) 
-			{
-                if (!this.m_aryTexture[_local1])
-				{
-					
-                } else 
-				{
-                    this.m_aryTexture[_local1].release();
-                    this.m_aryTexture[_local1] = null;
-                }
-                _local1++;
-            }
-        }
-		
+		/**
+		 * 获取渲染程序的材质类
+		 * @return 
+		 */		
         public function get skinnedMeshMaterial():SkinnedMeshMaterial
 		{
-            return (SkinnedMeshMaterial(material));
+            return SkinnedMeshMaterial(material);
         }
 		
+		/**
+		 * 着色器程序
+		 * @return 
+		 */		
         public function get program3D():DeltaXProgram3D
 		{
-            return (this.m_program3D);
+            return this.m_program3D;
         }
-		
-        public function set program3D(_arg1:DeltaXProgram3D):void
+        public function set program3D(va:DeltaXProgram3D):void
 		{
-            this.m_program3D = _arg1;
+            this.m_program3D = va;
         }
 		
-        public function isSameTexture(_arg1:DeltaXTexture):Boolean
+		/**
+		 * 是否为相同的纹理
+		 * @param texture
+		 * @return 
+		 */		
+        public function isSameTexture(texture:DeltaXTexture):Boolean
 		{
             if (this.m_aryTexture.length != 1)
 			{
-                return (false);
+                return false;
             }
-            return ((this.m_aryTexture[0] == _arg1));
+			
+            return (this.m_aryTexture[0] == texture);
         }
 		
-        public function beforeDrawPrimitive(renderable:IRenderable, context3d:Context3D, camera:Camera3D):void
+		/**
+		 * 绘制几何体前的一些数据设置
+		 * @param renderable
+		 * @param context
+		 * @param camera
+		 */		
+        public function beforeDrawPrimitive(renderable:IRenderable, context:Context3D, camera:Camera3D):void
 		{
-            var tMat:Matrix3D;
-            var sSubGeometry:EnhanceSkinnedSubGeometry;
-            var vParamResterCount:int;
-            var vParamResterStarIndex:int;
-            var vParamCachList:Vector.<Number>;
-            var skeletalDataCount:uint;
-            var dataIndex:uint;
-            var _local14:Vector.<Number>;
-            var _local15:Number;
+			var subMesh:SubMesh = SubMesh(renderable);
             if (!renderable.animationState)
 			{
-				tMat = MathUtl.TEMP_MATRIX3D;
+				var tMat:Matrix3D = MathUtl.TEMP_MATRIX3D;
 				tMat.copyFrom(renderable.sceneTransform);
 				tMat.append(camera.inverseSceneTransform);
-				sSubGeometry = EnhanceSkinnedSubGeometry(SubMesh(renderable).subGeometry);
-				vParamResterCount = this.m_program3D.getVertexParamRegisterCount(DeltaXProgram3D.WORLDVIEW);
-				vParamResterStarIndex = (this.m_program3D.getVertexParamRegisterStartIndex(DeltaXProgram3D.WORLDVIEW) << 2);
-				vParamCachList = this.m_program3D.getVertexParamCache();
-				skeletalDataCount = (sSubGeometry.associatePiece.local2GlobalIndex.length * 12);
+				var sSubGeometry:EnhanceSkinnedSubGeometry = EnhanceSkinnedSubGeometry(subMesh.subGeometry);
+				var vParamResterCount:int = this.m_program3D.getVertexParamRegisterCount(DeltaXProgram3D.WORLDVIEW);
+				var vParamResterStarIndex:int = this.m_program3D.getVertexParamRegisterStartIndex(DeltaXProgram3D.WORLDVIEW) << 2;
+				var vParamCachList:Vector.<Number> = this.m_program3D.getVertexParamCache();
+				var skeletalDataCount:uint = sSubGeometry.associatePiece.local2GlobalIndex.length * 12;
 				tMat.copyRawDataTo(m_tempMatrixVector, 0, true);
-				dataIndex = 0;
+				var dataIndex:uint = 0;
                 while (dataIndex < skeletalDataCount) 
 				{
 					vParamCachList[vParamResterStarIndex] = m_tempMatrixVector[(dataIndex % 12)];
@@ -121,169 +135,226 @@
             } else 
 			{
 				var state:EnhanceSkeletonAnimationState = EnhanceSkeletonAnimationState(renderable.animationState); 
-				state.setEnhanceRenderState(context3d, this, renderable);
+				state.setEnhanceRenderState(context, this, renderable);
             }
-            var _local4:RenderObject = (SubMesh(renderable).sourceEntity as RenderObject);
-            var _local5:SkinnedMeshMaterial = this.skinnedMeshMaterial;
-            if (_local4.emissive)
+			
+            var renderObj:RenderObject = subMesh.sourceEntity as RenderObject;
+            var sMaterial:SkinnedMeshMaterial = this.skinnedMeshMaterial;
+			var alpha:Number = renderObj.alpha;
+			
+            if (renderObj.emissive)
 			{
-                this.m_program3D.setParamNumberVector(DeltaXProgram3D.EMISSIVEMATERIAL, _local4.emissive);
+                this.m_program3D.setParamNumberVector(DeltaXProgram3D.EMISSIVEMATERIAL, renderObj.emissive);
             } else 
 			{
-                this.m_program3D.setParamNumberVector(DeltaXProgram3D.EMISSIVEMATERIAL, _local5.emissive);
+                this.m_program3D.setParamNumberVector(DeltaXProgram3D.EMISSIVEMATERIAL, sMaterial.emissive);
             }
-            var _local6:Number = _local4.alpha;
-            if (_local6 < 1)
+			
+            if (alpha < 1)
 			{
-				context3d.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
-                this.m_preAlphaInRender = _local5.diffuse[3];
-                _local5.diffuse[3] = (_local5.diffuse[3] * _local6);
-                this.m_program3D.setParamNumberVector(DeltaXProgram3D.DIFFUSEMATERIAL, _local5.diffuse);
-                this.m_program3D.setParamValue(DeltaXProgram3D.ALPHAREF, (_local5.alphaRef * (_local6 + 0.001)), 0, 0, 0);
+				context.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
+                this.m_preAlphaInRender = sMaterial.diffuse[3];
+				sMaterial.diffuse[3] *= alpha;
+                this.m_program3D.setParamNumberVector(DeltaXProgram3D.DIFFUSEMATERIAL, sMaterial.diffuse);
+                this.m_program3D.setParamValue(DeltaXProgram3D.ALPHAREF, (sMaterial.alphaRef * (alpha + 0.001)), 0, 0, 0);
             }
-            if (_local4.occlusionEffect)
+			
+            if (renderObj.occlusionEffect)
 			{
                 if (OcclusionManager.Instance.inOcclusionEffectRendering)
 				{
-					context3d.setDepthTest(false, Context3DCompareMode.ALWAYS);
-					context3d.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
-					context3d.setCulling(Context3DTriangleFace.BACK);
-                    _local14 = _local5.diffuse;
-                    _local15 = (_local6 * 0.5);
-                    this.m_program3D.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, _local14[0], _local14[1], _local14[2], (_local14[3] * _local15));
-                    this.m_program3D.setParamValue(DeltaXProgram3D.ALPHAREF, (_local5.alphaRef * _local15), 0, 0, 0);
+					context.setDepthTest(false, Context3DCompareMode.ALWAYS);
+					context.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
+					context.setCulling(Context3DTriangleFace.BACK);
+					var diffuses:Vector.<Number> = sMaterial.diffuse;
+					var halfAlpha:Number = alpha * 0.5;
+                    this.m_program3D.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, diffuses[0], diffuses[1], diffuses[2], (diffuses[3] * halfAlpha));
+                    this.m_program3D.setParamValue(DeltaXProgram3D.ALPHAREF, (sMaterial.alphaRef * halfAlpha), 0, 0, 0);
                 }
-				context3d.setStencilReferenceValue(1);
+				context.setStencilReferenceValue(1);
             }
         }
 		
-        public function afterDrawPrimitive(_arg1:IRenderable, _arg2:Context3D, _arg3:Camera3D):void
+		/**
+		 * 几何体绘制结束后的一些设置
+		 * @param renderable
+		 * @param context
+		 * @param camera
+		 */		
+        public function afterDrawPrimitive(renderable:IRenderable, context:Context3D, camera:Camera3D):void
 		{
-            var _local5:SkinnedMeshMaterial;
-            var _local4:RenderObject = (SubMesh(_arg1).sourceEntity as RenderObject);
-            if (_local4.alpha < 1)
+            var sMaterial:SkinnedMeshMaterial;
+            var renderObj:RenderObject = SubMesh(renderable).sourceEntity as RenderObject;
+            if (renderObj.alpha < 1)
 			{
-                _local5 = this.skinnedMeshMaterial;
-                _local5.diffuse[3] = this.m_preAlphaInRender;
-                this.m_program3D.setParamNumberVector(DeltaXProgram3D.DIFFUSEMATERIAL, _local5.diffuse);
-                _arg2.setBlendFactors(this.skinnedMeshMaterial.srcBlendFactor, _local5.desBlendFactor);
-                this.m_program3D.setParamValue(DeltaXProgram3D.ALPHAREF, _local5.alphaRef, 0, 0, 0);
+				sMaterial = this.skinnedMeshMaterial;
+				sMaterial.diffuse[3] = this.m_preAlphaInRender;
+                this.m_program3D.setParamNumberVector(DeltaXProgram3D.DIFFUSEMATERIAL, sMaterial.diffuse);
+				context.setBlendFactors(this.skinnedMeshMaterial.srcBlendFactor, sMaterial.desBlendFactor);
+                this.m_program3D.setParamValue(DeltaXProgram3D.ALPHAREF, sMaterial.alphaRef, 0, 0, 0);
             }
-            if (_local4.emissive)
+			
+            if (renderObj.emissive)
 			{
-                _local5 = ((_local5) || (this.skinnedMeshMaterial));
-                this.m_program3D.setParamNumberVector(DeltaXProgram3D.EMISSIVEMATERIAL, _local5.emissive);
+				sMaterial = ((sMaterial) || (this.skinnedMeshMaterial));
+                this.m_program3D.setParamNumberVector(DeltaXProgram3D.EMISSIVEMATERIAL, sMaterial.emissive);
             }
-            if (_local4.occlusionEffect)
+			
+            if (renderObj.occlusionEffect)
 			{
-                _arg2.setStencilReferenceValue(0);
+				context.setStencilReferenceValue(0);
             }
         }
 		
-        override public function render(_arg1:IRenderable, _arg2:Context3D, _arg3:DeltaXEntityCollector):void
+		/**
+		 * 手动重设纹理
+		 * @param idx
+		 * @param context
+		 */		
+        public function resetTextureManually(idx:int, context:Context3D):void
 		{
-            var _local9:int;
-            var _local4:Camera3D = _arg3.camera;
-            this.beforeDrawPrimitive(_arg1, _arg2, _local4);
-            var _local5:RenderObject = (SubMesh(_arg1).sourceEntity as RenderObject);
-            var _local6:uint = (this.delta::m_enableMaterialModifier) ? _local5.materialModifierCount : 0;
-            if (_local6)
-			{
-                _local9 = 0;
-                while (_local9 < _local6) 
-				{
-                    _local5.getMaterialModifierByIndex(_local9).apply(_arg2, this, _arg1, _arg3);
-                    _local9++;
-                }
-            }
-            var _local7:VertexBuffer3D = _arg1.getVertexBuffer(_arg2);
-            var _local8:IndexBuffer3D = _arg1.getIndexBuffer(_arg2);
-            if (((_local7) && (_local8)))
-			{
-                this.m_program3D.setLightToViewSpace((_arg3 as DeltaXEntityCollector), _local5.position);
-                this.m_program3D.update(_arg2);
-                this.m_program3D.setVertexBuffer(_arg2, _local7);
-                _arg2.drawTriangles(_local8, 0, _arg1.numTriangles);
-            }
-            if (_local6)
-			{
-                _local9 = (_local6 - 1);
-                while (_local9 >= 0) 
-				{
-                    _local5.getMaterialModifierByIndex(_local9).restore(_arg2, this, _arg1, _arg3);
-                    _local9--;
-                }
-            }
-            this.afterDrawPrimitive(_arg1, _arg2, _local4);
+            var tIdx:int = Math.min(idx, (this.m_aryTexture.length - 1));
+            this.m_program3D.setSampleTexture(idx, this.m_aryTexture[tIdx].getTextureForContext(context));
         }
 		
-        public function resetTextureManually(_arg1:int, _arg2:Context3D):void
+		/**
+		 * 着色器程序重设
+		 * @param program
+		 * @param context
+		 * @param isActive
+		 */		
+        public function resetProgram(program:DeltaXProgram3D, context:Context3D, isActive:Boolean=true):void
 		{
-            var _local3:int = Math.min(_arg1, (this.m_aryTexture.length - 1));
-            this.m_program3D.setSampleTexture(_arg1, this.m_aryTexture[_local3].getTextureForContext(_arg2));
-        }
-		
-        public function resetProgram(_arg1:DeltaXProgram3D, _arg2:Context3D, _arg3:Boolean=true):void
-		{
-            if (this.m_program3D != _arg1)
+            if (this.m_program3D != program)
 			{
-                this.m_program3D.deactivate(_arg2);
+                this.m_program3D.deactivate(context);
             }
-            this.m_program3D = _arg1;
-            if (_arg3)
+			
+            this.m_program3D = program;
+            if (isActive)
 			{
-                this.activate(_arg2, null);
+                this.activate(context, null);
             } else 
 			{
-                _arg2.setProgram(_arg1.getProgram3D(_arg2));
+				context.setProgram(program.getProgram3D(context));
             }
 		}
         
+		/**
+		 * 获取纹理数量
+		 * @return 
+		 */		
         public function get textureCount():uint
 		{
-            return (this.m_aryTexture.length);
+            return this.m_aryTexture.length;
         }
 		
-        public function getTexture(_arg1:uint):DeltaXTexture
+		/**
+		 * 获取指定索引处的纹理
+		 * @param idx
+		 * @return 
+		 */		
+        public function getTexture(idx:uint):DeltaXTexture
 		{
-            return (((_arg1 >= this.m_aryTexture.length)) ? null : this.m_aryTexture[_arg1]);
+            return (idx >= this.m_aryTexture.length) ? null : this.m_aryTexture[idx];
         }
 		
-        override public function activate(_arg1:Context3D, _arg2:Camera3D):void
-		{
-            _arg1.setProgram(this.m_program3D.getProgram3D(_arg1));
-            var _local3:uint;
-            var _local4:uint;
-            while (_local4 < this.m_program3D.getSampleRegisterCount()) 
-			{
-                _local3 = Math.min(_local4, (this.m_aryTexture.length - 1));
-                this.m_program3D.setSampleTexture(_local4, this.m_aryTexture[_local3].getTextureForContext(_arg1));
-                _local4++;
-            }
-            var _local5:RenderScene = DeltaXRenderer.instance.mainRenderScene;
-            if (_local5)
-			{
-                this.m_program3D.setParamTexture(DeltaXProgram3D.SHADOWSAMPLE, _local5.getShadowMap(_arg1));
-            }
-            this.m_program3D.setParamNumberVector(DeltaXProgram3D.DIFFUSEMATERIAL, this.skinnedMeshMaterial.diffuse);
-            this.m_program3D.setParamNumberVector(DeltaXProgram3D.SHADOWMAPMASK, this.skinnedMeshMaterial.shadowMask);
-            this.m_program3D.setParamValue(DeltaXProgram3D.ALPHAREF, this.skinnedMeshMaterial.alphaRef, 0, 0, 0);
-            this.m_program3D.setParamNumberVector(DeltaXProgram3D.TEXTUREMATRIX, MathUtl.IDENTITY_TWO_LAYER_TEXTURE_MATRIX_DATA);
-            _arg1.setBlendFactors(this.skinnedMeshMaterial.srcBlendFactor, this.skinnedMeshMaterial.desBlendFactor);
-            _arg1.setCulling(this.skinnedMeshMaterial.cullMode);
-            _arg1.setDepthTest(this.skinnedMeshMaterial.depthWrite, this.skinnedMeshMaterial.depthCompareMode);
-        }
-		
-        override public function deactivate(_arg1:Context3D):void
-		{
-            this.m_program3D.deactivate(_arg1);
-        }
-		
+		/**
+		 * 重置指定名字处的应用纹理
+		 * @param name
+		 */		
 		public function resetApplyTexture(name:String):void
 		{
 			this.m_aryTexture[0] = DeltaXTextureManager.instance.createTexture(name);
 		}
-
+		
+        override public function activate(context:Context3D, camera:Camera3D):void
+		{
+			context.setProgram(this.m_program3D.getProgram3D(context));
+            var tIdx:uint;
+            var idx:uint;
+            while (idx < this.m_program3D.getSampleRegisterCount()) 
+			{
+				tIdx = Math.min(idx, (this.m_aryTexture.length - 1));
+                this.m_program3D.setSampleTexture(idx, this.m_aryTexture[tIdx].getTextureForContext(context));
+				idx++;
+            }
+			
+            var renderScene:RenderScene = DeltaXRenderer.instance.mainRenderScene;
+            if (renderScene)
+			{
+                this.m_program3D.setParamTexture(DeltaXProgram3D.SHADOWSAMPLE, renderScene.getShadowMap(context));
+            }
+			
+            this.m_program3D.setParamNumberVector(DeltaXProgram3D.DIFFUSEMATERIAL, this.skinnedMeshMaterial.diffuse);
+            this.m_program3D.setParamNumberVector(DeltaXProgram3D.SHADOWMAPMASK, this.skinnedMeshMaterial.shadowMask);
+            this.m_program3D.setParamValue(DeltaXProgram3D.ALPHAREF, this.skinnedMeshMaterial.alphaRef, 0, 0, 0);
+            this.m_program3D.setParamNumberVector(DeltaXProgram3D.TEXTUREMATRIX, MathUtl.IDENTITY_TWO_LAYER_TEXTURE_MATRIX_DATA);
+			context.setBlendFactors(this.skinnedMeshMaterial.srcBlendFactor, this.skinnedMeshMaterial.desBlendFactor);
+			context.setCulling(this.skinnedMeshMaterial.cullMode);
+			context.setDepthTest(this.skinnedMeshMaterial.depthWrite, this.skinnedMeshMaterial.depthCompareMode);
+        }
+		
+		override public function render(renderable:IRenderable, context:Context3D, collector:DeltaXEntityCollector):void
+		{
+			var camera:Camera3D = collector.camera;
+			this.beforeDrawPrimitive(renderable, context, camera);
+			
+			var idx:int;
+			var renderObj:RenderObject = SubMesh(renderable).sourceEntity as RenderObject;
+			var mCount:uint = this.delta::m_enableMaterialModifier ? renderObj.materialModifierCount : 0;
+			if (mCount)
+			{
+				idx = 0;
+				while (idx < mCount) 
+				{
+					renderObj.getMaterialModifierByIndex(idx).apply(context, this, renderable, collector);
+					idx++;
+				}
+			}
+			
+			var vertextBuffer:VertexBuffer3D = renderable.getVertexBuffer(context);
+			var indexBuffer:IndexBuffer3D = renderable.getIndexBuffer(context);
+			if (vertextBuffer && indexBuffer)
+			{
+				this.m_program3D.setLightToViewSpace(collector, renderObj.position);
+				this.m_program3D.update(context);
+				this.m_program3D.setVertexBuffer(context, vertextBuffer);
+				context.drawTriangles(indexBuffer, 0, renderable.numTriangles);
+			}
+			
+			if (mCount)
+			{
+				idx = mCount - 1;
+				while (idx >= 0) 
+				{
+					renderObj.getMaterialModifierByIndex(idx).restore(context, this, renderable, collector);
+					idx--;
+				}
+			}
+			
+			this.afterDrawPrimitive(renderable, context, camera);
+		}
+		
+        override public function deactivate(context:Context3D):void
+		{
+            this.m_program3D.deactivate(context);
+        }
+		
+		override public function dispose():void
+		{
+			var idx:uint;
+			while (idx < this.m_aryTexture.length) 
+			{
+				if (this.m_aryTexture[idx])
+				{
+					this.m_aryTexture[idx].release();
+					this.m_aryTexture[idx] = null;
+				}
+				idx++;
+			}
+		}
+		
 		
 		
     }

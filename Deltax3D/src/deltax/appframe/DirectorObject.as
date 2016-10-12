@@ -1,16 +1,19 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.appframe {
-    import deltax.graphic.map.*;
-    import deltax.graphic.camera.*;
-    import deltax.graphic.manager.*;
-    import deltax.common.*;
-    import flash.geom.*;
-    import flash.utils.*;
-    import deltax.common.searchpath.*;
-    import deltax.graphic.light.*;
-    import deltax.graphic.effect.*;
-    import deltax.network.coreconn.protocal.togameserver.*;
-    import deltax.*;
+﻿package deltax.appframe 
+{
+    import flash.geom.Point;
+    import flash.utils.ByteArray;
+    import flash.utils.getQualifiedClassName;
+    import flash.utils.getTimer;
+    
+    import deltax.delta;
+    import deltax.common.LittleEndianByteArray;
+    import deltax.common.searchpath.AStarPathSearcher;
+    import deltax.graphic.camera.CameraController;
+    import deltax.graphic.effect.EffectManager;
+    import deltax.graphic.light.DeltaXPointLight;
+    import deltax.graphic.light.MainPlayerPointLight;
+    import deltax.graphic.manager.StepTimeManager;
+    import deltax.graphic.map.MapConstants;
 
     public class DirectorObject extends FollowerObject {
 
@@ -18,8 +21,6 @@ package deltax.appframe {
 
         delta static var m_onlyOneDirector:DirectorObject;
         delta static var m_onlyOneDirectorID:Number;
-        private static var m_directorMoveMsg:ProtocalToGameServer_DirectorMove = new ProtocalToGameServer_DirectorMove();
-        private static var m_directorStopMsg:ProtocalToGameServer_DirectorStop = new ProtocalToGameServer_DirectorStop();
 
         private var m_curMoveDestPixel:Point;
         private var m_curIndexInRoute:uint;
@@ -105,15 +106,6 @@ package deltax.appframe {
             m_moveDir.normalize(1);
             m_speed = _arg3;
             this.onMoveTo(_arg2, _arg3);
-            if (this.m_active){
-                m_directorMoveMsg.posSrcPixelX = _arg1.x;
-                m_directorMoveMsg.posSrcPixelY = _arg1.y;
-                m_directorMoveMsg.posDesPixelX = _arg2.x;
-                m_directorMoveMsg.posDesPixelY = _arg2.y;
-                m_directorMoveMsg.speed = _arg3;
-                m_directorMoveMsg.time = m_lastMoveTickTime;
-				return;
-            };
         }
         override public function moveTo(_arg1:Point, _arg2:uint):void{
             this.m_curIndexInRoute = 1;
@@ -164,13 +156,6 @@ package deltax.appframe {
         }
         override public function stop(_arg1:Point, _arg2:uint):void{
             super.stop(_arg1, _arg2);
-            if (this.m_active){
-                m_directorStopMsg.posPixelX = _arg1.x;
-                m_directorStopMsg.posPixelY = _arg1.y;
-                m_directorStopMsg.time = getTimer();
-				return;
-                scene.connectionToGameServer.delta::sendMsg(m_directorStopMsg);
-            };
         }
         protected function onActive(_arg1:Boolean, _arg2:uint):void{
             if (shellObject){
@@ -182,4 +167,4 @@ package deltax.appframe {
         }
 
     }
-}//package deltax.appframe 
+}

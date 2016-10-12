@@ -1,13 +1,15 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.render2D.font {
-    import flash.display3D.*;
-    import deltax.common.*;
-    import deltax.gui.util.*;
-    import flash.geom.*;
-    import flash.utils.*;
-    import deltax.common.error.*;
+﻿package deltax.graphic.render2D.font 
+{
+    import flash.display3D.Context3D;
+    import flash.geom.Rectangle;
+    import flash.utils.Dictionary;
+    
+    import deltax.common.ReferencedObject;
+    import deltax.common.error.Exception;
+    import deltax.gui.util.Size;
 
-    public class DeltaXFont implements ReferencedObject {
+    public class DeltaXFont implements ReferencedObject 
+	{
 
         private static var ms_calcSize:Size = new Size();
 
@@ -199,4 +201,4 @@ package deltax.graphic.render2D.font {
         }
 
     }
-}//package deltax.graphic.render2D.font 
+}

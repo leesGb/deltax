@@ -1,20 +1,31 @@
 ﻿package deltax.graphic.shader 
 {
-    import com.adobe.pixelBender3D.*;
+    import com.adobe.pixelBender3D.AGALProgramPair;
+    import com.adobe.pixelBender3D.PBASMCompiler;
+    import com.adobe.pixelBender3D.PBASMProgram;
+    import com.adobe.pixelBender3D.ParameterRegisterInfo;
+    import com.adobe.pixelBender3D.RegisterElement;
+    import com.adobe.pixelBender3D.RegisterInfo;
     
-    import deltax.common.log.*;
-    import deltax.common.math.*;
-    import deltax.graphic.camera.*;
-    import deltax.graphic.light.*;
-    import deltax.graphic.map.*;
-    import deltax.graphic.scenegraph.object.*;
-    import deltax.graphic.scenegraph.traverse.*;
-    import deltax.graphic.util.*;
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DProgramType;
+    import flash.display3D.Context3DVertexBufferFormat;
+    import flash.display3D.Program3D;
+    import flash.display3D.VertexBuffer3D;
+    import flash.display3D.textures.Texture;
+    import flash.display3D.textures.TextureBase;
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     
-    import flash.display3D.*;
-    import flash.display3D.textures.*;
-    import flash.geom.*;
-    import flash.utils.*;
+    import deltax.common.math.MathUtl;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.light.DeltaXPointLight;
+    import deltax.graphic.light.LightBase;
+    import deltax.graphic.map.SceneEnv;
+    import deltax.graphic.scenegraph.object.RenderScene;
+    import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
+    import deltax.graphic.util.Color;
 
     public class DeltaXProgram3D 
 	{

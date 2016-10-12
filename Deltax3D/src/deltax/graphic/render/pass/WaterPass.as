@@ -1,54 +1,79 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.render.pass {
-    import deltax.graphic.map.*;
-    import deltax.graphic.camera.*;
-    import flash.display3D.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.scenegraph.object.*;
-    import flash.geom.*;
-    import deltax.graphic.texture.*;
-    import deltax.common.math.*;
-    import deltax.graphic.scenegraph.traverse.*;
-    import deltax.graphic.shader.*;
-    import deltax.*;
+﻿package deltax.graphic.render.pass 
+{
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DBlendFactor;
+    import flash.display3D.Context3DCompareMode;
+    import flash.display3D.Context3DTriangleFace;
+    import flash.geom.Vector3D;
+    
+    import deltax.delta;
+    import deltax.common.math.MathUtl;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.manager.ShaderManager;
+    import deltax.graphic.map.MetaScene;
+    import deltax.graphic.scenegraph.object.DeltaXSubGeometry;
+    import deltax.graphic.scenegraph.object.IRenderable;
+    import deltax.graphic.scenegraph.object.RenderRegion;
+    import deltax.graphic.scenegraph.object.RenderScene;
+    import deltax.graphic.scenegraph.object.SubMesh;
+    import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
+    import deltax.graphic.shader.DeltaXProgram3D;
+    import deltax.graphic.texture.DeltaXTexture;
+	
+	/**
+	 * 水材质渲染程序类
+	 * @author lees
+	 * @date 2015/09/26
+	 */	
 
-    public class WaterPass extends MaterialPassBase {
+    public class WaterPass extends MaterialPassBase 
+	{
 
         private static var m_globalProgram3D:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_WATER);
-
+		
+		/**分块场景类*/
         private var m_metaScene:MetaScene;
 
-        public function WaterPass(_arg1:RenderScene, _arg2:uint, _arg3:uint){
-            this.m_metaScene = _arg1.metaScene;
+        public function WaterPass(renderScene:RenderScene, texBegin:uint, texCount:uint)
+		{
+            this.m_metaScene = renderScene.metaScene;
         }
-        override public function dispose():void{
-            super.dispose();
+		
+		override public function activate(context:Context3D, camera:Camera3D):void
+		{
+			var texture:DeltaXTexture = this.m_metaScene.getWaterTexture();
+			m_globalProgram3D.setSampleTexture(0, texture.getTextureForContext(context));
+			var upAsix:Vector3D = MathUtl.TEMP_VECTOR3D;
+			camera.inverseSceneTransform.copyRowTo(1, upAsix);
+			m_globalProgram3D.setParamValue(DeltaXProgram3D.FACTOR, upAsix.x, upAsix.y, upAsix.z, (1 / 0x0100));
+			context.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
+			context.setCulling(Context3DTriangleFace.BACK);
+			context.setDepthTest(false, Context3DCompareMode.LESS);
+			context.setProgram(m_globalProgram3D.getProgram3D(context));
+		}
+		
+        override public function render(rendable:IRenderable, context:Context3D, collector:DeltaXEntityCollector):void
+		{
+            var subMesh:SubMesh = SubMesh(rendable);
+            var subGeometry:DeltaXSubGeometry = DeltaXSubGeometry(subMesh.subGeometry);
+            var rRgn:RenderRegion = RenderRegion(subMesh.delta::parentMesh);
+            var min:Vector3D = rRgn.bounds.min;
+            m_globalProgram3D.setParamValue(DeltaXProgram3D.WORLD, min.x, -32768, min.z, 0);
+            m_globalProgram3D.setVertexBuffer(context, subGeometry.getVertexBuffer(context));
+            m_globalProgram3D.setLightToViewSpace(collector, RenderRegion(SubMesh(rendable).sourceEntity).center);
+            m_globalProgram3D.update(context);
+			context.drawTriangles(rendable.getIndexBuffer(context), 0, rendable.numTriangles);
         }
-        override public function render(_arg1:IRenderable, _arg2:Context3D, _arg3:DeltaXEntityCollector):void{
-            var _local4:SubMesh = SubMesh(_arg1);
-            var _local5:DeltaXSubGeometry = DeltaXSubGeometry(_local4.subGeometry);
-            var _local6:RenderRegion = RenderRegion(_local4.delta::parentMesh);
-            var _local7:Vector3D = _local6.bounds.min;
-            m_globalProgram3D.setParamValue(DeltaXProgram3D.WORLD, _local7.x, -32768, _local7.z, 0);
-            m_globalProgram3D.setVertexBuffer(_arg2, _local5.getVertexBuffer(_arg2));
-            m_globalProgram3D.setLightToViewSpace((_arg3 as DeltaXEntityCollector), RenderRegion(SubMesh(_arg1).sourceEntity).center);
-            m_globalProgram3D.update(_arg2);
-            _arg2.drawTriangles(_arg1.getIndexBuffer(_arg2), 0, _arg1.numTriangles);
+		
+        override public function deactivate(context:Context3D):void
+		{
+            m_globalProgram3D.deactivate(context);
         }
-        override public function activate(_arg1:Context3D, _arg2:Camera3D):void{
-            var _local3:DeltaXTexture = this.m_metaScene.getWaterTexture();
-            m_globalProgram3D.setSampleTexture(0, _local3.getTextureForContext(_arg1));
-            var _local4:Vector3D = MathUtl.TEMP_VECTOR3D;
-            _arg2.inverseSceneTransform.copyRowTo(1, _local4);
-            m_globalProgram3D.setParamValue(DeltaXProgram3D.FACTOR, _local4.x, _local4.y, _local4.z, (1 / 0x0100));
-            _arg1.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
-            _arg1.setCulling(Context3DTriangleFace.BACK);
-            _arg1.setDepthTest(false, Context3DCompareMode.LESS);
-            _arg1.setProgram(m_globalProgram3D.getProgram3D(_arg1));
-        }
-        override public function deactivate(_arg1:Context3D):void{
-            m_globalProgram3D.deactivate(_arg1);
-        }
+		
+		override public function dispose():void
+		{
+			super.dispose();
+		}
 
     }
-}//package deltax.graphic.render.pass 
+} 

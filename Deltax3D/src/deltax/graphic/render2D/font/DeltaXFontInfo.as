@@ -1,16 +1,18 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.render2D.font {
-    import flash.display.*;
-    import flash.display3D.*;
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import flash.utils.*;
-    import flash.display3D.textures.*;
-    import flash.text.*;
-    import flash.filters.*;
-
-    public class DeltaXFontInfo {
-
+﻿package deltax.graphic.render2D.font 
+{
+    import flash.display.BitmapData;
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DTextureFormat;
+    import flash.display3D.textures.Texture;
+    import flash.filters.GlowFilter;
+    import flash.geom.Rectangle;
+    import flash.text.TextField;
+    import flash.text.TextFormat;
+    import flash.utils.ByteArray;
+    import flash.utils.Dictionary;
+    
+    public class DeltaXFontInfo 
+	{
         public static const FONT_SIZE_LIMIT:uint = 48;
         public static const FONT_EDGE:uint = 2;
         public static const FONT_ORGSIZE:uint = 24;
@@ -36,7 +38,8 @@ package deltax.graphic.render2D.font {
         public var m_yNum:uint;
         private var m_fontCountPerChannel:uint;
 
-        public function DeltaXFontInfo(_arg1:uint){
+        public function DeltaXFontInfo(_arg1:uint)
+		{
             this.m_mapFontIndexByChar = new Dictionary();
             super();
             this.m_fontSize = _arg1;
@@ -56,7 +59,9 @@ package deltax.graphic.render2D.font {
             this.m_textField.textColor = 4294901760;
             this.m_bitmatData = new BitmapData((_local2 + 4), (_local2 + 4), false, 0);
         }
-        public function dispose():void{
+		
+        public function dispose():void
+		{
             this.onLostDevice();
             this.m_fontData = null;
             this.m_mapFontIndexByChar = null;
@@ -67,14 +72,18 @@ package deltax.graphic.render2D.font {
             this.m_pLast = null;
             this.m_textureInvalid = true;
         }
-        public function onLostDevice():void{
-            if (this.m_fontTexture == null){
+		
+        public function onLostDevice():void
+		{
+            if (this.m_fontTexture == null)
+			{
                 return;
-            };
+            }
             this.m_fontTexture.dispose();
             this.m_fontTexture = null;
             this.m_textureInvalid = true;
         }
+		
         public function get fontMaxSize():uint{
             return (((this.m_fontSize + (uint(((this.m_fontSize * FONT_EDGE_RATIO) + 0.5)) * 2)) + 1));
         }
@@ -84,7 +93,8 @@ package deltax.graphic.render2D.font {
         public function get fontEdgeSize():uint{
             return (uint(((this.m_fontSize * FONT_EDGE_RATIO) + 0.5)));
         }
-        public function getTexture(_arg1:Context3D):Texture{
+        public function getTexture(_arg1:Context3D):Texture
+		{
             var _local2:uint;
             var _local3:uint;
             var _local4:uint;
@@ -95,14 +105,13 @@ package deltax.graphic.render2D.font {
                 _local2 = Math.max(FONT_TEXTURE_WIDTH, FONT_TEXTURE_HEIGHT);
                 _local3 = _local2;
                 _local4 = 0;
-                while (_local3) {
-                    var _temp1 = _local4;
-                    _local4 = (_local4 + 1);
-                    this.m_fontTexture.uploadFromByteArray(this.m_fontData, 0, _temp1);
+                while (_local3) 
+				{
+                    this.m_fontTexture.uploadFromByteArray(this.m_fontData, 0, _local4++);
                     _local3 = (_local3 >> 1);
-                };
+                }
                 this.m_textureInvalid = false;
-            };
+            }
             return (this.m_fontTexture);
         }
         public function getCharInfo(_arg1:uint):uint{

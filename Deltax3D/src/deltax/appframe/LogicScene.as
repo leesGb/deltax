@@ -18,8 +18,6 @@ package deltax.appframe {
     import deltax.graphic.map.MetaScene;
     import deltax.graphic.scenegraph.object.RenderObject;
     import deltax.graphic.scenegraph.object.RenderScene;
-    import deltax.network.coreconn.ConnectionToGameServer;
-    import deltax.network.coreconn.protocal.togameserver.ProtocalToGameServer_QueryDiffVersionData;
 
     public class LogicScene {
 
@@ -33,7 +31,6 @@ package deltax.appframe {
         private var m_renderScene:RenderScene;
         private var m_coreSceneID:uint;
         private var m_sceneManager:SceneManager;
-        private var m_connectionToGameServer:ConnectionToGameServer;
         private var m_delayCreateObjTick:TickFuncWrapper;
         private var m_checkDestroyObjTick:TickFuncWrapper;
         private var m_delayObjectCreateInfos:Vector.<ObjectCreateInfo>;
@@ -84,12 +81,6 @@ package deltax.appframe {
         }
         public function getSceneInfo(_arg1:uint):SceneInfo{
             return ((this.m_sceneManager.delta::sceneInfoMap[_arg1] as SceneInfo));
-        }
-        public function get connectionToGameServer():ConnectionToGameServer{
-            return (this.m_connectionToGameServer);
-        }
-        public function set connectionToGameServer(_arg1:ConnectionToGameServer):void{
-            this.m_connectionToGameServer = _arg1;
         }
         function get sceneManager():SceneManager{
             return (this.m_sceneManager);
@@ -150,7 +141,6 @@ package deltax.appframe {
             return (null);
         }
         delta function getFollower(_arg1:Number, _arg2:Point, _arg3:uint):FollowerObject{
-            var _local6:ProtocalToGameServer_QueryDiffVersionData;
             var _local4:LogicObject = LogicObject.m_allObjects[_arg1];
             var _local5:ObjectSyncData = ObjectSyncDataPool.instance.getObjectData(_arg1);
             if (!_local4){
@@ -160,13 +150,6 @@ package deltax.appframe {
                 if (_local5.version > 0){
                     this.delta::notifyNewObjectNeedCreate(_arg1, _local5.classID);
                 };
-            };
-            if (((!((_arg3 == _local5.version))) && (ObjectSyncDataPool.instance.queryDataVersion(_arg1, false)))){
-                _local6 = new ProtocalToGameServer_QueryDiffVersionData();
-                _local6.objectID = _arg1;
-                _local6.version = _local5.version;
-                _local6.createTime = _local5.createTime;
-                this.connectionToGameServer.delta::sendMsg(_local6);
             };
             _local4.scene = this;
             return ((_local4 as FollowerObject));
