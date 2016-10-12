@@ -1,133 +1,197 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.light {
-    import deltax.graphic.map.*;
-    import flash.utils.*;
-    import deltax.graphic.scenegraph.partition.*;
-    import deltax.graphic.util.*;
+﻿package deltax.graphic.light 
+{
+    import flash.utils.getTimer;
+    
+    import deltax.graphic.map.RegionLightInfo;
+    import deltax.graphic.scenegraph.partition.EntityNode;
+    import deltax.graphic.util.Color;
+	
+	/**
+	 * 场景点光源
+	 * @author lees
+	 * @date 2015/10/25
+	 */	
 
-    public class DeltaXScenePointLight extends DeltaXPointLight {
-
+    public class DeltaXScenePointLight extends DeltaXPointLight 
+	{
         private static const eShowStage_Diffuse:uint = 0;
         private static const eShowStage_DiffuseToDynamic:uint = 1;
         private static const eShowStage_Dynamic:uint = 2;
         private static const eShowStage_DynamicToDiffuse:uint = 3;
         private static const eShowStage_Count:uint = 4;
 
+		/**场景灯光信息*/
         private var m_lightInfo:RegionLightInfo;
+		/**上一次改变的时间*/
         private var m_preChangeTime:uint = 0;
+		/**当前显示的状态*/
         private var m_curShowStage:uint;
 
-        public function DeltaXScenePointLight(_arg1:RegionLightInfo){
-            this.m_lightInfo = _arg1;
-            color = _arg1.m_colorInfos[0].m_color;
-            setAttenuation(0, _arg1.m_attenuation0);
-            setAttenuation(1, _arg1.m_attenuation1);
-            setAttenuation(2, _arg1.m_attenuation2);
-            fallOff = _arg1.m_range;
+        public function DeltaXScenePointLight(lightInfo:RegionLightInfo)
+		{
+            this.m_lightInfo = lightInfo;
+            color = lightInfo.m_colorInfos[0].m_color;
+            setAttenuation(0, lightInfo.m_attenuation0);
+            setAttenuation(1, lightInfo.m_attenuation1);
+            setAttenuation(2, lightInfo.m_attenuation2);
+            fallOff = lightInfo.m_range;
         }
-        override protected function createEntityPartitionNode():EntityNode{
-            return (new DeltaXScenePointLightNode(this));
+		
+		/**
+		 * 获取漫反射颜色
+		 * @param idx
+		 * @return 
+		 */		
+        private function GetDiffuse(idx:uint=2):uint
+		{
+            return this.m_lightInfo.getColor(idx);
         }
-        private function GetDiffuse(_arg1:uint=2, _arg2:Number=0):uint{
-            return (this.m_lightInfo.getColor(_arg1));
+		
+		/**
+		 * 获取动态光颜色
+		 * @param idx
+		 * @return 
+		 */		
+        private function GetDynColor(idx:uint=2):uint
+		{
+            return this.m_lightInfo.getDynamicColor(idx);
         }
-        private function GetDynColor(_arg1:uint=2, _arg2:Number=0):uint{
-            return (this.m_lightInfo.getDynamicColor(_arg1));
-        }
-        public function onAcceptTraverser(_arg1:Boolean):void{
-            var _local5:Number;
-            var _local6:Number;
-            var _local7:Color;
-            var _local8:Color;
-            if (!_arg1){
+		
+		/**
+		 * 帧检测
+		 * @param isVisible
+		 */		
+        public function onAcceptTraverser(isVisible:Boolean):void
+		{
+            if (!isVisible)
+			{
                 return;
-            };
-            var _local2:uint = this.GetDiffuse();
-            var _local3:Boolean = (((((((this.m_lightInfo.m_dyn_BrightTime == 0)) && ((this.m_lightInfo.m_dyn_ChangeTime == 0)))) && ((this.m_lightInfo.m_dyn_DarkTime == 0)))) || ((this.m_lightInfo.m_dyn_ChangeProbability == 0)));
-            if (this.GetDynColor() == 4278190080){
-                _local3 = true;
-            };
-            var _local4:uint = getTimer();
-            _local7 = Color.TEMP_COLOR;
-            _local8 = Color.TEMP_COLOR2;
-            if (this.m_preChangeTime == 0){
-                this.m_preChangeTime = _local4;
+            }
+			
+            var colorValue:uint = this.GetDiffuse();
+            var notChange:Boolean = (this.m_lightInfo.m_dyn_BrightTime == 0 && this.m_lightInfo.m_dyn_ChangeTime == 0 && this.m_lightInfo.m_dyn_DarkTime == 0) || (this.m_lightInfo.m_dyn_ChangeProbability == 0);
+            if (this.GetDynColor() == 4278190080)
+			{
+				notChange = true;
+            }
+			
+            var curTime:uint = getTimer();
+			var offsetTime:Number;
+			var ratio:Number;
+			var color1:Color = Color.TEMP_COLOR;
+			var color2:Color = Color.TEMP_COLOR2;
+            if (this.m_preChangeTime == 0)
+			{
+                this.m_preChangeTime = curTime;
                 this.m_curShowStage = eShowStage_Diffuse;
-                _local3 = true;
-            };
-            var _local9:Number = (128 / 1000);
-            while (!(_local3)) {
-                if (this.m_curShowStage == eShowStage_Diffuse){
-                    if ((((((_local4 - this.m_preChangeTime) * _local9) > this.m_lightInfo.m_dyn_BrightTime)) || ((this.m_lightInfo.m_dyn_BrightTime < 5)))){
-                        if ((Math.random() * 0x0100) < this.m_lightInfo.m_dyn_ChangeProbability){
+				notChange = true;
+            }
+			
+            var changeValue:Number = 0.128;//(128 / 1000);
+            while (!notChange) 
+			{
+                if (this.m_curShowStage == eShowStage_Diffuse)
+				{
+                    if (((curTime - this.m_preChangeTime) * changeValue > this.m_lightInfo.m_dyn_BrightTime) || (this.m_lightInfo.m_dyn_BrightTime < 5))
+					{
+                        if (Math.random() * 0x0100 < this.m_lightInfo.m_dyn_ChangeProbability)
+						{
                             this.m_curShowStage = eShowStage_DiffuseToDynamic;
-                        };
-                        this.m_preChangeTime = _local4;
-                    } else {
-                        _local3 = true;
-                    };
-                } else {
-                    if (this.m_curShowStage == eShowStage_DiffuseToDynamic){
-                        _local5 = ((_local4 - this.m_preChangeTime) * _local9);
-                        if ((((_local5 > this.m_lightInfo.m_dyn_ChangeTime)) || ((this.m_lightInfo.m_dyn_ChangeTime < 5)))){
-                            this.m_preChangeTime = _local4;
+                        }
+                        this.m_preChangeTime = curTime;
+                    } else 
+					{
+						notChange = true;
+                    }
+                } else 
+				{
+                    if (this.m_curShowStage == eShowStage_DiffuseToDynamic)
+					{
+						offsetTime = (curTime - this.m_preChangeTime) * changeValue;
+                        if ((offsetTime > this.m_lightInfo.m_dyn_ChangeTime) || (this.m_lightInfo.m_dyn_ChangeTime < 5))
+						{
+                            this.m_preChangeTime = curTime;
                             this.m_curShowStage = eShowStage_Dynamic;
-                        } else {
-                            _local6 = (_local5 / this.m_lightInfo.m_dyn_ChangeTime);
-                            _local7.value = this.GetDynColor();
-                            _local8.value = _local2;
-                            _local2 = _local7.interpolate(_local8, _local6);
-                            _local3 = true;
-                        };
-                    } else {
-                        if (this.m_curShowStage == eShowStage_Dynamic){
-                            _local5 = ((_local4 - this.m_preChangeTime) * _local9);
-                            if ((((_local5 > this.m_lightInfo.m_dyn_DarkTime)) || ((this.m_lightInfo.m_dyn_DarkTime < 5)))){
-                                this.m_preChangeTime = _local4;
+                        } else 
+						{
+							ratio = offsetTime / this.m_lightInfo.m_dyn_ChangeTime;
+							color1.value = this.GetDynColor();
+							color2.value = colorValue;
+							colorValue = color1.interpolate(color2, ratio);
+							notChange = true;
+                        }
+                    } else 
+					{
+                        if (this.m_curShowStage == eShowStage_Dynamic)
+						{
+							offsetTime = (curTime - this.m_preChangeTime) * changeValue;
+                            if ((offsetTime > this.m_lightInfo.m_dyn_DarkTime) || (this.m_lightInfo.m_dyn_DarkTime < 5))
+							{
+                                this.m_preChangeTime = curTime;
                                 this.m_curShowStage = eShowStage_DynamicToDiffuse;
-                            } else {
-                                _local2 = this.GetDynColor();
-                                _local3 = true;
-                            };
-                        } else {
-                            if (this.m_curShowStage == eShowStage_DynamicToDiffuse){
-                                _local5 = ((_local4 - this.m_preChangeTime) * _local9);
-                                if ((((_local5 > this.m_lightInfo.m_dyn_ChangeTime)) || ((this.m_lightInfo.m_dyn_ChangeTime < 5)))){
-                                    this.m_preChangeTime = _local4;
+                            } else 
+							{
+								colorValue = this.GetDynColor();
+								notChange = true;
+                            }
+                        } else 
+						{
+                            if (this.m_curShowStage == eShowStage_DynamicToDiffuse)
+							{
+								offsetTime = (curTime - this.m_preChangeTime) * changeValue;
+                                if ((offsetTime > this.m_lightInfo.m_dyn_ChangeTime) || (this.m_lightInfo.m_dyn_ChangeTime < 5))
+								{
+                                    this.m_preChangeTime = curTime;
                                     this.m_curShowStage = eShowStage_Diffuse;
-                                } else {
-                                    _local6 = (_local5 / this.m_lightInfo.m_dyn_ChangeTime);
-                                    _local8.value = this.GetDynColor();
-                                    _local7.value = _local2;
-                                    _local2 = _local7.interpolate(_local8, _local6);
-                                    _local3 = true;
-                                };
-                            } else {
-                                this.m_preChangeTime = _local4;
+                                } else 
+								{
+									ratio = offsetTime / this.m_lightInfo.m_dyn_ChangeTime;
+									color2.value = this.GetDynColor();
+									color1.value = colorValue;
+									colorValue = color1.interpolate(color2, ratio);
+									notChange = true;
+                                }
+                            } else 
+							{
+                                this.m_preChangeTime = curTime;
                                 this.m_curShowStage = eShowStage_Diffuse;
-                                _local3 = true;
-                            };
-                        };
-                    };
-                };
-            };
-            color = _local2;
+								notChange = true;
+                            }
+                        }
+                    }
+                }
+            }
+			
+            color = colorValue;
         }
+		
+		override protected function createEntityPartitionNode():EntityNode
+		{
+			return new DeltaXScenePointLightNode(this);
+		}
 
     }
-}//package deltax.graphic.light 
+}
 
-import deltax.graphic.scenegraph.partition.*;
-import deltax.graphic.scenegraph.traverse.*;
-import deltax.graphic.light.*;
-class DeltaXScenePointLightNode extends LightNode {
 
-    public function DeltaXScenePointLightNode(_arg1:DeltaXScenePointLight){
-        super(_arg1);
+import deltax.graphic.light.DeltaXScenePointLight;
+import deltax.graphic.scenegraph.partition.LightNode;
+import deltax.graphic.scenegraph.traverse.PartitionTraverser;
+import deltax.graphic.scenegraph.traverse.ViewTestResult;
+
+class DeltaXScenePointLightNode extends LightNode 
+{
+
+    public function DeltaXScenePointLightNode(light:DeltaXScenePointLight)
+	{
+        super(light);
     }
-    override protected function onVisibleTestResult(_arg1:uint, _arg2:PartitionTraverser):void{
-        DeltaXScenePointLight(_entity).onAcceptTraverser(!((_arg1 == ViewTestResult.FULLY_OUT)));
-        super.onVisibleTestResult(_arg1, _arg2);
+	
+    override protected function onVisibleTestResult(lastTestResult:uint, patitionTraverser:PartitionTraverser):void
+	{
+        DeltaXScenePointLight(_entity).onAcceptTraverser(lastTestResult != ViewTestResult.FULLY_OUT);
+        super.onVisibleTestResult(lastTestResult, patitionTraverser);
     }
 
+	
 }

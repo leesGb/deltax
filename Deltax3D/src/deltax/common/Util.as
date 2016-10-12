@@ -8,12 +8,16 @@
 
 		public static var UsingATF:Boolean = false;
 		
-        public static function makeDWORD(_arg1:uint=0, _arg2:uint=0, _arg3:uint=0, _arg4:uint=0):uint{
-            return ((((_arg1 | (_arg2 << 8)) | (_arg3 << 16)) | (_arg4 << 24)));
+        public static function makeDWORD(b:uint=0, g:uint=0, r:uint=0, a:uint=0):uint
+		{
+            return b | (g << 8) | (r << 16) | (a << 24);
         }
-        public static function makeDwordFromString(_arg1:String="", _arg2:String="", _arg3:String="", _arg4:String=""):uint{
-            return ((((_arg1.charCodeAt() | (_arg2.charCodeAt() << 8)) | (_arg3.charCodeAt() << 16)) | (_arg4.charCodeAt() << 24)));
+		
+        public static function makeDwordFromString(b:String="", g:String="", r:String="", a:String=""):uint
+		{
+            return b.charCodeAt() | (g.charCodeAt() << 8) | (r.charCodeAt() << 16) | (a.charCodeAt() << 24);
         }
+		
         public static function readUcs2String(_arg1:ByteArray, _arg2:uint, _arg3:Boolean=false, _arg4:Boolean=false):String{
             var _local8:uint;
             var _local5:String = new String();
@@ -120,4 +124,4 @@
 		}
 
     }
-}//package deltax.common 
+} 

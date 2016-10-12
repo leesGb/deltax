@@ -1,22 +1,44 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.light {
-    import flash.geom.*;
-    import deltax.common.math.*;
+﻿package deltax.graphic.light 
+{
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    
+    import deltax.common.math.VectorUtil;
+	
+	/**
+	 * 平行光
+	 * @author lees
+	 * @date 2015/10/26
+	 */	
 
-    public class DeltaXDirectionalLight extends DirectionalLight {
-
+    public class DeltaXDirectionalLight extends DirectionalLight 
+	{
+		/**视图里的方向*/
         private var m_directionInView:Vector3D;
 
-        public function DeltaXDirectionalLight(_arg1:Number=0, _arg2:Number=-1, _arg3:Number=1){
+        public function DeltaXDirectionalLight(px:Number=0, py:Number=-1, pz:Number=1)
+		{
             this.m_directionInView = new Vector3D();
-            super(_arg1, _arg2, _arg3);
+            super(px, py, pz);
         }
-        public function buildViewDir(_arg1:Matrix3D):void{
-            VectorUtil.rotateByMatrix(direction, _arg1, this.m_directionInView);
+		
+		/**
+		 * 构建视图方向
+		 * @param mat
+		 */		
+        public function buildViewDir(mat:Matrix3D):void
+		{
+            VectorUtil.rotateByMatrix(direction, mat, this.m_directionInView);
         }
-        public function get directionInView():Vector3D{
-            return (this.m_directionInView);
+		
+		/**
+		 * 获取视图方向
+		 * @return 
+		 */		
+        public function get directionInView():Vector3D
+		{
+            return this.m_directionInView;
         }
 
     }
-}//package deltax.graphic.light 
+} 

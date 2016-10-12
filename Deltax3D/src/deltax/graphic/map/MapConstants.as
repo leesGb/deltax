@@ -1,8 +1,8 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.map {
+﻿package deltax.graphic.map 
+{
 
-    public final class MapConstants {
-
+    public final class MapConstants 
+	{
         public static const GRID_SPAN:uint = 64;
         public static const REGION_SPAN:uint = 16;
         public static const PIXEL_SPAN_OF_REGION:uint = 1024;
@@ -24,4 +24,4 @@ package deltax.graphic.map {
         public static const BYTESIZE_OF_STATIC_SHADOW_PER_GRID_ROW:uint = 2;
 
     }
-}//package deltax.graphic.map 
+} 

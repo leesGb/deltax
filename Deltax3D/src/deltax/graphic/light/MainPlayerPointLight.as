@@ -1,53 +1,74 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.light {
-    import deltax.graphic.scenegraph.partition.*;
+﻿package deltax.graphic.light 
+{
+    import deltax.graphic.scenegraph.partition.EntityNode;
+	
+	/**
+	 * 主角点光源
+	 * @author lees
+	 * @date 2015/10/29
+	 */	
 
-    public class MainPlayerPointLight extends DeltaXPointLight {
+    public class MainPlayerPointLight extends DeltaXPointLight 
+	{
 
-        public function MainPlayerPointLight(){
+        public function MainPlayerPointLight()
+		{
             m_movable = true;
         }
-        override protected function createEntityPartitionNode():EntityNode{
-            return (new MainPlayerPointLightNode(this));
+		
+        override protected function createEntityPartitionNode():EntityNode
+		{
+            return new MainPlayerPointLightNode(this);
         }
 
     }
-}//package deltax.graphic.light 
+}
 
-import deltax.graphic.map.*;
-import deltax.graphic.scenegraph.object.*;
-import deltax.graphic.scenegraph.partition.*;
-import deltax.graphic.render.*;
-import deltax.graphic.scenegraph.traverse.*;
-import deltax.graphic.light.*;
-class MainPlayerPointLightNode extends LightNode {
+import deltax.graphic.light.DeltaXPointLight;
+import deltax.graphic.map.SceneEnv;
+import deltax.graphic.render.DeltaXRenderer;
+import deltax.graphic.scenegraph.object.RenderScene;
+import deltax.graphic.scenegraph.partition.LightNode;
+import deltax.graphic.scenegraph.traverse.PartitionTraverser;
+import deltax.graphic.scenegraph.traverse.ViewTestResult;
 
-    public function MainPlayerPointLightNode(_arg1:DeltaXPointLight){
-        super(_arg1);
+class MainPlayerPointLightNode extends LightNode 
+{
+
+    public function MainPlayerPointLightNode(light:DeltaXPointLight)
+	{
+        super(light);
     }
-    override protected function onVisibleTestResult(_arg1:uint, _arg2:PartitionTraverser):void{
-        var _local3:RenderScene;
-        var _local4:SceneEnv;
-        var _local5:DeltaXPointLight;
-        if (_arg1 != ViewTestResult.FULLY_OUT){
-            _local3 = DeltaXRenderer.instance.mainRenderScene;
-            if (_local3){
-                _local4 = _local3.curEnviroment;
-                if (_local4){
-                    if (_local4.m_mainPlayerPointLightRange <= 0.001){
+	
+    override protected function onVisibleTestResult(lastTestResult:uint, patitionTraverser:PartitionTraverser):void
+	{
+        if (lastTestResult != ViewTestResult.FULLY_OUT)
+		{
+			var renderScene:RenderScene = DeltaXRenderer.instance.mainRenderScene;
+            if (renderScene)
+			{
+				var sEnv:SceneEnv = renderScene.curEnviroment;
+                if (sEnv)
+				{
+                    if (sEnv.m_mainPlayerPointLightRange <= 0.001)
+					{
                         return;
-                    };
-                    _local5 = (light as DeltaXPointLight);
-                    _local5.color = _local4.m_mainPlayerPointLightColor;
-                    _local5.setAttenuation(0, _local4.m_mainPlayerPointLightAtten);
-                    if (_local5.y != _local4.m_mainPlayerPointLightOffsetY){
-                        _local5.y = _local4.m_mainPlayerPointLightOffsetY;
-                    };
-                    _local5.radius = _local4.m_mainPlayerPointLightRange;
-                };
-            };
-        };
-        super.onVisibleTestResult(_arg1, _arg2);
+                    }
+					
+					var pLight:DeltaXPointLight = light as DeltaXPointLight;
+					pLight.color = sEnv.m_mainPlayerPointLightColor;
+					pLight.setAttenuation(0, sEnv.m_mainPlayerPointLightAtten);
+                    if (pLight.y != sEnv.m_mainPlayerPointLightOffsetY)
+					{
+						pLight.y = sEnv.m_mainPlayerPointLightOffsetY;
+                    }
+					
+					pLight.radius = sEnv.m_mainPlayerPointLightRange;
+                }
+            }
+        }
+		
+        super.onVisibleTestResult(lastTestResult, patitionTraverser);
     }
 
 }
