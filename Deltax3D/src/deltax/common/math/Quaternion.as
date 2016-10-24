@@ -1,25 +1,31 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common.math {
-    import flash.geom.*;
-    import __AS3__.vec.*;
-
-    public final class Quaternion {
-
+﻿package deltax.common.math 
+{
+    import flash.geom.Matrix3D;
+    import flash.geom.Orientation3D;
+    import flash.geom.Vector3D;
+    
+    public final class Quaternion 
+	{
         public var x:Number = 0;
         public var y:Number = 0;
         public var z:Number = 0;
         public var w:Number = 1;
 
-        public function Quaternion(_arg1:Number=0, _arg2:Number=0, _arg3:Number=0, _arg4:Number=1){
+        public function Quaternion(_arg1:Number=0, _arg2:Number=0, _arg3:Number=0, _arg4:Number=1)
+		{
             this.x = _arg1;
             this.y = _arg2;
             this.z = _arg3;
             this.w = _arg4;
         }
-        public function get magnitude():Number{
+		
+        public function get magnitude():Number
+		{
             return (Math.sqrt(((((this.w * this.w) + (this.x * this.x)) + (this.y * this.y)) + (this.z * this.z))));
         }
-        public function multiply(_arg1:Quaternion, _arg2:Quaternion):void{
+		
+        public function multiply(_arg1:Quaternion, _arg2:Quaternion):void
+		{
             var _local3:Number = _arg1.w;
             var _local4:Number = _arg1.x;
             var _local5:Number = _arg1.y;
@@ -33,7 +39,9 @@ package deltax.common.math {
             this.y = ((((_local3 * _local9) - (_local4 * _local10)) + (_local5 * _local7)) + (_local6 * _local8));
             this.z = ((((_local3 * _local10) + (_local4 * _local9)) - (_local5 * _local8)) + (_local6 * _local7));
         }
-        public function multiplyVector(_arg1:Vector3D, _arg2:Quaternion=null):Quaternion{
+		
+        public function multiplyVector(_arg1:Vector3D, _arg2:Quaternion=null):Quaternion
+		{
             _arg2 = ((_arg2) || (new Quaternion()));
             var _local3:Number = _arg1.x;
             var _local4:Number = _arg1.y;
@@ -44,7 +52,9 @@ package deltax.common.math {
             _arg2.z = (((this.w * _local5) + (this.x * _local4)) - (this.y * _local3));
             return (_arg2);
         }
-        public function fromAxisAngle(_arg1:Vector3D, _arg2:Number):void{
+		
+        public function fromAxisAngle(_arg1:Vector3D, _arg2:Number):void
+		{
             var _local3:Number = Math.sin((_arg2 / 2));
             var _local4:Number = Math.cos((_arg2 / 2));
             this.x = (_arg1.x * _local3);
@@ -53,7 +63,9 @@ package deltax.common.math {
             this.w = _local4;
             this.normalize();
         }
-        public function slerp(_arg1:Quaternion, _arg2:Quaternion, _arg3:Number):void{
+		
+        public function slerp(_arg1:Quaternion, _arg2:Quaternion, _arg3:Number):void
+		{
             var _local13:Number;
             var _local14:Number;
             var _local15:Number;
@@ -96,6 +108,7 @@ package deltax.common.math {
                 this.z = (this.z * _local17);
             };
         }
+		
         public function lerp(_arg1:Quaternion, _arg2:Quaternion, _arg3:Number):void{
             var _local12:Number;
             var _local4:Number = _arg1.w;
@@ -122,6 +135,7 @@ package deltax.common.math {
             this.y = (this.y * _local12);
             this.z = (this.z * _local12);
         }
+		
         public function fromEulerAngles(_arg1:Number, _arg2:Number, _arg3:Number):void{
             var _local4:Number = (_arg1 * 0.5);
             var _local5:Number = (_arg2 * 0.5);
@@ -137,13 +151,16 @@ package deltax.common.math {
             this.y = (((_local7 * _local10) * _local11) + ((_local8 * _local9) * _local12));
             this.z = (((_local7 * _local9) * _local12) - ((_local8 * _local10) * _local11));
         }
-        public function toEulerAngles(_arg1:Vector3D=null):Vector3D{
+		
+        public function toEulerAngles(_arg1:Vector3D=null):Vector3D
+		{
             _arg1 = ((_arg1) || (new Vector3D()));
             _arg1.x = Math.atan2((2 * ((this.w * this.x) + (this.y * this.z))), (1 - (2 * ((this.x * this.x) + (this.y * this.y)))));
             _arg1.y = Math.asin((2 * ((this.w * this.y) - (this.z * this.x))));
             _arg1.z = Math.atan2((2 * ((this.w * this.z) + (this.x * this.y))), (1 - (2 * ((this.y * this.y) + (this.z * this.z)))));
             return (_arg1);
         }
+		
         public function normalize(_arg1:Number=1):void{
             var _local2:Number = (_arg1 / Math.sqrt(((((this.x * this.x) + (this.y * this.y)) + (this.z * this.z)) + (this.w * this.w))));
             this.x = (this.x * _local2);
@@ -252,4 +269,4 @@ package deltax.common.math {
         }
 
     }
-}//package deltax.common.math 
+} 

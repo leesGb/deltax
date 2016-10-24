@@ -1,69 +1,101 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.appframe {
-    import flash.events.*;
-    import deltax.common.debug.*;
-    import deltax.graphic.scenegraph.object.*;
-    import flash.geom.*;
-    import flash.utils.*;
-    import deltax.common.math.*;
-    import deltax.appframe.syncronize.*;
-    import deltax.appframe.event.*;
-    import deltax.common.error.*;
-    import deltax.*;
+﻿package deltax.appframe 
+{
+    import flash.events.EventDispatcher;
+    import flash.geom.Point;
+    import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
+    import flash.utils.getQualifiedClassName;
+    
+    import deltax.delta;
+    import deltax.appframe.event.ShellLogicObjectEvent;
+    import deltax.appframe.syncronize.ObjectSyncData;
+    import deltax.appframe.syncronize.ObjectSyncDataAccessor;
+    import deltax.appframe.syncronize.ObjectSyncDataDefinition;
+    import deltax.appframe.syncronize.ObjectSyncDataPool;
+    import deltax.appframe.syncronize.SyncBlockList;
+    import deltax.common.error.AbstractMethodError;
+    import deltax.common.math.MathUtl;
+    import deltax.graphic.scenegraph.object.RenderObject;
 
-    public class ShellLogicObject extends EventDispatcher {
+    public class ShellLogicObject extends EventDispatcher 
+	{
 
         private var m_coreObject:LogicObject;
         protected var m_cachedSyncDataValues:Array;
         protected var m_cachedSyncDataDirtyFlags:Array;
         private var m_syncData:ObjectSyncData;
 
-        public function ShellLogicObject(){
+        public function ShellLogicObject()
+		{
             this.m_cachedSyncDataValues = [];
             this.m_cachedSyncDataDirtyFlags = [];
-            super();
-            ObjectCounter.add(this);
         }
-        public static function getObject(_arg1:Number):ShellLogicObject{
+		
+        public static function getObject(_arg1:Number):ShellLogicObject
+		{
             var _local2:LogicObject = LogicObject.getObject(_arg1);
             return ((_local2) ? _local2.shellObject : null);
         }
 
-        public function getClass():Class{
+        public function getClass():Class
+		{
             return (ShellLogicObject);
         }
-        public function getClassName():String{
+		
+        public function getClassName():String
+		{
             return (getQualifiedClassName(this.getClass()));
         }
-        public function recreate():void{
+		
+        public function recreate():void
+		{
+			//
         }
-        public function dispose():void{
-            if (this.m_coreObject){
+		
+        public function dispose():void
+		{
+            if (this.m_coreObject)
+			{
                 this.onObjectDestroy();
                 this.m_coreObject = null;
-            };
+            }
         }
-        public function get isValid():Boolean{
+		
+        public function get isValid():Boolean
+		{
             return (!((this.m_coreObject == null)));
         }
-        public function get id():Number{
+		
+        public function get id():Number
+		{
             return (this.m_coreObject.id);
         }
-        function set coreObject(_arg1:LogicObject):void{
+		
+        public function set coreObject(_arg1:LogicObject):void
+		{
             this.m_coreObject = _arg1;
         }
-        public function get renderObject():RenderObject{
+		
+        public function get renderObject():RenderObject
+		{
             return (this.m_coreObject.renderObject);
         }
-        public function get speed():uint{
+		
+        public function get speed():uint
+		{
             return (this.m_coreObject.speed);
         }
-        public function moveTo(_arg1:Point, _arg2:uint):void{
+		
+        public function moveTo(_arg1:Point, _arg2:uint):void
+		{
             this.m_coreObject.moveTo(_arg1, _arg2);
         }
-        public function get position():Vector3D{
+		
+        public function get position():Vector3D
+		{
             return (this.m_coreObject.position);
         }
+		
         public function get gridPos():Point{
             return (this.m_coreObject.gridPos);
         }
@@ -107,13 +139,18 @@ package deltax.appframe {
         }
         public function onPosUpdated():void{
         }
-        public function onSetDirection(_arg1:uint):void{
-            this.renderObject.direction = _arg1;
+		
+        public function onSetDirection(va:uint):void
+		{
+            this.renderObject.direction = va;
         }
-        public function onSetPosition(_arg1:Vector3D):Boolean{
+		
+        public function onSetPosition(_arg1:Vector3D):Boolean
+		{
             this.m_coreObject.renderObject.position = _arg1;
             return (true);
         }
+		
         public function notifyAllSyncDataUpdated(_arg1:ObjectSyncDataDefinition=null):void{
             var _local3:SyncBlockList;
             var _local4:uint;
@@ -128,12 +165,12 @@ package deltax.appframe {
                 _local4 = _local3.blocks.length;
                 _local6 = 0;
                 while (_local6 < _local4) {
-                    this.delta::onSynDataUpdated(_local5, _local6);
+                    this.onSynDataUpdated(_local5, _local6);
                     _local6++;
                 };
                 _local5++;
             };
-            this.delta::onSyncAllData();
+            this.onSyncAllData();
         }
         public function onSyncAllData():void{
         }
@@ -155,14 +192,19 @@ package deltax.appframe {
         public function getSelfClassID():uint{
             throw (new AbstractMethodError(this, this.getSelfClassID));
         }
-        public function get direction():uint{
-            return ((this.m_coreObject) ? this.m_coreObject.direction : 0);
+		
+        public function get direction():uint
+		{
+            return this.m_coreObject ? this.m_coreObject.direction : 0;
         }
-        public function set direction(_arg1:uint):void{
-            if (this.m_coreObject){
-                this.m_coreObject.direction = _arg1;
-            };
+        public function set direction(va:uint):void
+		{
+            if (this.m_coreObject)
+			{
+                this.m_coreObject.direction = va;
+            }
         }
+		
         public function stop(_arg1:uint):void{
             if (((this.m_coreObject) && ((this.m_coreObject is DirectorObject)))){
                 this.m_coreObject.stop(this.pixelPos, _arg1);
@@ -240,4 +282,4 @@ package deltax.appframe {
         }
 
     }
-}//package deltax.appframe 
+}

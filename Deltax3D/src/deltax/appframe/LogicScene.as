@@ -1,11 +1,9 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.appframe {
+﻿package deltax.appframe 
+{
     import flash.geom.Matrix3D;
     import flash.geom.Point;
     import flash.geom.Vector3D;
     import flash.utils.ByteArray;
-    
-    import __AS3__.vec.Vector;
     
     import deltax.delta;
     import deltax.appframe.syncronize.ObjectSyncData;
@@ -19,13 +17,12 @@ package deltax.appframe {
     import deltax.graphic.scenegraph.object.RenderObject;
     import deltax.graphic.scenegraph.object.RenderScene;
 
-    public class LogicScene {
-
+    public class LogicScene 
+	{
         private static const OBJECT_CREATE_DELAY:uint = 20;
         private static const OBJECT_DESTROY_CHECK:uint = 200;
 
         private static var m_objectIDsToRemoveOnCheckTick:Vector.<Number> = new Vector.<Number>();
-;
 
         private var m_lastSelectedObjectID:Number;
         private var m_renderScene:RenderScene;
@@ -82,7 +79,8 @@ package deltax.appframe {
         public function getSceneInfo(_arg1:uint):SceneInfo{
             return ((this.m_sceneManager.delta::sceneInfoMap[_arg1] as SceneInfo));
         }
-        function get sceneManager():SceneManager{
+        public function get sceneManager():SceneManager
+		{
             return (this.m_sceneManager);
         }
         protected function onSceneCreated(_arg1:ByteArray):void{
@@ -179,10 +177,10 @@ package deltax.appframe {
                 _local4 = new _local3();
                 _local2.shellObject = _local4;
                 _local4.coreObject = _local2;
-                _local4.delta::onObjectCreated();
-                _local4.delta::notifyAllSyncDataUpdated();
+                _local4.onObjectCreated();
+                _local4.notifyAllSyncDataUpdated();
                 if (_local2.speed){
-                    _local2.shellObject.delta::onMoveTo(_local2.destPixelPos, _local2.speed);
+                    _local2.shellObject.onMoveTo(_local2.destPixelPos, _local2.speed);
                 };
             };
             if (this.m_delayObjectCreateInfos.length == 0){
@@ -197,12 +195,12 @@ package deltax.appframe {
                 if ((_local1 is DirectorObject)){
                 } else {
                     if (FollowerObject(_local1).timeOut){
-                        if (((!(_local1.shellObject)) || (_local1.shellObject.delta::beforeCoreObjectDestroy(ObjectDestroyReason.TIMEOUT)))){
+                        if (((!(_local1.shellObject)) || (_local1.shellObject.beforeCoreObjectDestroy(ObjectDestroyReason.TIMEOUT)))){
                             m_objectIDsToRemoveOnCheckTick.push(_local1.id);
-                        };
-                    };
-                };
-            };
+                        }
+                    }
+                }
+            }
             for each (_local2 in m_objectIDsToRemoveOnCheckTick) {
                 LogicObject.destroyObjectByID(_local2);
             };
@@ -330,7 +328,7 @@ package deltax.appframe {
         }
 
     }
-}//package deltax.appframe 
+}
 
 class ObjectCreateInfo {
 

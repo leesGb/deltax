@@ -1,19 +1,23 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.appframe.syncronize {
-    import deltax.appframe.*;
-    import deltax.common.*;
-    import __AS3__.vec.*;
-    import flash.utils.*;
-    import deltax.common.math.*;
-    import deltax.common.log.*;
-    import deltax.*;
+﻿package deltax.appframe.syncronize 
+{
+    import flash.utils.ByteArray;
+    import flash.utils.Dictionary;
+    import flash.utils.getTimer;
+    
+    import deltax.appframe.LogicObject;
+    import deltax.appframe.ShellLogicObject;
+    import deltax.common.NumberTo64bit;
+    import deltax.common.RunlengthCodec;
+    import deltax.common.log.LogLevel;
+    import deltax.common.log.dtrace;
+    import deltax.common.math.MathUtl;
 
-    public class ObjectSyncDataPool {
+    public class ObjectSyncDataPool 
+	{
 
         private static const QUERY_VERSION_INTERVAL:uint = 5000;
 
         private static var m_partUpdatedBlocks:Vector.<uint> = new Vector.<uint>(0x0100, true);
-;
         private static var m_instance:ObjectSyncDataPool;
 
         public var CURRENT_SYNC_DATA_COUNT:uint;
@@ -79,7 +83,7 @@ package deltax.appframe.syncronize {
                 _local13.position = 0;
                 RunlengthCodec.Decompress(_arg5, _arg6, _local13, 1, RunlengthCodec.FLAG_UINT8);
                 if (_local11){
-                    _local11.delta::notifyAllSyncDataUpdated(_local8);
+                    _local11.notifyAllSyncDataUpdated(_local8);
                 };
             } else {
                 _local15 = (_arg5.position + _arg6);
@@ -89,10 +93,7 @@ package deltax.appframe.syncronize {
                     _local13.position = _local12.offsetInSyncData;
                     _local13.writeBytes(_arg5, _arg5.position, _local12.dataSize);
                     _arg5.position = (_arg5.position + _local12.dataSize);
-                    var _temp1 = _local14;
-                    _local14 = (_local14 + 1);
-                    var _local19 = _temp1;
-                    m_partUpdatedBlocks[_local19] = ((_local12.belongListIndex << 16) | _local12.indexInList);
+                    m_partUpdatedBlocks[_local14++] = ((_local12.belongListIndex << 16) | _local12.indexInList);
                 };
                 if ((((_local9.version == 0)) && (!((_local14 == _local8.totalBlockCount))))){
                     return (false);
@@ -101,10 +102,10 @@ package deltax.appframe.syncronize {
                     _local18 = 0;
                     while (_local18 < _local14) {
                         _local17 = m_partUpdatedBlocks[_local18];
-                        _local11.delta::onSynDataUpdated((0xFFFF & (_local17 >>> 16)), (_local17 & 0xFFFF));
+                        _local11.onSynDataUpdated((0xFFFF & (_local17 >>> 16)), (_local17 & 0xFFFF));
                         _local18++;
                     };
-                    _local11.delta::onSyncAllData();
+                    _local11.onSyncAllData();
                 };
             };
             _local9.version = _arg3;
@@ -113,10 +114,13 @@ package deltax.appframe.syncronize {
         }
 
     }
-}//package deltax.appframe.syncronize 
+} 
 
-class SingletonEnforcer {
+class SingletonEnforcer 
+{
 
-    public function SingletonEnforcer(){
+    public function SingletonEnforcer()
+	{
+		//
     }
 }

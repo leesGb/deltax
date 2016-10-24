@@ -1,19 +1,23 @@
 ﻿//Created by Action Script Viewer - http://www.buraks.com/asv
 package deltax.appframe {
-    import deltax.graphic.map.*;
-    import deltax.common.debug.*;
-    import deltax.graphic.scenegraph.object.*;
-    import flash.geom.*;
-    import flash.utils.*;
-    import deltax.appframe.syncronize.*;
-    import deltax.*;
+    import flash.geom.Point;
+    import flash.geom.Vector3D;
+    import flash.utils.Dictionary;
+    import flash.utils.getQualifiedClassName;
+    import flash.utils.getTimer;
+    
+    import deltax.delta;
+    import deltax.appframe.syncronize.ObjectSyncDataPool;
+    import deltax.common.debug.ObjectCounter;
+    import deltax.graphic.map.MapConstants;
+    import deltax.graphic.scenegraph.object.RenderObject;
 
     public class LogicObject {
 
         private static const CLASSNAME:String = getQualifiedClassName(LogicObject);
         private static const MAX_MOVE_UPDATE_INTERVAL:Number = 50;
 
-        static var m_allObjects:Dictionary = new Dictionary();
+		public static var m_allObjects:Dictionary = new Dictionary();
         private static var m_tempPixelPos:Point = new Point();
 
         private var m_unSelectableMask:uint;
@@ -192,15 +196,20 @@ package deltax.appframe {
         protected function get hasMoreDestPos():Boolean{
             return (false);
         }
-        public function get direction():uint{
-            return (this.m_direction);
+		
+        public function get direction():uint
+		{
+            return this.m_direction;
         }
-        public function set direction(_arg1:uint):void{
-            this.m_direction = _arg1;
-            if (this.m_shellObject){
-                this.m_shellObject.onSetDirection(_arg1);
-            };
+        public function set direction(va:uint):void
+		{
+            this.m_direction = va;
+            if (this.m_shellObject)
+			{
+                this.m_shellObject.onSetDirection(va);
+            }
         }
+		
         protected function get curMoveDestPixel():Point{
             return (this.m_finalDestPixelPos);
         }
@@ -222,7 +231,7 @@ package deltax.appframe {
             var _local3:Point = this.curMoveDestPixel;
             var _local4:Number = (m_tempPixelPos.x - _local3.x);
             var _local5:Number = (m_tempPixelPos.y - _local3.y);
-            var _local6 = (((this.m_moveDir.x * _local4) + (this.m_moveDir.y * _local5)) >= 0);
+            var _local6:Boolean = (((this.m_moveDir.x * _local4) + (this.m_moveDir.y * _local5)) >= 0);
             if (_local6){
                 this.pixelPos = this.curMoveDestPixel;
                 this.onTouch(_local3);

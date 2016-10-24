@@ -15,7 +15,8 @@
     import deltax.graphic.manager.StepTimeManager;
     import deltax.graphic.map.MapConstants;
 
-    public class DirectorObject extends FollowerObject {
+    public class DirectorObject extends FollowerObject 
+	{
 
         private static const ROUTE_POS_BYTE_SIZE:uint = 8;
 
@@ -159,7 +160,7 @@
         }
         protected function onActive(_arg1:Boolean, _arg2:uint):void{
             if (shellObject){
-                shellObject.delta::onActive(_arg1, _arg2);
+                shellObject.onActive(_arg1, _arg2);
             };
         }
         public function get pointLight():DeltaXPointLight{

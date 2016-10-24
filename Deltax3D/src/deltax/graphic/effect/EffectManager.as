@@ -368,7 +368,7 @@
                 return;
             }
 			
-            if (this.m_screenFilters.indexOf(eU) != -1)
+            if (this.m_screenFilters.indexOf(ScreenFilter(eU)) != -1)
 			{
                 return;
             }

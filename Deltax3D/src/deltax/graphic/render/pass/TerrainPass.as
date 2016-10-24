@@ -29,7 +29,7 @@
 
         private static const TERRAIN_TEXTURE_LAYER_COUNT:Number = 2;
 
-        private static var m_globalProgram3D:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_TERRAIN);
+        private static var m_globalProgram3D:DeltaXProgram3D;
 		
 		/**渲染场景*/
         private var m_renderScene:RenderScene;
@@ -37,6 +37,10 @@
         public function TerrainPass($renderScene:RenderScene)
 		{
             this.m_renderScene = $renderScene;
+			if(m_globalProgram3D == null)
+			{
+				m_globalProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_TERRAIN);
+			}
         }
 		
 		/**

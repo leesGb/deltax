@@ -1,21 +1,33 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.map {
-    import deltax.appframe.*;
-    import flash.display3D.*;
-    import deltax.graphic.manager.*;
-    import deltax.graphic.scenegraph.object.*;
-    import deltax.common.*;
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import flash.utils.*;
-    import deltax.common.searchpath.*;
-    import deltax.graphic.texture.*;
-    import deltax.common.respackage.*;
-    import flash.net.*;
-    import deltax.common.resource.*;
-    import deltax.common.log.*;
-    import deltax.common.error.*;
-    import deltax.*;
+﻿package deltax.graphic.map 
+{
+    import flash.display3D.Context3D;
+    import flash.geom.Rectangle;
+    import flash.geom.Vector3D;
+    import flash.net.URLLoaderDataFormat;
+    import flash.utils.ByteArray;
+    import flash.utils.Dictionary;
+    import flash.utils.getTimer;
+    
+    import deltax.delta;
+    import deltax.appframe.BaseApplication;
+    import deltax.appframe.SceneGrid;
+    import deltax.common.DictionaryUtil;
+    import deltax.common.Util;
+    import deltax.common.safeRelease;
+    import deltax.common.error.Exception;
+    import deltax.common.log.LogLevel;
+    import deltax.common.log.dtrace;
+    import deltax.common.resource.CommonFileHeader;
+    import deltax.common.resource.Enviroment;
+    import deltax.common.searchpath.AStarPathSearcher;
+    import deltax.graphic.manager.DeltaXTextureManager;
+    import deltax.graphic.manager.IResource;
+    import deltax.graphic.manager.ResourceManager;
+    import deltax.graphic.manager.ResourceType;
+    import deltax.graphic.scenegraph.object.RenderScene;
+    import deltax.graphic.scenegraph.object.TerranObject;
+    import deltax.graphic.texture.BitmapDataResource3D;
+    import deltax.graphic.texture.DeltaXTexture;
 
     public class MetaScene extends CommonFileHeader implements IResource {
 
@@ -448,26 +460,17 @@ package deltax.graphic.map {
                     _local18.m_createItemInfos = _local20;
                     _local25 = 0;
                     if (_local8.length){
-                        var _temp1 = _local25;
-                        _local25 = (_local25 + 1);
-                        var _local28 = _temp1;
-                        _local20[_local28] = _local8[_local21];
+                        _local20[_local25++] = _local8[_local21];
                     };
                     if (_local14 != uint.MAX_VALUE){
                         _local27 = new ObjectCreateItemInfo();
                         _local27.m_itemType = MetaScene.DEPEND_RES_TYPE_ANI;
                         _local27.m_fileNameIndex = _local14;
-                        var _temp2 = _local25;
-                        _local25 = (_local25 + 1);
-                        _local28 = _temp2;
-                        _local20[_local28] = _local27;
+                        _local20[_local25++] = _local27;
                     };
                     _local26 = 0;
                     while (((!(_local21)) && ((_local26 < _local9.length)))) {
-                        var _temp3 = _local25;
-                        _local25 = (_local25 + 1);
-                        _local28 = _temp3;
-                        _local20[_local28] = _local9[_local26];
+                        _local20[_local25++] = _local9[_local26];
                         _local26++;
                     };
                     _local21++;
@@ -655,15 +658,20 @@ package deltax.graphic.map {
             };
             return (this.getGridLogicHeight(_arg1, _arg2));
         }
-        public function getVertexNormal(_arg1:uint, _arg2:uint, _arg3:Boolean=false):Vector3D{
+		
+        public function getVertexNormal(_arg1:uint, _arg2:uint, _arg3:Boolean=false):Vector3D
+		{
             var _local6:uint;
-            if (!this.m_regions){
+            if (!this.m_regions)
+			{
                 return (Vector3D.Y_AXIS);
-            };
+            }
+			
             var _local4:uint = (((_arg2 >>> 4) * this.m_sceneInfo.m_regionWidth) + (_arg1 >>> 4));
             var _local5:MetaRegion = this.m_regions[_local4];
-            if (((_local5) && (_local5.loaded))){
-                _local6 = (_arg3) ? _local5.delta::m_terrainNormalWithLogic : _local5.delta::m_terrainNormal[getGridIndexInRegion(_arg1, _arg2)];
+            if (((_local5) && (_local5.loaded)))
+			{
+                _local6 = (_arg3) ? _local5.delta::m_terrainNormalWithLogic[getGridIndexInRegion(_arg1, _arg2)] : _local5.delta::m_terrainNormal[getGridIndexInRegion(_arg1, _arg2)];
                 return (StaticNormalTable.instance.getNormalByIndex(_local6));
             };
             return (Vector3D.Y_AXIS);
@@ -677,7 +685,7 @@ package deltax.graphic.map {
                 _arg3 = new Vector3D();
             };
             _arg3.setTo(0, 0, 0);
-            var _local8 = -1;
+            var _local8:int = -1;
             while (_local8 <= 1) {
                 _local9 = -1;
                 while (_local9 <= 1) {
@@ -840,4 +848,4 @@ package deltax.graphic.map {
         }
 
     }
-}//package deltax.graphic.map 
+}

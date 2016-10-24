@@ -1,5 +1,6 @@
 ﻿package app
 {
+	import flash.display.DisplayObjectContainer;
 	import flash.display.Sprite;
 	import flash.display3D.Context3D;
 	import flash.utils.getDefinitionByName;
@@ -33,7 +34,7 @@
 		private var _ox:int;
 		private var _oy:int;
 		
-		public function Game($container:Sprite) 
+		public function Game($container:DisplayObjectContainer) 
 		{
 			ResourceManager.instance.registerResType(ResourceType.EQUIPMENT_GROUP, EquipmentGroup);
 			super($container);

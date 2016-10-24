@@ -1,21 +1,13 @@
 package com.hmh.loaders.parsers
 {
-	import deltax.common.math.Quaternion;
-	import deltax.graphic.animation.EnhanceSkinnedSubGeometry;
-	import deltax.graphic.animation.skeleton.JointPose;
-	import deltax.graphic.model.Piece;
-	import deltax.graphic.model.Socket;
-	import deltax.graphic.scenegraph.object.Geometry;
-	import deltax.graphic.scenegraph.object.Mesh;
-	import deltax.graphic.scenegraph.object.SubGeometry;
-	
 	import flash.events.Event;
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
-	import flash.utils.Dictionary;
 	
-	import mx.controls.Alert;
-	import mx.messaging.channels.StreamingAMFChannel;
+	import deltax.common.math.Quaternion;
+	import deltax.graphic.model.Piece;
+	import deltax.graphic.model.Socket;
+	import deltax.graphic.scenegraph.object.Mesh;
 
 	// todo: create animation system, parse skeleton
 
@@ -287,8 +279,8 @@ package com.hmh.loaders.parsers
 				if (ch != "}") putBack();
 			} while (ch != "}");
 			
-			
-			for (var i:int = 0; i < _skeleton.numJoints; i++ ) 
+			i = 0;
+			for (; i < _skeleton.numJoints; i++ ) 
 			{
 				if(_skeleton.joints[i].parentIndex>=0)
 				{
@@ -609,7 +601,8 @@ package com.hmh.loaders.parsers
 				{
 					tempGeomName = _submeshNames[idx];
 				}
-				Alert.show("顶点超过四条骨骼影响，已尝试修正"+weightErrorCount+"个顶点，实际模型和动画效果若仍存在较大问题需美术重修改权重:" + tempGeomName + "\n" + logStr,"警告");
+				throw new Error("顶点超过四条骨骼影响，已尝试修正"+weightErrorCount+"个顶点，实际模型和动画效果若仍存在较大问题需美术重修改权重:" + tempGeomName + "\n" + logStr);
+//				Alert.show("顶点超过四条骨骼影响，已尝试修正"+weightErrorCount+"个顶点，实际模型和动画效果若仍存在较大问题需美术重修改权重:" + tempGeomName + "\n" + logStr,"警告");
 			}
 			return subGeom;
 		}	

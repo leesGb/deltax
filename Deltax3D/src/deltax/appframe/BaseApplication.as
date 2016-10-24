@@ -2,7 +2,7 @@
 {
 	import flash.desktop.Clipboard;
 	import flash.desktop.ClipboardFormats;
-	import flash.display.Sprite;
+	import flash.display.DisplayObjectContainer;
 	import flash.display.Stage;
 	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
@@ -106,7 +106,7 @@
 		/**能否分步加载*/
 		private var m_enableStepLoad:Boolean = true;
 		/**应用程序外部容器*/
-		private var m_container:Sprite;
+		private var m_container:DisplayObjectContainer;
 		/**舞台*/
 		private var m_stage:Stage;
 		/**文本输入*/
@@ -142,7 +142,7 @@
 		/**正交投影摄像机（一般用于ui渲染使用）*/
 		private var m_camera2D:DeltaXCamera3D;
 		
-		public function BaseApplication($container:Sprite)
+		public function BaseApplication($container:DisplayObjectContainer)
 		{
 			if (ms_appInstance)
 			{
@@ -158,7 +158,7 @@
 			this.m_textInput.doubleClickEnabled = true;
 			this.m_container.doubleClickEnabled = true;
 			this.m_container.alpha = 0;
-			
+//			
 			if($container.stage)
 			{
 				onAddedToStage(null);
@@ -665,11 +665,11 @@
 		 * 应用程序外部容器
 		 * @return 
 		 */		
-		public function get mContainer():Sprite
+		public function get mContainer():DisplayObjectContainer
 		{
 			return m_container;
 		}
-		public function set mContainer(va:Sprite):void
+		public function set mContainer(va:DisplayObjectContainer):void
 		{
 			this.m_container = va;
 		}

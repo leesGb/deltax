@@ -1,9 +1,11 @@
 ﻿package deltax.graphic.camera 
 {
     import flash.geom.Matrix3D;
+    import flash.geom.Rectangle;
     import flash.geom.Vector3D;
     import flash.utils.getTimer;
     
+    import deltax.delta;
     import deltax.appframe.BaseApplication;
     import deltax.appframe.LogicScene;
     import deltax.common.TickFuncWrapper;
@@ -425,6 +427,11 @@
 			{
                 return;
             }
+			var rect:Rectangle = BaseApplication.instance.renderer.delta::stage3DProxy.viewPort;
+			if(!rect.contains(evt.globalX,evt.globalY))
+			{
+				return;
+			}
 			
             this.m_drag = true;
             this.m_referenceX = evt.globalX;

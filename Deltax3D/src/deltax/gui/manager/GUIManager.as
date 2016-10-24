@@ -1,5 +1,16 @@
 ﻿package deltax.gui.manager 
 {
+	import flash.display3D.Context3D;
+	import flash.events.Event;
+	import flash.events.KeyboardEvent;
+	import flash.events.MouseEvent;
+	import flash.events.TextEvent;
+	import flash.geom.Point;
+	import flash.geom.Rectangle;
+	import flash.ui.Mouse;
+	import flash.utils.Dictionary;
+	import flash.utils.getTimer;
+	
 	import deltax.appframe.BaseApplication;
 	import deltax.common.error.Exception;
 	import deltax.common.error.SingletonMultiCreateError;
@@ -14,17 +25,6 @@
 	import deltax.gui.component.event.DXWndEvent;
 	import deltax.gui.component.event.DXWndKeyEvent;
 	import deltax.gui.component.event.DXWndMouseEvent;
-	
-	import flash.display3D.Context3D;
-	import flash.events.Event;
-	import flash.events.KeyboardEvent;
-	import flash.events.MouseEvent;
-	import flash.events.TextEvent;
-	import flash.geom.Point;
-	import flash.geom.Rectangle;
-	import flash.ui.Mouse;
-	import flash.utils.Dictionary;
-	import flash.utils.getTimer;
 	
 	/**
 	 *	gui管理器 

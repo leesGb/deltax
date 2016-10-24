@@ -11,8 +11,6 @@ package deltax.graphic.model
 	import flash.utils.ByteArray;
 	import flash.utils.Endian;
 	
-	import mx.controls.Alert;
-	
 	import deltax.delta;
 	import deltax.common.LittleEndianByteArray;
 	import deltax.common.resource.DependentRes;
@@ -340,7 +338,7 @@ package deltax.graphic.model
 			{
 				if(piece.m_texScale - minuv > 131)
 				{
-					Alert.show("error");
+					throw new Error("texscale uv is big than 131!!");
 				}
 			}
 			
@@ -482,7 +480,7 @@ package deltax.graphic.model
 							} else 
 							{
 								boneIDList[boneID] = (boneIDIndex - 1);
-								Alert.show("分块超过36骨骼数量限制:" + subGeoData.name);
+								throw new Error("分块超过36骨骼数量限制:" + subGeoData.name);
 								isMuchTo36 = true;
 							}
 						}

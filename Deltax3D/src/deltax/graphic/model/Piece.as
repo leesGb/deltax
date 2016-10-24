@@ -10,8 +10,6 @@
     import flash.utils.Endian;
     import flash.utils.getTimer;
     
-    import mx.controls.Alert;
-    
     import deltax.delta;
     import deltax.common.LittleEndianByteArray;
     import deltax.common.log.LogLevel;
@@ -703,7 +701,6 @@
 				tinyVertex = new TinyVertex(16, 18);//262144
 			} else 
 			{
-				Alert.show("Vertex values out of the compress range");
 				throw new Error("Vertex values out of the compress range!");
 			}
 			
@@ -734,15 +731,13 @@
 				uvPoint.y = sTex - v;
 				if(uvPoint.x<0 || uvPoint.y<0 || uvPoint.x>=131 || uvPoint.y>=131)
 				{
-					Alert.show("uv error,跟程序说 " + uvPoint.x.toString() + "," + uvPoint.y.toString());
-					throw new Error("uv error");
+					throw new Error("uv error:"+uvPoint.x.toString() + "," + uvPoint.y.toString());
 					break;
 				}
 				
 				if(vertexVec.x<0 || vertexVec.y<0 || vertexVec.z<0)
 				{
-					Alert.show("uv error,跟程序说 " + vertexVec.x.toString() + "," + vertexVec.y.toString() + "," + vertexVec.z.toString());
-					throw new Error("vertexVec error");
+					throw new Error("vertexVec error:"+vertexVec.x.toString() + "," + vertexVec.y.toString() + "," + vertexVec.z.toString());
 					break;
 				}
 	

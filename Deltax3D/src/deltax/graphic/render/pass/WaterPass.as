@@ -29,7 +29,7 @@
     public class WaterPass extends MaterialPassBase 
 	{
 
-        private static var m_globalProgram3D:DeltaXProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_WATER);
+        private static var m_globalProgram3D:DeltaXProgram3D;
 		
 		/**分块场景类*/
         private var m_metaScene:MetaScene;
@@ -37,6 +37,10 @@
         public function WaterPass(renderScene:RenderScene, texBegin:uint, texCount:uint)
 		{
             this.m_metaScene = renderScene.metaScene;
+			if (m_globalProgram3D == null) 
+			{
+				m_globalProgram3D = ShaderManager.instance.getProgram3D(ShaderManager.SHADER_WATER);
+			}
         }
 		
 		override public function activate(context:Context3D, camera:Camera3D):void

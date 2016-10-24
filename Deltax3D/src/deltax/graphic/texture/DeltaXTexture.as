@@ -52,7 +52,7 @@ package deltax.graphic.texture {
             };
             this.m_bitmapData = _arg1;
         }
-        private function get bitmapData():ByteArray{
+        public function get bitmapData():ByteArray{
             if ((this.m_bitmapData is ByteArray)){
                 return (ByteArray(this.m_bitmapData));
             };

@@ -1,13 +1,14 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common.resource {
+﻿package deltax.common.resource 
+{
     import deltax.common.*;
     import deltax.common.localize.*;
 
-    public final class Enviroment {
-
+    public final class Enviroment 
+	{
 		public static var RootPath:String = "";
         public static var ResourceRootPath:String = "";
         public static var ConfigRootPath:String = "";
+		public static var CGUIFlaPath:String = "";
         public static var PackedDataRootPath:String = "";
         public static var LanguageRelativeDir:String = "";
         public static var CurLanguage:String = "CN";
@@ -43,4 +44,4 @@ package deltax.common.resource {
         }
 
     }
-}//package deltax.common.resource 
+}

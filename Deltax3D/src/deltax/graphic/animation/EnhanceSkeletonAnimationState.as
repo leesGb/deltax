@@ -241,7 +241,7 @@
 			var curSkeletalIndex:uint;
 			var node:EnhanceSkeletonAnimationNode;
 			i = 1;
-			while (i < count) //本地矩阵转换为全局矩阵？，跟父骨计算
+			while (i < count) //本地矩阵转换为全局矩阵，跟父骨计算
 			{
 				calculateSkeletonID = skeletonInfoforCalculate[i];
 				skeletalID = calculateSkeletonID & 0xFF;//本骨骼索引
