@@ -1,13 +1,16 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.scenegraph.object {
-    import flash.events.*;
+﻿package deltax.graphic.scenegraph.object 
+{
+    import flash.events.Event;
 
-    public final class RenderObjectEvent extends Event {
-
+    public final class RenderObjectEvent extends Event 
+	{
+		/**渲染对象全部加载完（模型数据和动作数据）*/
         public static const ALL_LOADED:String = "all_loaded";
 
-        public function RenderObjectEvent(_arg1:String, _arg2:Boolean=false, _arg3:Boolean=false){
-            super(_arg1, _arg2, _arg3);
+        public function RenderObjectEvent(type:String, bubbles:Boolean=false, cancelable:Boolean=false)
+		{
+            super(type, bubbles, cancelable);
         }
+		
     }
-}//package deltax.graphic.scenegraph.object 
+} 

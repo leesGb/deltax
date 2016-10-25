@@ -1,4 +1,5 @@
-﻿package deltax.graphic.scenegraph.object {
+﻿package deltax.graphic.scenegraph.object 
+{
     import flash.geom.Matrix3D;
     import flash.geom.Rectangle;
     import flash.geom.Vector3D;
@@ -12,75 +13,102 @@
     import deltax.graphic.scenegraph.traverse.PartitionTraverser;
     import deltax.graphic.scenegraph.traverse.ViewTestResult;
     import deltax.gui.component.DeltaXWindow;
+	
+	/**
+	 * 场景内嵌窗口检测节点
+	 * @author lees
+	 * @date 2015/06/15
+	 */	
 
-    public class Window3DNode extends EntityNode {
-
-
-        public function Window3DNode(_arg1:Entity){
-            super(_arg1);
-        }
-        override public function isInFrustum(_arg1:Camera3D, _arg2:Boolean):uint
+    public class Window3DNode extends EntityNode 
+	{
+        public function Window3DNode(entity:Entity)
 		{
-            var _local7:Rectangle;
-            var _local8:Rectangle;
-            var _local3:DeltaXWindow = Window3D(_entity).innerWindow;
-            if (!_local3){
+            super(entity);
+        }
+		
+        override public function isInFrustum(camera3D:Camera3D, testResult:Boolean):uint
+		{
+            var win:DeltaXWindow = Window3D(_entity).innerWindow;
+            if (!win)
+			{
                 m_lastEntityVisible = false;
-                return (ViewTestResult.FULLY_OUT);
-            };
-            var _local4:Boolean = _entity.visible;
-            if (!_local4){
-                m_lastEntityVisible = _local4;
-                return (ViewTestResult.FULLY_OUT);
-            };
+                return ViewTestResult.FULLY_OUT;
+            }
+			
+            var mVisible:Boolean = _entity.visible;
+            if (!mVisible)
+			{
+                m_lastEntityVisible = mVisible;
+                return ViewTestResult.FULLY_OUT;
+            }
 			
 			var app:BaseApplication = BaseApplication.instance; 
-            if (m_lastFrameViewTestResult == ViewTestResult.UNDEFINED){
-                _arg2 = false;
-            };
-            if (((_arg2) && (!((m_lastEntityVisible == _local4))))){
-                _arg2 = false;
-            };
-            m_lastEntityVisible = _local4;
-            var _local5:Vector3D = MathUtl.TEMP_VECTOR3D;
-            _local5.copyFrom(entity.scenePosition);
-            var _local6:Matrix3D = _arg1.viewProjection;
-            VectorUtil.transformByMatrix(_local5, _local6, _local5);
-            if (_local5.w != 0){
-                _local5.scaleBy((1 / _local5.w));
-            };
-            _local5.x = ((_local5.x + 1) / 2);
-            _local5.y = ((-(_local5.y) + 1) / 2);
-            _local5.x = (_local5.x * app.width);
-            _local5.y = (_local5.y * app.height);
-            _local3.x = (_local5.x - (_local3.width / 2));
-            _local3.y = (_local5.y - (_local3.height / 2));
-            if (!_arg2){
-                _local7 = MathUtl.TEMP_RECTANGLE;
-                _local7.setTo(0, 0, app.width, app.height);
-                _local8 = MathUtl.TEMP_RECTANGLE2;
-                _local8.setTo(_local3.x, _local3.y, _local3.width, _local3.height);
-                if (_local7.intersects(_local8)){
-                    return (ViewTestResult.FULLY_IN);
-                };
-                return (ViewTestResult.FULLY_OUT);
-            };
-            return (m_lastFrameViewTestResult);
+            if (m_lastFrameViewTestResult == ViewTestResult.UNDEFINED)
+			{
+				testResult = false;
+            }
+			
+            if (testResult && m_lastEntityVisible != mVisible)
+			{
+				testResult = false;
+            }
+			
+            m_lastEntityVisible = mVisible;
+            var pos:Vector3D = MathUtl.TEMP_VECTOR3D;
+			pos.copyFrom(entity.scenePosition);
+            var mat:Matrix3D = camera3D.viewProjection;
+            VectorUtil.transformByMatrix(pos, mat, pos);
+            if (pos.w != 0)
+			{
+				pos.scaleBy(1 / pos.w);
+            }
+			pos.x = (pos.x + 1) * 0.5;
+			pos.y = (-(pos.y) + 1) * 0.5;
+			pos.x = pos.x * app.width;
+			pos.y = pos.y * app.height;
+			win.x = pos.x - win.width * 0.5;
+			win.y = pos.y - win.height * 0.5;
+			
+            if (!testResult)
+			{
+				var appRect:Rectangle = MathUtl.TEMP_RECTANGLE;
+				appRect.setTo(0, 0, app.width, app.height);
+				var winRect:Rectangle = MathUtl.TEMP_RECTANGLE2;
+				winRect.setTo(win.x, win.y, win.width, win.height);
+                if (appRect.intersects(winRect))
+				{
+                    return ViewTestResult.FULLY_IN;
+                }
+				
+                return ViewTestResult.FULLY_OUT;
+            }
+			
+            return m_lastFrameViewTestResult;
         }
-        override protected function onVisibleTestResult(_arg1:uint, _arg2:PartitionTraverser):void{
+		
+        override protected function onVisibleTestResult(lastTestResult:uint, patitionTraverser:PartitionTraverser):void
+		{
             DeltaXEntityCollector.TESTED_WINDOW3D_COUNT++;
-            var _local3:DeltaXWindow = Window3D(_entity).innerWindow;
-            if (_local3){
-                if ((_local3 is IWindow3DInnerObject)){
-                    _local3.visible = ((!((_arg1 == ViewTestResult.FULLY_OUT))) && (IWindow3DInnerObject(_local3).whetherCanShow()));
-                } else {
-                    _local3.visible = !((_arg1 == ViewTestResult.FULLY_OUT));
-                };
-            };
-            if (_arg1 != ViewTestResult.FULLY_OUT){
+            var win:DeltaXWindow = Window3D(_entity).innerWindow;
+            if (win)
+			{
+                if (win is IWindow3DInnerObject)
+				{
+					win.visible = (lastTestResult != ViewTestResult.FULLY_OUT && IWindow3DInnerObject(win).whetherCanShow());
+                } else 
+				{
+					win.visible = lastTestResult != ViewTestResult.FULLY_OUT;
+                }
+            }
+			
+            if (lastTestResult != ViewTestResult.FULLY_OUT)
+			{
                 DeltaXEntityCollector.VISIBLE_WINDOW3D_COUNT++;
-            };
+            }
         }
 
+		
+		
     }
 }

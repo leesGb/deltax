@@ -657,134 +657,137 @@
             this.delta::buildStaticShadowMap();
         }
 		
-        public function selectPosByCursor(_arg1:Number, _arg2:Number):Vector3D
+        public function selectPosByCursor(px:Number, py:Number):Vector3D
 		{
-            var _local3:Camera3D = this.m_app.camera;
-            var _local4:LensBase = _local3.lens;
-            var _local5:Vector.<Number> = _local4.frustumCorners;
-            this.m_rayForSelectTerrainGrid.x = (_local5[0] + ((_local5[3] * 2) * _arg1));
-            this.m_rayForSelectTerrainGrid.y = (_local5[7] - ((_local5[7] * 2) * _arg2));
-            this.m_rayForSelectTerrainGrid.z = _local4.near;
-            this.m_rayForSelectTerrainGrid = _local3.sceneTransform.deltaTransformVector(this.m_rayForSelectTerrainGrid);
+            var camera:Camera3D = this.m_app.camera;
+            var lens:LensBase = camera.lens;
+            var fCorners:Vector.<Number> = lens.frustumCorners;
+            this.m_rayForSelectTerrainGrid.x = fCorners[0] + fCorners[3] * 2 * px;
+            this.m_rayForSelectTerrainGrid.y = fCorners[7] - fCorners[7] * 2 * py;
+            this.m_rayForSelectTerrainGrid.z = lens.near;
+            this.m_rayForSelectTerrainGrid = camera.sceneTransform.deltaTransformVector(this.m_rayForSelectTerrainGrid);
             this.m_rayForSelectTerrainGrid.normalize();
-            var _local6:Vector3D = _local3.scenePosition;
-            var _local7:Vector3D = MathUtl.TEMP_VECTOR3D;
-            _local7.copyFrom(this.m_rayForSelectTerrainGrid);
-            _local7.scaleBy(_local4.far);
-            _local7.incrementBy(_local6);
-            var _local8:Number = (((_local6.x - _local7.x) * (_local6.x - _local7.x)) + ((_local6.z - _local7.z) * (_local6.z - _local7.z)));
-            this.m_paramToCalcHeightOnViewRay = ((_local7.y - _local6.y) / Math.sqrt(_local8));
+            var cameraPos:Vector3D = camera.scenePosition;
+            var gridPos:Vector3D = MathUtl.TEMP_VECTOR3D;
+			gridPos.copyFrom(this.m_rayForSelectTerrainGrid);
+			gridPos.scaleBy(lens.far);
+			gridPos.incrementBy(cameraPos);
+			var ox:Number = cameraPos.x - gridPos.x;
+			var oz:Number = cameraPos.z - gridPos.z;
+            var length:Number = ox * ox + oz * oz;
+            this.m_paramToCalcHeightOnViewRay = (gridPos.y - cameraPos.y) / Math.sqrt(length);
             this.m_selectGridPos.x = -1;
             this.m_selectGridPos.y = -1;
             this.m_preCheckedIntersectPos.setTo(0, 0, 0);
-            MathUtl.lineTo((_local6.x / 8), (_local6.z / 8), (_local7.x / 8), (_local7.z / 8), this.judgeViewRayIntersect);
-            return (this.m_preCheckedIntersectPos);
+            MathUtl.lineTo((cameraPos.x / 8), (cameraPos.z / 8), (gridPos.x / 8), (gridPos.z / 8), this.judgeViewRayIntersect);
+            return this.m_preCheckedIntersectPos;
         }
 		
-		private function judgeViewRayIntersect(_arg1:int, _arg2:int):Boolean
+		private function judgeViewRayIntersect(px:int, pz:int):Boolean
 		{
-			var _local10:Number;
-			var _local11:Number;
-			var _local12:Number;
-			var _local3:Point = MathUtl.TEMP_VECTOR2D;
-			_arg1 = (_arg1 * 8);
-			_arg2 = (_arg2 * 8);
-			_local3.setTo(int((_arg1 / MapConstants.GRID_SPAN)), int((_arg2 / MapConstants.GRID_SPAN)));
-			if (((_local3.equals(this.m_selectGridPos)) || (!(this.m_metaScene.isGridValid(_local3.x, _local3.y)))))
+			px *= 8;
+			pz *= 8;
+			
+			var sp:Point = MathUtl.TEMP_VECTOR2D;
+			sp.setTo(int(px / MapConstants.GRID_SPAN), int(pz / MapConstants.GRID_SPAN));
+			if (sp.equals(this.m_selectGridPos) || !this.m_metaScene.isGridValid(sp.x, sp.y))
 			{
-				return (true);
+				return true;
 			}
-			var _local4:Vector3D = this.m_app.camera.scenePosition;
-			var _local5:Vector3D = MathUtl.TEMP_VECTOR3D;
-			_local5.setTo(_arg1, this.m_metaScene.getGridLogicHeightByPixel(_arg1, _arg2), _arg2);
-			var _local6:Number = (_arg1 - _local4.x);
-			var _local7:Number = (_arg2 - _local4.z);
-			var _local8:Number = Math.sqrt(((_local6 * _local6) + (_local7 * _local7)));
-			var _local9:Number = (_local4.y + (this.m_paramToCalcHeightOnViewRay * _local8));
-			if ((((_local9 <= _local5.y)) && ((this.m_preHeightOnViewRay >= this.m_preCheckedIntersectPos.y))))
+			
+			var cameraPos:Vector3D = this.m_app.camera.scenePosition;
+			var calePos:Vector3D = MathUtl.TEMP_VECTOR3D;
+			calePos.setTo(px, this.m_metaScene.getGridLogicHeightByPixel(px, pz), pz);
+			var ox:Number = px - cameraPos.x;
+			var oz:Number = pz - cameraPos.z;
+			var length:Number = Math.sqrt(ox * ox + oz * oz);
+			var curHeight:Number = cameraPos.y + this.m_paramToCalcHeightOnViewRay * length;
+			if (curHeight <= calePos.y && this.m_preHeightOnViewRay >= this.m_preCheckedIntersectPos.y)
 			{
-				_local10 = (this.m_preHeightOnViewRay - this.m_preCheckedIntersectPos.y);
-				_local11 = (_local5.y - _local9);
-				_local12 = (_local10 / (_local10 + _local11));
-				this.m_preCheckedIntersectPos.x = (this.m_preCheckedIntersectPos.x + ((_local5.x - this.m_preCheckedIntersectPos.x) * _local12));
-				this.m_preCheckedIntersectPos.y = (this.m_preCheckedIntersectPos.y + ((_local5.y - this.m_preCheckedIntersectPos.y) * _local12));
-				this.m_preCheckedIntersectPos.z = (this.m_preCheckedIntersectPos.z + ((_local5.z - this.m_preCheckedIntersectPos.z) * _local12));
-				return (false);
+				var preOffsetHeight:Number = this.m_preHeightOnViewRay - this.m_preCheckedIntersectPos.y;
+				var curOffsetHeight:Number = calePos.y - curHeight;
+				var ratio:Number = preOffsetHeight / (preOffsetHeight + curOffsetHeight);
+				this.m_preCheckedIntersectPos.x += (calePos.x - this.m_preCheckedIntersectPos.x) * ratio;
+				this.m_preCheckedIntersectPos.y += (calePos.y - this.m_preCheckedIntersectPos.y) * ratio;
+				this.m_preCheckedIntersectPos.z += (calePos.z - this.m_preCheckedIntersectPos.z) * ratio;
+				return false;
 			}
-			this.m_preCheckedIntersectPos.copyFrom(_local5);
-			this.m_preHeightOnViewRay = _local9;
-			this.m_selectGridPos.copyFrom(_local3);
-			return (true);
+			
+			this.m_preCheckedIntersectPos.copyFrom(calePos);
+			this.m_preHeightOnViewRay = curHeight;
+			this.m_selectGridPos.copyFrom(sp);
+			return true;
 		}
 		
-        public function detectEntityInViewport(_arg1:Number, _arg2:Number, _arg3:Entity, _arg4:Vector3D, _arg5:Matrix3D):Boolean
+        public function detectEntityInViewport(px:Number, py:Number, entity:Entity, cameraScale:Vector3D, projMat:Matrix3D):Boolean
 		{
-            var _local6:Vector3D;
-            var _local7:Vector3D;
-            if ((_arg3 is RenderObject))
+            var min:Vector3D;
+            var max:Vector3D;
+            if (entity is RenderObject)
 			{
-                _local6 = RenderObject(_arg3).boundsForSelect.min;
-                _local7 = RenderObject(_arg3).boundsForSelect.max;
+				min = RenderObject(entity).boundsForSelect.min;
+				max = RenderObject(entity).boundsForSelect.max;
             } else 
 			{
-                _local6 = _arg3.bounds.min;
-                _local7 = _arg3.bounds.max;
+				min = entity.bounds.min;
+				max = entity.bounds.max;
             }
-            var _local8:Vector3D = MathUtl.TEMP_VECTOR3D;
-            var _local9:Number = (((_local7.y - _local6.y) * 0.5) * _arg3.scaleY);
-            var _local10:Number = (((((_local7.x - _local6.x) + _local7.z) - _local6.z) * 0.4) * _arg3.scaleX);
-            _local8.x = ((_local6.x + _local7.x) * 0.5);
-            _local8.y = ((_local6.y + _local7.y) * 0.5);
-            _local8.z = ((_local6.z + _local7.z) * 0.5);
-            VectorUtil.transformByMatrix(_local8, _arg3.sceneTransform, _local8);
-            var _local11:Vector3D = MathUtl.TEMP_VECTOR3D2;
-            var _local12:Vector3D = MathUtl.TEMP_VECTOR3D3;
-            _local11.x = (_local8.x - (_arg4.x * _local10));
-            _local11.y = (_local8.y - _local9);
-            _local11.z = (_local8.z - (_arg4.z * _local10));
-            _local12.x = (_local8.x + (_arg4.x * _local10));
-            _local12.y = (_local8.y + _local9);
-            _local12.z = (_local8.z + (_arg4.z * _local10));
-            VectorUtil.transformByMatrix(_local11, _arg5, _local11);
-            if (_local11.w != 0)
+            var center:Vector3D = MathUtl.TEMP_VECTOR3D;
+            var yScale:Number = (max.y - min.y) * 0.5 * entity.scaleY;
+            var xzScale:Number = (max.x - min.x + max.z - min.z) * 0.4 * entity.scaleX;
+			center.x = (min.x + max.x) * 0.5;
+			center.y = (min.y + max.y) * 0.5;
+			center.z = (min.z + max.z) * 0.5;
+            VectorUtil.transformByMatrix(center, entity.sceneTransform, center);
+            var tMin:Vector3D = MathUtl.TEMP_VECTOR3D2;
+            var tMax:Vector3D = MathUtl.TEMP_VECTOR3D3;
+			tMin.x = center.x - cameraScale.x * xzScale;
+			tMin.y = center.y - yScale;
+			tMin.z = center.z - cameraScale.z * xzScale;
+			tMax.x = center.x + cameraScale.x * xzScale;
+			tMax.y = center.y + yScale;
+			tMax.z = center.z + cameraScale.z * xzScale;
+			
+            VectorUtil.transformByMatrix(tMin, projMat, tMin);
+            if (tMin.w != 0)
 			{
-                _local11.scaleBy((1 / _local11.w));
+				tMin.scaleBy(1 / tMin.w);
             }
-            if ((((((_arg1 < _local11.x)) || ((_arg2 < _local11.y)))) || ((_local11.z > 1))))
+            if (px < tMin.x || py < tMin.y || tMin.z > 1)
 			{
-                return (false);
+                return false;
             }
-            VectorUtil.transformByMatrix(_local12, _arg5, _local12);
-            if (_local12.w != 0)
+			
+            VectorUtil.transformByMatrix(tMax, projMat, tMax);
+            if (tMax.w != 0)
 			{
-                _local12.scaleBy((1 / _local12.w));
+				tMax.scaleBy(1 / tMax.w);
             }
-            if ((((((_arg1 > _local12.x)) || ((_arg2 > _local12.y)))) || ((_local12.z < 0))))
+            if (px > tMax.x || py > tMax.y || tMax.z < 0)
 			{
-                return (false);
+                return false;
             }
-            return (true);
+			
+            return true;
         }
 		
         public function filterShadowMap():BitmapData
 		{
-            var _local1:Array = [0.0625, 0.125, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.125, 0.0625];
-            var _local2:ConvolutionFilter = new ConvolutionFilter();
-            _local2.matrixX = 3;
-            _local2.matrixY = 3;
-            _local2.matrix = _local1;
-            _local2.divisor = 1;
-            var _local3:Rectangle = new Rectangle(0, 0, this.m_shadowMapBitmapData.width, this.m_shadowMapBitmapData.height);
-            var _local4:BitmapData = new BitmapData(this.m_shadowMapBitmapData.width, this.m_shadowMapBitmapData.height, false, 0);
-            _local4.applyFilter(this.m_shadowMapBitmapData, _local3, new Point(), _local2);
-            return (_local4);
+            var mat:Array = [0.0625, 0.125, 0.0625, 0.125, 0.25, 0.125, 0.0625, 0.125, 0.0625];
+            var filter:ConvolutionFilter = new ConvolutionFilter();
+			filter.matrixX = 3;
+			filter.matrixY = 3;
+			filter.matrix = mat;
+			filter.divisor = 1;
+            var rect:Rectangle = new Rectangle(0, 0, this.m_shadowMapBitmapData.width, this.m_shadowMapBitmapData.height);
+            var bitmapData:BitmapData = new BitmapData(this.m_shadowMapBitmapData.width, this.m_shadowMapBitmapData.height, false, 0);
+			bitmapData.applyFilter(this.m_shadowMapBitmapData, rect, new Point(), filter);
+            return bitmapData;
         }
 		
-        public function getShadowMap(_arg1:Context3D):Texture
+        public function getShadowMap(context:Context3D):Texture
 		{
-            var _local2:uint;
-            var _local3:uint;
-            if (this.m_context3D != _arg1)
+            if (this.m_context3D != context)
 			{
                 if (this.m_shadowMaptexture)
 				{
@@ -792,30 +795,56 @@
                     this.m_shadowMaptexture = null;
                 }
                 this.m_invalidShadowMap = true;
-                this.m_context3D = _arg1;
+                this.m_context3D = context;
             }
 			
             if (!this.m_shadowMaptexture)
 			{
-                this.m_shadowMaptexture = _arg1.createTexture(this.m_shadowMapBitmapData.width, this.m_shadowMapBitmapData.height, Context3DTextureFormat.BGRA, false);
+                this.m_shadowMaptexture = context.createTexture(this.m_shadowMapBitmapData.width, this.m_shadowMapBitmapData.height, Context3DTextureFormat.BGRA, false);
                 this.m_invalidShadowMap = true;
             }
 			
             if (this.m_invalidShadowMap)
 			{
-                _local2 = this.m_shadowMapBitmapData.width;
-                _local3 = 0;
-                while (_local2) 
+				var w:uint = this.m_shadowMapBitmapData.width;
+				var idx:uint = 0;
+                while (w) 
 				{
-                    var _temp1 = _local3;
-                    _local3 = (_local3 + 1);
-                    this.m_shadowMaptexture.uploadFromBitmapData(this.m_shadowMapBitmapData, _temp1);
-                    _local2 = (_local2 >> 1);
+                    this.m_shadowMaptexture.uploadFromBitmapData(this.m_shadowMapBitmapData, idx++);
+                    w = w >> 1;
                 }
                 this.m_invalidShadowMap = false;
             }
-            return (this.m_shadowMaptexture);
+			
+            return this.m_shadowMaptexture;
         }
+		
+		private function buildShadowMatrix():void
+		{
+			if (this.m_metaScene.regionWidth == 0)
+			{
+				return;
+			}
+			
+			var tx:Number = (this.m_metaScene.regionWidth & 1) / this.m_metaScene.regionWidth;
+			var ty:Number = (this.m_metaScene.regionHeight & 1) / this.m_metaScene.regionHeight;
+			var sw:Number = this.m_metaScene.gridWidth * MapConstants.STATIC_SHADOW_SPAN_PER_GRID;
+			var sh:Number = this.m_metaScene.gridHeight * MapConstants.STATIC_SHADOW_SPAN_PER_GRID;
+			sw = (sw * 0.5) / RenderConstants.STATIC_SHADOW_MAP_SIZE;
+			sh = (sh * 0.5) / RenderConstants.STATIC_SHADOW_MAP_SIZE;
+			var mat1:Matrix3D = MathUtl.TEMP_MATRIX3D;
+			mat1.appendTranslation(tx, ty, 0);
+			var mat2:Matrix3D = MathUtl.TEMP_MATRIX3D2;
+			mat2.appendScale(sw, -(sh), 1);
+			var mat3:Matrix3D = MathUtl.TEMP_MATRIX3D3;
+			mat3.appendTranslation(0.5005, 0.5005, 0);
+			this.m_curShadowProject = ((this.m_curShadowProject) || (new Matrix3D()));
+			this.m_curShadowProject.copyFrom(this.m_app.camera.sceneTransform);
+			this.m_curShadowProject.append(this.m_metaScene.sceneInfo.m_shadowProject);
+			this.m_curShadowProject.append(mat1);
+			this.m_curShadowProject.append(mat2);
+			this.m_curShadowProject.append(mat3);
+		}
 		
         delta function buildStaticShadowMap():void
 		{
@@ -936,7 +965,7 @@
                 if (_local24[_local20] != _local24[_local21])
 				{
                     ++_local21;
-                    var _local44 = _local21;
+                    var _local44:int = _local21;
                     _local24[_local44] = _local24[_local20];
                 }
                 _local20++;
@@ -989,42 +1018,6 @@
                 }
                 _local20++;
             }
-        }
-		
-        private function buildShadowMatrix():void
-		{
-            var _local8:Number;
-            var _local9:Number;
-            var _local10:Matrix3D;
-            var _local11:Matrix3D;
-            var _local12:Matrix3D;
-            if (this.m_metaScene.regionWidth == 0)
-			{
-                return;
-            }
-            var _local1:Camera3D = this.m_app.camera;
-            var _local2:uint = this.m_metaScene.regionWidth;
-            var _local3:uint = this.m_metaScene.regionHeight;
-            var _local4:uint = this.m_metaScene.gridWidth;
-            var _local5:uint = this.m_metaScene.gridHeight;
-            var _local6:Number = ((_local2 & 1) / _local2);
-            var _local7:Number = ((_local3 & 1) / _local3);
-            _local8 = (_local4 * MapConstants.STATIC_SHADOW_SPAN_PER_GRID);
-            _local9 = (_local5 * MapConstants.STATIC_SHADOW_SPAN_PER_GRID);
-            _local8 = ((_local8 * 0.5) / RenderConstants.STATIC_SHADOW_MAP_SIZE);
-            _local9 = ((_local9 * 0.5) / RenderConstants.STATIC_SHADOW_MAP_SIZE);
-            _local10 = new Matrix3D();
-            _local10.appendTranslation(_local6, _local7, 0);
-            _local11 = new Matrix3D();
-            _local11.appendScale(_local8, -(_local9), 1);
-            _local12 = new Matrix3D();
-            _local12.appendTranslation(0.5005, 0.5005, 0);
-            this.m_curShadowProject = ((this.m_curShadowProject) || (new Matrix3D()));
-            this.m_curShadowProject.copyFrom(_local1.sceneTransform);
-            this.m_curShadowProject.append(this.m_metaScene.sceneInfo.m_shadowProject);
-            this.m_curShadowProject.append(_local10);
-            this.m_curShadowProject.append(_local11);
-            this.m_curShadowProject.append(_local12);
         }
 		
 		public function ClearShadowmap():void
