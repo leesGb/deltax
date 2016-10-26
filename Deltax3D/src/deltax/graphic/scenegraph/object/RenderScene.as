@@ -874,27 +874,27 @@
 			{
                 return;
             }
-            var _local1:uint = this.m_metaScene.regionWidth;
-            var _local2:uint = this.m_metaScene.regionHeight;
+            var rw:uint = this.m_metaScene.regionWidth;
+            var rh:uint = this.m_metaScene.regionHeight;
             var _local3:Vector3D = this.m_metaScene.sceneInfo.m_shadowProject.transformVector(this.m_lastUpdateRegionCenter);
-            var _local4:Point = new Point(((_local3.x * 0.5) + 0.5), ((_local3.y * 0.5) + 0.5));
-            new Point(((_local3.x * 0.5) + 0.5), ((_local3.y * 0.5) + 0.5)).x = (_local4.x * _local1);
-            _local4.y = (_local4.y * _local2);
+            var _local4:Point = new Point((_local3.x * 0.5 + 0.5), (_local3.y * 0.5 + 0.5));
+			_local4.x *= rw;
+            _local4.y *= rh;
             var _local5:uint = MapConstants.STATIC_SHADOW_SPAN_PER_REGION;
-            _local6 = (RenderConstants.STATIC_SHADOW_MAP_SIZE / MapConstants.STATIC_SHADOW_SPAN_PER_GRID);
-            _local7 = (_local6 / MapConstants.REGION_SPAN);
-            var _local8:uint = (_local7 / 2);
+            _local6 = RenderConstants.STATIC_SHADOW_MAP_SIZE / MapConstants.STATIC_SHADOW_SPAN_PER_GRID;
+            _local7 = _local6 / MapConstants.REGION_SPAN;
+            var _local8:uint = _local7 * 0.5;
             var _local9:uint = this.m_metaScene.gridWidth;
             var _local10:uint = this.m_metaScene.gridHeight;
-            var _local11:uint = (_local9 / (MapConstants.REGION_SPAN * 2));
-            var _local12:uint = (_local10 / (MapConstants.REGION_SPAN * 2));
+            var _local11:uint = _local9 / (MapConstants.REGION_SPAN * 2);
+            var _local12:uint = _local10 / (MapConstants.REGION_SPAN * 2);
             var _local13:uint = ((uint((uint((_local9 / MapConstants.REGION_SPAN)) / _local7)) + 1) * _local7);
             var _local14:uint = ((uint((uint((_local10 / MapConstants.REGION_SPAN)) / _local7)) + 1) * _local7);
             var _local15:uint = getTimer();
             var _local16:Number = this.m_metaScene.sceneInfo.m_shadowBlur;
             var _local17:Rectangle = new Rectangle(0, 0, _local5, _local5);
-            var _local18:uint = ((_local16 * 0xFF) / 8);
-            var _local19:uint = (0xFF - (_local18 * 8));
+            var _local18:uint = (_local16 * 0xFF) / 8;
+            var _local19:uint = 0xFF - (_local18 * 8);
             if (this.m_staticShadowRegionInfos == null)
 			{
                 this.m_staticShadowRegionInfos = new Vector.<ShadowRegionInfo>((_local7 * _local7));
@@ -914,46 +914,37 @@
             while (_local20 < _local23)
 			{
                 _local22 = this.m_visibleRenderRegion[_local20].metaRegion;
-                if (((!(_local22)) || (!((_local22.delta::m_regionFlag == RegionFlag.Visible)))))
+                if (_local22 &&  _local22.delta::m_regionFlag == RegionFlag.Visible)
 				{
-					//
-                } else
-				{
-                    _local32 = 4;
-                    while (_local32 < 16) 
+					_local32 = 4;
+					while (_local32 < 16) 
 					{
-                        _local33 = 4;
-                        while (_local33 < 16) 
+						_local33 = 4;
+						while (_local33 < 16) 
 						{
-                            _local25.x = ((_local22.regionLeftBottomGridX + _local32) * MapConstants.GRID_SPAN);
-                            _local25.y = this.m_lastUpdateRegionCenter.y;
-                            _local25.z = ((_local22.regionLeftBottomGridZ + _local33) * MapConstants.GRID_SPAN);
-                            VectorUtil.transformByMatrix(_local25, this.m_metaScene.sceneInfo.m_shadowProject, _local26);
-                            _local26.x = uint(((((_local26.x / _local26.w) * 0.5) + 0.5) * _local1));
-                            _local26.y = uint(((((_local26.y / _local26.w) * 0.5) + 0.5) * _local2));
-                            if ((((_local26.y >= this.m_metaScene.regionHeight)) || ((_local26.x >= this.m_metaScene.regionWidth))))
+							_local25.x = ((_local22.regionLeftBottomGridX + _local32) * MapConstants.GRID_SPAN);
+							_local25.y = this.m_lastUpdateRegionCenter.y;
+							_local25.z = ((_local22.regionLeftBottomGridZ + _local33) * MapConstants.GRID_SPAN);
+							VectorUtil.transformByMatrix(_local25, this.m_metaScene.sceneInfo.m_shadowProject, _local26);
+							_local26.x = uint(((((_local26.x / _local26.w) * 0.5) + 0.5) * rw));
+							_local26.y = uint(((((_local26.y / _local26.w) * 0.5) + 0.5) * rh));
+							if ((((_local26.y < this.m_metaScene.regionHeight)) && ((_local26.x < this.m_metaScene.regionWidth))))
 							{
-								//
-                            } else 
-							{
-                                _local30 = ((_local26.y * this.m_metaScene.regionWidth) + _local26.x);
-                                if (this.m_regions[_local30] == null)
+								_local30 = ((_local26.y * this.m_metaScene.regionWidth) + _local26.x);
+								if (this.m_regions[_local30])
 								{
-									//
-                                } else 
-								{
-                                    _local27 = (((_local26.x + 0.5) - _local4.x) * MapConstants.REGION_SPAN);
-                                    _local28 = (((_local26.y + 0.5) - _local4.y) * MapConstants.REGION_SPAN);
-                                    _local29 = Math.sqrt(((_local27 * _local27) + (_local28 * _local28)));
-                                    _local27 = (_local26.x * MapConstants.REGION_SPAN);
-                                    _local28 = (_local26.y * MapConstants.REGION_SPAN);
-                                    _local24.push(((_local29 << 16) | _local30));
-                                }
-                            }
-                            _local33 = (_local33 + 8);
-                        }
-                        _local32 = (_local32 + 8);
-                    }
+									_local27 = (((_local26.x + 0.5) - _local4.x) * MapConstants.REGION_SPAN);
+									_local28 = (((_local26.y + 0.5) - _local4.y) * MapConstants.REGION_SPAN);
+									_local29 = Math.sqrt(((_local27 * _local27) + (_local28 * _local28)));
+									_local27 = (_local26.x * MapConstants.REGION_SPAN);
+									_local28 = (_local26.y * MapConstants.REGION_SPAN);
+									_local24.push(((_local29 << 16) | _local30));
+								}
+							} 
+							_local33 = (_local33 + 8);
+						}
+						_local32 = (_local32 + 8);
+					}
                 }
                 _local20++;
             }
@@ -976,45 +967,36 @@
 			{
                 _local30 = (_local24[_local20] & 0xFFFF);
                 _local22 = this.m_metaScene.m_regions[_local30];
-                if (!_local22)
+                if (_local22)
 				{
-					//
-                } else
-				{
-                    _local34 = (_local30 % _local1);
-                    _local35 = (_local30 / _local1);
-                    _local36 = (_local34 - _local11);
-                    _local37 = (_local35 - _local12);
-                    _local38 = (((_local36 + _local8) + _local13) % _local7);
-                    _local39 = (((_local37 + _local8) + _local14) % _local7);
-                    _local40 = ((_local39 * _local7) + _local38);
-                    _local41 = this.m_staticShadowRegionInfos[_local40];
-                    if (_local15 == _local41.m_updateTime)
+					_local34 = (_local30 % rw);
+					_local35 = (_local30 / rw);
+					_local36 = (_local34 - _local11);
+					_local37 = (_local35 - _local12);
+					_local38 = (((_local36 + _local8) + _local13) % _local7);
+					_local39 = (((_local37 + _local8) + _local14) % _local7);
+					_local40 = ((_local39 * _local7) + _local38);
+					_local41 = this.m_staticShadowRegionInfos[_local40];
+					if (_local15 != _local41.m_updateTime)
 					{
-						//
-                    } else 
-					{
-                        _local41.m_updateTime = _local15;
-                        if (_local41.m_regionID == _local30)
+						_local41.m_updateTime = _local15;
+						if (_local41.m_regionID != _local30)
 						{
-							//
-                        } else 
-						{
-                            if (_local31 == null)
+							if (_local31 == null)
 							{
-                                _local31 = new Vector.<uint>((_local5 * _local5));
-                                _local31.fixed = true;
-                            }
-                            _local41.m_regionID = _local30;
-                            _local22.GetStaticShadowBuffer(_local31, _local19, _local18);
-                            _local42 = (_local38 * _local5);
-                            _local43 = (((_local7 - _local39) - 1) * _local5);
-                            _local17.offset(_local42, _local43);
-                            this.m_shadowMapBitmapData.setVector(_local17, _local31);
-                            _local17.offset(-(_local42), -(_local43));
-                            this.m_invalidShadowMap = true;
-                        }
-                    }
+								_local31 = new Vector.<uint>((_local5 * _local5));
+								_local31.fixed = true;
+							}
+							_local41.m_regionID = _local30;
+							_local22.GetStaticShadowBuffer(_local31, _local19, _local18);
+							_local42 = (_local38 * _local5);
+							_local43 = (((_local7 - _local39) - 1) * _local5);
+							_local17.offset(_local42, _local43);
+							this.m_shadowMapBitmapData.setVector(_local17, _local31);
+							_local17.offset(-(_local42), -(_local43));
+							this.m_invalidShadowMap = true;
+						} 
+					}
                 }
                 _local20++;
             }
