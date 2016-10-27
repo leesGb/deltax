@@ -1,10 +1,11 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package org.bytearray.gif.decoder {
-    import flash.display.*;
-    import flash.geom.*;
-    import flash.utils.*;
-    import org.bytearray.gif.frames.*;
-    import org.bytearray.gif.errors.*;
+﻿package org.bytearray.gif.decoder 
+{
+    import flash.display.BitmapData;
+    import flash.geom.Rectangle;
+    import flash.utils.ByteArray;
+    
+    import org.bytearray.gif.errors.FileTypeError;
+    import org.bytearray.gif.frames.GIFFrame;
 
     public class GIFDecoder {
 

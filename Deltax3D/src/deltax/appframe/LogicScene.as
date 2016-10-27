@@ -237,69 +237,85 @@
                 _local2.updateMove(_arg1);
             };
         }
-        public function selectObjectByCursor(_arg1:Number, _arg2:Number):ShellLogicObject{
-            var _local4:LogicObject;
-            var _local5:RenderObject;
-            var _local15:LogicObject;
-            var _local16:Vector3D;
-            var _local17:Vector3D;
-            var _local3:RenderScene = this.m_renderScene;
-            var _local6:LogicObject = this.lastSelectCoreObject;
-            var _local7:Vector3D = _local3.viewRay;
-            var _local8:Vector3D = MathUtl.TEMP_VECTOR3D;
-            var _local9:Vector3D = MathUtl.TEMP_VECTOR3D2;
-            var _local10:Matrix3D = new Matrix3D();
-            var _local11:Number = (-1 + (_arg1 * 2));
-            var _local12:Number = (-1 + ((1 - _arg2) * 2));
-            var _local13:Matrix3D = BaseApplication.instance.camera.inverseSceneTransform;
-            _local13.copyRowTo(0, _local8);
-            _local13.copyRowTo(2, _local9);
-            _local8.y = 0;
-            _local8.normalize();
-            _local9.y = 0;
-            _local9.normalize();
-            var _local14:Vector3D = new Vector3D((_local8.x + _local9.x), 0, (_local8.z + _local9.z));
-            _local10.copyFrom(_local13);
-            _local10.append(BaseApplication.instance.camera.lens.matrix);
-            for each (_local15 in LogicObject.m_allObjects) {
-                if (((!(_local15.shellObject)) || (!((_local15.scene == this))))){
-                } else {
-                    if (!_local15.isSelectable()){
-                    } else {
-                        _local5 = _local15.renderObject;
-                        if (!_local5.enableRender){
-                        } else {
-                            while ((_local5.parent is RenderObject)) {
-                                _local5 = (_local5.parent as RenderObject);
-                            };
-                            if (!_local5.isVisible){
-                            } else {
-                                if (_local4){
-                                    _local16 = MathUtl.TEMP_VECTOR3D;
-                                    _local16.copyFrom(_local15.renderObject.scenePosition);
-                                    _local17 = _local4.renderObject.scenePosition;
-                                    _local16.decrementBy(_local17);
-                                    //unresolved if
-                                } else {
-                                    if (_local3.detectEntityInViewport(_local11, _local12, _local5, _local14, _local10)){
-                                        _local4 = _local15;
-                                    };
-                                };
-                            };
-                        };
-                    };
-                };
-            };
-            if (_local4 != _local6){
-                if (_local6){
-                    _local6.seletectedByMouse = false;
-                };
-                if (_local4){
-                    _local4.seletectedByMouse = true;
-                };
-            };
-            this.m_lastSelectedObjectID = (_local4) ? _local4.id : NaN;
-            return (this.lastSelectedShellObject);
+		
+        public function selectObjectByCursor(px:Number, py:Number):ShellLogicObject
+		{
+			var sx:Number = px * 2 - 1;
+			var sy:Number = 1 - 2 * py;
+			
+			var renderScene:RenderScene = this.m_renderScene;
+			var viewRay:Vector3D = renderScene.viewRay;
+			var x_axis:Vector3D = MathUtl.TEMP_VECTOR3D;
+			var z_axis:Vector3D = MathUtl.TEMP_VECTOR3D2;
+			var viewMat:Matrix3D = BaseApplication.instance.camera.inverseSceneTransform;
+			viewMat.copyRowTo(0,x_axis);
+			viewMat.copyRowTo(2,z_axis);
+			x_axis.y = 0;
+			x_axis.normalize();
+			z_axis.y = 0;
+			z_axis.normalize();
+			var _loc14_:Vector3D = new Vector3D(x_axis.x + z_axis.x,0,x_axis.z + z_axis.z);
+			var viewProjMat:Matrix3D = new Matrix3D();
+			viewProjMat.copyFrom(viewMat);
+			viewProjMat.append(BaseApplication.instance.camera.lens.matrix);
+			var logicObj:LogicObject = null;
+			var rObj:RenderObject = null;
+			var tObj:LogicObject = null;
+			var curObjPos:Vector3D = null;
+			var lastObjPos:Vector3D = null;
+			for each(logicObj in LogicObject.m_allObjects)
+			{
+				if(logicObj.shellObject && logicObj.scene == this)
+				{
+					if(logicObj.isSelectable())
+					{
+						rObj = logicObj.renderObject;
+						if(rObj.enableRender)
+						{
+							while(rObj.parent is RenderObject)
+							{
+								rObj = rObj.parent as RenderObject;
+							}
+							
+							if(rObj.isVisible)
+							{
+								if(tObj)
+								{
+									curObjPos = MathUtl.TEMP_VECTOR3D;
+									curObjPos.copyFrom(logicObj.renderObject.scenePosition);
+									lastObjPos = tObj.renderObject.scenePosition;
+									curObjPos.decrementBy(lastObjPos);
+									if(curObjPos.dotProduct(viewRay) > 0)
+									{
+										continue;
+									}
+								}
+								
+								if(renderScene.detectEntityInViewport(sx,sy,rObj,_loc14_,viewProjMat))
+								{
+									tObj = logicObj;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			var _loc6_:LogicObject = this.lastSelectCoreObject;
+			if(tObj != _loc6_)
+			{
+				if(_loc6_)
+				{
+					_loc6_.seletectedByMouse = false;
+				}
+				if(tObj)
+				{
+					tObj.seletectedByMouse = true;
+				}
+			}
+			
+			this.m_lastSelectedObjectID = tObj?tObj.id:NaN;
+			return this.lastSelectedShellObject;
         }
         public function get lastSelectedShellObject():ShellLogicObject{
             return (this.getShellLogicObject(this.m_lastSelectedObjectID));

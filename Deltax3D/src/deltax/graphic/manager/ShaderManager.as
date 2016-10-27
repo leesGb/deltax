@@ -1,16 +1,20 @@
 ﻿package deltax.graphic.manager 
 {
-    import deltax.graphic.camera.*;
-    import deltax.graphic.scenegraph.object.*;
-    import deltax.graphic.scenegraph.traverse.*;
-    import deltax.graphic.shader.*;
+    import flash.display3D.Context3D;
+    import flash.events.Event;
+    import flash.net.URLLoader;
+    import flash.net.URLLoaderDataFormat;
+    import flash.net.URLRequest;
+    import flash.utils.ByteArray;
+    import flash.utils.getTimer;
     
-    import flash.display3D.*;
-    import flash.events.*;
-    import flash.net.*;
-    import flash.utils.*;
+    import deltax.graphic.camera.Camera3D;
+    import deltax.graphic.scenegraph.object.RenderScene;
+    import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
+    import deltax.graphic.shader.DeltaXProgram3D;
 
-    public class ShaderManager {
+    public class ShaderManager 
+	{
 		public static const SHADER_DEFAULT:uint = SHADER_ID++;
 		public static const SHADER_LIGHT:uint = SHADER_ID++;
 		public static const SHADER_SKINNED:uint = SHADER_ID++;
@@ -345,7 +349,7 @@
 				loaderArray[1] = fragmentShader;
 			}
 			
-			if (!materialShader == null && materialShader != "")
+			if (materialShader != null && materialShader != "")
 			{
 				loaderArray[2] = materialShader;
 			}

@@ -1,9 +1,9 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.map {
-    import flash.utils.*;
+﻿package deltax.graphic.map 
+{
+    import flash.utils.ByteArray;
 
-    public class RegionModelInfo {
-
+    public class RegionModelInfo 
+	{
         public static const FLAG_CAST_SHADOW:uint = 1;
         public static const FLAG_TRANSLUCENT:uint = 2;
         public static const FLAG_SHADOWLEVEL:uint = 12;
@@ -32,16 +32,17 @@ package deltax.graphic.map {
             this.m_y = _arg1.readShort();
             this.m_z = _arg1.readByte();
 			
+			var _local6:Number;
 			if (_arg2 >= MetaScene.VERSION_ADD_16BIT_ROTATION)
 			{
-				var _local6:Number = ((Math.PI * 2) / 0x010000);
+				_local6 = ((Math.PI * 2) / 0x010000);
 				this.m_rotationX = _arg1.readUnsignedShort()*_local6;
 				this.m_rotationY = _arg1.readUnsignedShort()*_local6;
 				this.m_rotationZ = _arg1.readUnsignedShort()*_local6;
 			}
 			else
 			{
-				var _local6:Number = ((Math.PI * 2) / 0x0100);
+				_local6 = ((Math.PI * 2) / 0x0100);
 				this.m_rotationX = _arg1.readUnsignedByte()*_local6;
 				this.m_rotationY = _arg1.readUnsignedByte()*_local6;
 				this.m_rotationZ = _arg1.readUnsignedByte()*_local6;
@@ -60,4 +61,4 @@ package deltax.graphic.map {
         }
 
     }
-}//package deltax.graphic.map 
+} 

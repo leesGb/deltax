@@ -1113,21 +1113,15 @@
 					var _temp1:int = startPos;
 					startPos = (startPos + 1);
 					_local18= _temp1;
-					var _temp2:int = tempIndex;
-					tempIndex = (tempIndex + 1);
-					this.m_vertexConstCache[_local18] = pointLightLenVec[_temp2];
+					this.m_vertexConstCache[_local18] = pointLightLenVec[tempIndex++];
 					var _temp3:int = startPos;
 					startPos = (startPos + 1);
 					_local19 = _temp3;
-					var _temp4:int = tempIndex;
-					tempIndex = (tempIndex + 1);
-					this.m_vertexConstCache[_local19] = pointLightLenVec[_temp4];
+					this.m_vertexConstCache[_local19] = pointLightLenVec[tempIndex++];
 					var _temp5:int = startPos;
 					startPos = (startPos + 1);
 					_local20= _temp5;
-					var _temp6:int = tempIndex;
-					tempIndex = (tempIndex + 1);
-					this.m_vertexConstCache[_local20] = pointLightLenVec[_temp6];
+					this.m_vertexConstCache[_local20] = pointLightLenVec[tempIndex++];
 					var _temp7:int = startPos;
 					startPos = (startPos + 1);
 					_local21= _temp7;
@@ -1135,21 +1129,15 @@
 					var _temp8:int = startColor;
 					startColor = (startColor + 1);
 					_local22= _temp8;
-					var _temp9:int = tempIndex;
-					tempIndex = (tempIndex + 1);
-					this.m_vertexConstCache[_local22] = pointLightLenVec[_temp9];
+					this.m_vertexConstCache[_local22] = pointLightLenVec[tempIndex++];
 					var _temp10:int = startColor;
 					startColor = (startColor + 1);
 					_local23= _temp10;
-					var _temp11:int = tempIndex;
-					tempIndex = (tempIndex + 1);
-					this.m_vertexConstCache[_local23] = pointLightLenVec[_temp11];
+					this.m_vertexConstCache[_local23] = pointLightLenVec[tempIndex++];
 					var _temp12:int = startColor;
 					startColor = (startColor + 1);
 					_local24= _temp12;
-					var _temp13 = tempIndex;
-					tempIndex = (tempIndex + 1);
-					this.m_vertexConstCache[_local24] = pointLightLenVec[_temp13];
+					this.m_vertexConstCache[_local24] = pointLightLenVec[tempIndex++];
 					var _temp14:int = startColor;
 					startColor = (startColor + 1);
 					_local25= _temp14;
@@ -1157,15 +1145,11 @@
 					var _temp15:int = startParam;
 					startParam = (startParam + 1);
 					_local26= _temp15;
-					var _temp16:int = tempIndex;
-					tempIndex = (tempIndex + 1);
-					this.m_vertexConstCache[_local26] = pointLightLenVec[_temp16];
+					this.m_vertexConstCache[_local26] = pointLightLenVec[tempIndex++];
 					var _temp17:int = startParam;
 					startParam = (startParam + 1);
 					_local27= _temp17;
-					var _temp18:int = tempIndex;
-					tempIndex = (tempIndex + 1);
-					this.m_vertexConstCache[_local27] = pointLightLenVec[_temp18];
+					this.m_vertexConstCache[_local27] = pointLightLenVec[tempIndex++];
 					var _temp19:int = startParam;
 					startParam = (startParam + 1);
 					_local28= _temp19;
@@ -1239,27 +1223,6 @@
 			};
 		}
 		
-		
-		
-		
-		
-		
-		
-		
-		
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         public function update(context3D:Context3D):void
 		{
             var index:uint = 0;

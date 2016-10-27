@@ -1,14 +1,19 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.texture {
-    import deltax.common.debug.*;
-    import flash.display3D.*;
-    import deltax.graphic.manager.*;
-    import deltax.common.*;
-    import __AS3__.vec.*;
-    import flash.utils.*;
-    import flash.display3D.textures.*;
+﻿package deltax.graphic.texture 
+{
+    import flash.display3D.Context3D;
+    import flash.display3D.textures.Texture;
+    import flash.utils.ByteArray;
+    import flash.utils.getTimer;
+    
+    import deltax.common.ReferencedObject;
+    import deltax.graphic.manager.BitmapMergeInfo;
+    import deltax.graphic.manager.DeltaXTextureManager;
+    import deltax.graphic.manager.ResourceManager;
+    import deltax.graphic.manager.ResourceType;
+    import deltax.graphic.manager.TextureMemoryManager;
 
-    public class DeltaXTexture implements ReferencedObject {
+    public class DeltaXTexture implements ReferencedObject 
+	{
 
         protected var m_name:String;
         protected var m_refCount:uint = 1;
@@ -18,10 +23,9 @@ package deltax.graphic.texture {
         protected var m_texture:Object;
         protected var m_preUseTime:int;
 
-        public function DeltaXTexture(_arg1, _arg2:String){
+        public function DeltaXTexture(_arg1:*, _arg2:String)
+		{
             var _local3:BitmapDataResource3D;
-            super();
-            ObjectCounter.add(this);
             this.m_name = _arg2;
             this.m_texture = null;
             if (this.m_name == null){
@@ -192,14 +196,24 @@ package deltax.graphic.texture {
         }
 
     }
-}//package deltax.graphic.texture 
+}
 
-import flash.display3D.*;
-import deltax.graphic.manager.*;
-import flash.geom.*;
-import __AS3__.vec.*;
-import flash.utils.*;
-import flash.display3D.textures.*;
+import flash.display3D.Context3D;
+import flash.display3D.Context3DTextureFormat;
+import flash.display3D.textures.Texture;
+import flash.geom.Rectangle;
+import flash.utils.ByteArray;
+import flash.utils.getTimer;
+
+import __AS3__.vec.Vector;
+
+import deltax.graphic.manager.BitmapMergeInfo;
+import deltax.graphic.manager.DeltaXTextureManager;
+import deltax.graphic.manager.IResource;
+import deltax.graphic.manager.ResourceManager;
+import deltax.graphic.manager.ResourceType;
+import deltax.graphic.manager.TextureMemoryManager;
+import deltax.graphic.texture.BitmapDataResource3D;
 
 class TextureMergeInfo {
 
@@ -210,7 +224,6 @@ class TextureMergeInfo {
     }
 }
 
-import deltax.graphic.texture.*;
 class GenerateBitmapDataStep {
 
     private var m_bitmapGroup:Vector.<TextureMergeInfo>;
@@ -263,7 +276,7 @@ class GenerateBitmapDataStep {
             return;
         };
 		trace("onTextureLoad:" + _arg1.name);
-        var _local3 = -1;
+        var _local3:int = -1;
         var _local4:int;
         while ((((_local3 < 0)) && ((_local4 < this.m_bitmapGroup.length)))) {
             if (this.m_bitmapGroup[_local4].bitmapResource == _arg1){
@@ -397,31 +410,13 @@ class GenerateBitmapDataStep {
                             _local17 = ((_local22 * _local23) / 0xFF);
                             _local18 = ((_local22 + _local23) - _local17);
                             _local21 = _arg1[_local15];
-                            var _temp1 = _local15;
-                            _local15 = (_local15 + 1);
-                            var _local24 = _temp1;
-                            var _temp2 = _local14;
-                            _local14 = (_local14 + 1);
-                            _arg1[_local24] = ((((_arg3[_temp2] * _local22) + (_local21 * _local23)) - (_local21 * _local17)) / _local18);
+                            _arg1[_local15++] = ((((_arg3[_local14++] * _local22) + (_local21 * _local23)) - (_local21 * _local17)) / _local18);
                             _local20 = _arg1[_local15];
-                            var _temp3 = _local15;
-                            _local15 = (_local15 + 1);
-                            var _local25 = _temp3;
-                            var _temp4 = _local14;
-                            _local14 = (_local14 + 1);
-                            _arg1[_local25] = ((((_arg3[_temp4] * _local22) + (_local20 * _local23)) - (_local20 * _local17)) / _local18);
+                            _arg1[_local15++] = ((((_arg3[_local14++] * _local22) + (_local20 * _local23)) - (_local20 * _local17)) / _local18);
                             _local19 = _arg1[_local15];
-                            var _temp5 = _local15;
-                            _local15 = (_local15 + 1);
-                            var _local26 = _temp5;
-                            var _temp6 = _local14;
-                            _local14 = (_local14 + 1);
-                            _arg1[_local26] = ((((_arg3[_temp6] * _local22) + (_local19 * _local23)) - (_local19 * _local17)) / _local18);
+                            _arg1[_local15++] = ((((_arg3[_local14++] * _local22) + (_local19 * _local23)) - (_local19 * _local17)) / _local18);
                             _local14++;
-                            var _temp7 = _local15;
-                            _local15 = (_local15 + 1);
-                            var _local27 = _temp7;
-                            _arg1[_local27] = _local18;
+                            _arg1[_local15++] = _local18;
                         } else {
                             _local14 = (_local14 + 4);
                             _local15 = (_local15 + 4);

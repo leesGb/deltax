@@ -1,36 +1,25 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.util {
-    import deltax.common.*;
-    import flash.geom.*;
+﻿package deltax.graphic.util
+{
+    import flash.geom.Vector3D;
+    
+    import deltax.common.Util;
 
-    public class TinyNormal {
+    public class TinyNormal 
+	{
 
         public static const TINY_NORMAL_8:TinyNormal = new TinyNormal(8);
-;
         public static const TINY_NORMAL_10:TinyNormal = new TinyNormal(10);
-;
         public static const TINY_NORMAL_12:TinyNormal = new TinyNormal(12);
-;
         public static const TINY_NORMAL_14:TinyNormal = new TinyNormal(14);
-;
         public static const TINY_NORMAL_16:TinyNormal = new TinyNormal(16);
-;
         public static const TINY_NORMAL_18:TinyNormal = new TinyNormal(18);
-;
         public static const TINY_NORMAL_20:TinyNormal = new TinyNormal(20);
-;
         public static const TINY_NORMAL_22:TinyNormal = new TinyNormal(22);
-;
         public static const TINY_NORMAL_24:TinyNormal = new TinyNormal(24);
-;
         public static const TINY_NORMAL_26:TinyNormal = new TinyNormal(26);
-;
         public static const TINY_NORMAL_28:TinyNormal = new TinyNormal(28);
-;
         public static const TINY_NORMAL_30:TinyNormal = new TinyNormal(30);
-;
         public static const TINY_NORMAL_32:TinyNormal = new TinyNormal(32);
-;
         public static const StoredTypeSize:uint = 4;
 
         private static var COMPRESS_TEMP_VECTOR:Vector3D = new Vector3D();
@@ -102,13 +91,13 @@ package deltax.graphic.util {
             var _local4:Number = Math.sqrt(((COMPRESS_TEMP_VECTOR.x * COMPRESS_TEMP_VECTOR.x) + (COMPRESS_TEMP_VECTOR.z * COMPRESS_TEMP_VECTOR.z)));
             var _local5:Number = Math.acos((COMPRESS_TEMP_VECTOR.z / _local4));
             var _local6:int = int(((_local3 / _local2) + 0.5));
-            var _local7 = (_local6 << 1);
+            var _local7:uint = (_local6 << 1);
             var _local8:int = int((((_local5 * _local7) / Math.PI) + 0.5));
             var _local9:int = ((_local6 * _local6) + _local8);
             return (((_local9 | ((_arg1.x < 0) ? this.eXSignedMask : 0)) | ((_arg1.y < 0)? this.eYSignedMask : 0)) );
         }
         public function Decompress1(_arg1:uint, _arg2:Vector3D):Vector3D{
-            var _local3 = (_arg1 & this.eIndexMask);
+            var _local3:uint = (_arg1 & this.eIndexMask);
             if (_local3 == 0){
                 _arg2.x = 0;
                 _arg2.y = ((this.eYSignedMask & _arg1)) ? -1 : 1;
@@ -117,7 +106,7 @@ package deltax.graphic.util {
             };
             var _local4:Number = ((Math.PI / 2) / (this.eLineCount - 1));
             var _local5:int = Math.sqrt(_local3);
-            var _local6 = (_local5 << 1);
+            var _local6:uint = (_local5 << 1);
             var _local7:int = (_local3 - (_local5 * _local5));
             var _local8:Number = (_local5 * _local4);
             var _local9:Number = ((_local7 * Math.PI) / _local6);
@@ -217,9 +206,11 @@ package deltax.graphic.util {
     }
 }//package deltax.graphic.util 
 
-import deltax.common.*;
-import flash.utils.*;
-import deltax.*;
+import flash.utils.ByteArray;
+import flash.utils.Endian;
+
+import deltax.delta;
+import deltax.common.BitSet;
 
 class Float extends BitSet {
 

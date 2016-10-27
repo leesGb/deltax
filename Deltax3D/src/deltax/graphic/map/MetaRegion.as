@@ -1,15 +1,20 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.map {
-    import deltax.common.debug.*;
-    import deltax.graphic.manager.*;
-    import deltax.common.*;
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import flash.utils.*;
-    import deltax.common.math.*;
-    import flash.net.*;
-    import deltax.graphic.util.*;
-    import deltax.*;
+﻿package deltax.graphic.map 
+{
+    import flash.geom.Vector3D;
+    import flash.net.URLLoaderDataFormat;
+    import flash.utils.ByteArray;
+    
+    import deltax.delta;
+    import deltax.common.BitSet;
+    import deltax.common.LittleEndianByteArray;
+    import deltax.common.Util;
+    import deltax.common.debug.ObjectCounter;
+    import deltax.common.math.MathUtl;
+    import deltax.graphic.manager.IResource;
+    import deltax.graphic.manager.ResourceManager;
+    import deltax.graphic.manager.ResourceType;
+    import deltax.graphic.util.Color;
+    import deltax.graphic.util.NeighborType;
 
     public class MetaRegion implements IResource {
 
@@ -253,37 +258,22 @@ package deltax.graphic.map {
                 _local11 = new NeighborBorderNormalCaclInfo();
                 m_neighborBorderNormalCalcInfos[_local13] = _local11;
                 _local12 = 0;
-                var _temp1 = _local12;
-                _local12 = (_local12 + 1);
-                _local11.neighborRegionIdOffset = _local10[_local13][_temp1];
-                var _temp2 = _local12;
-                _local12 = (_local12 + 1);
-                _local11.oppositBorderType = _local10[_local13][_temp2];
-                var _temp3 = _local12;
-                _local12 = (_local12 + 1);
-                _local11.vertexStartIndex = _local10[_local13][_temp3];
-                var _temp4 = _local12;
-                _local12 = (_local12 + 1);
-                _local11.vertexEndIndex = _local10[_local13][_temp4];
-                var _temp5 = _local12;
-                _local12 = (_local12 + 1);
-                _local11.vertexIndexStep = _local10[_local13][_temp5];
-                var _temp6 = _local12;
-                _local12 = (_local12 + 1);
-                _local11.neighborOffsetIndex = _local10[_local13][_temp6];
+                _local11.neighborRegionIdOffset = _local10[_local13][_local12++];
+                _local11.oppositBorderType = _local10[_local13][_local12++];
+                _local11.vertexStartIndex = _local10[_local13][_local12++];
+                _local11.vertexEndIndex = _local10[_local13][_local12++];
+                _local11.vertexIndexStep = _local10[_local13][_local12++];
+                _local11.neighborOffsetIndex = _local10[_local13][_local12++];
                 _local11.offsets = new Vector.<int>(BORDER_TYPE_COUNT, true);
                 _local14 = 0;
-                while (_local14 < BORDER_TYPE_COUNT) {
-                    var _temp7 = _local12;
-                    _local12 = (_local12 + 1);
-                    _local11.offsets[_local14] = _local10[_local13][_temp7];
+                while (_local14 < BORDER_TYPE_COUNT) 
+				{
+                    _local11.offsets[_local14] = _local10[_local13][_local12++];
                     _local14++;
-                };
-                var _temp8 = _local12;
-                _local12 = (_local12 + 1);
-                _local11.neighborVertexStartIndex = _local10[_local13][_temp8];
+                }
+                _local11.neighborVertexStartIndex = _local10[_local13][_local12++];
                 _local13++;
-            };
+            }
         }
         private function buildCornerNormalCalcInfos():void{
             var _local1:int;
@@ -303,31 +293,18 @@ package deltax.graphic.map {
                 _local7 = new NeighborCornerNormalCaclInfo();
                 m_neighborCornerNormalCalcInfos[_local10] = _local7;
                 _local8 = 0;
-                var _temp1 = _local8;
-                _local8 = (_local8 + 1);
-                _local7.cornerVertexIndex = _local6[_local10][_temp1];
-                var _temp2 = _local8;
-                _local8 = (_local8 + 1);
-                _local7.neighborCornerType1 = _local6[_local10][_temp2];
-                var _temp3 = _local8;
-                _local8 = (_local8 + 1);
-                _local7.neighborCornerType2 = _local6[_local10][_temp3];
-                var _temp4 = _local8;
-                _local8 = (_local8 + 1);
-                _local7.neighborRegionIdOffsetType1 = _local6[_local10][_temp4];
-                var _temp5 = _local8;
-                _local8 = (_local8 + 1);
-                _local7.neighborRegionIdOffsetType2 = _local6[_local10][_temp5];
+                _local7.cornerVertexIndex = _local6[_local10][_local8++];
+                _local7.neighborCornerType1 = _local6[_local10][_local8++];
+                _local7.neighborCornerType2 = _local6[_local10][_local8++];
+                _local7.neighborRegionIdOffsetType1 = _local6[_local10][_local8++];
+                _local7.neighborRegionIdOffsetType2 = _local6[_local10][_local8++];
                 _local7.offsets = new Vector.<CornerNormalVertexOffset>(BORDER_TYPE_COUNT, true);
                 _local11 = 0;
-                while (_local11 < BORDER_TYPE_COUNT) {
+                while (_local11 < BORDER_TYPE_COUNT) 
+				{
                     _local9 = new CornerNormalVertexOffset();
-                    var _temp6 = _local8;
-                    _local8 = (_local8 + 1);
-                    _local9.offsetType = _local6[_local10][_temp6];
-                    var _temp7 = _local8;
-                    _local8 = (_local8 + 1);
-                    _local9.offset = _local6[_local10][_temp7];
+                    _local9.offsetType = _local6[_local10][_local8++];
+                    _local9.offset = _local6[_local10][_local8++];
                     _local7.offsets[_local11] = _local9;
                     _local11++;
                 };
@@ -543,9 +520,9 @@ package deltax.graphic.map {
             var _local8:uint;
             var _local9:uint;
             var _local10:uint;
-            var _local2 = (this.delta::m_metaScene.m_version >= MetaScene.VERSION_ADD_TEXTURE_SCALE);
+            var _local2:Boolean = (this.delta::m_metaScene.m_version >= MetaScene.VERSION_ADD_TEXTURE_SCALE);
             var _local3:uint = _arg1.readUnsignedShort();
-            var _local4 = ((_local3 & SaveMask_SaveAsUint8) > 0);
+            var _local4:Boolean = ((_local3 & SaveMask_SaveAsUint8) > 0);
             var _local5:uint = (_local3 & SaveMask_CountMask);
             var _local6:uint = MapConstants.GRID_PER_REGION;
             if (((_local2) && ((_local5 > (_local4 ? 128 : 170))))){
@@ -898,26 +875,14 @@ package deltax.graphic.map {
                     _local12 = 0;
                     while (_local12 < MapConstants.STATIC_SHADOW_SPAN_PER_GRID) {
                         _local8 = (this.delta::m_staticShadow[(_local7 + (_local12 * 2))] * 4);
-                        var _temp1 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[_local11] = _local5[_temp1];
-                        var _temp2 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 1)] = _local5[_temp2];
-                        var _temp3 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 2)] = _local5[_temp3];
+                        _arg1[_local11] = _local5[_local8++];
+                        _arg1[(_local11 + 1)] = _local5[_local8++];
+                        _arg1[(_local11 + 2)] = _local5[_local8++];
                         _arg1[(_local11 + 3)] = _local5[_local8];
                         _local8 = (this.delta::m_staticShadow[((_local7 + (_local12 * 2)) + 1)] * 4);
-                        var _temp4 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 4)] = _local5[_temp4];
-                        var _temp5 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 5)] = _local5[_temp5];
-                        var _temp6 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 6)] = _local5[_temp6];
+                        _arg1[(_local11 + 4)] = _local5[_local8++];
+                        _arg1[(_local11 + 5)] = _local5[_local8++];
+                        _arg1[(_local11 + 6)] = _local5[_local8++];
                         _arg1[(_local11 + 7)] = _local5[_local8];
                         _local12++;
                         _local11 = (_local11 - MapConstants.STATIC_SHADOW_SPAN_PER_REGION);
@@ -944,35 +909,19 @@ package deltax.graphic.map {
                         } else {
                             _local8 = (_local6[((_local14 * 16) + (_local12 * 2))] * 4);
                         };
-                        var _temp7 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[_local11] = _local5[_temp7];
-                        var _temp8 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 1)] = _local5[_temp8];
-                        var _temp9 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 2)] = _local5[_temp9];
-                        var _temp10 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 3)] = _local5[_temp10];
+                        _arg1[_local11] = _local5[_local8++];
+                        _arg1[(_local11 + 1)] = _local5[_local8++];
+                        _arg1[(_local11 + 2)] = _local5[_local8++];
+                        _arg1[(_local11 + 3)] = _local5[_local8++];
                         if (_local13 < this.delta::m_shadowCount){
                             _local8 = (this.delta::m_staticShadow[((_local7 + (_local12 * 2)) + 1)] * 4);
                         } else {
                             _local8 = (_local6[(((_local14 * 16) + (_local12 * 2)) + 1)] * 4);
                         };
-                        var _temp11 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 4)] = _local5[_temp11];
-                        var _temp12 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 5)] = _local5[_temp12];
-                        var _temp13 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 6)] = _local5[_temp13];
-                        var _temp14 = _local8;
-                        _local8 = (_local8 + 1);
-                        _arg1[(_local11 + 7)] = _local5[_temp14];
+                        _arg1[(_local11 + 4)] = _local5[_local8++];
+                        _arg1[(_local11 + 5)] = _local5[_local8++];
+                        _arg1[(_local11 + 6)] = _local5[_local8++];
+                        _arg1[(_local11 + 7)] = _local5[_local8++];
                         _local12++;
                         _local11 = (_local11 - MapConstants.STATIC_SHADOW_SPAN_PER_REGION);
                     };
@@ -1029,9 +978,9 @@ package deltax.graphic.map {
         }
 
     }
-}//package deltax.graphic.map 
+}
 
-import __AS3__.vec.*;
+import __AS3__.vec.Vector;
 
 final class RegionChunkType {
 

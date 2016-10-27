@@ -1,9 +1,9 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.manager {
-    import flash.utils.*;
+﻿package deltax.graphic.manager 
+{
+    import flash.utils.Dictionary;
 
-    public final class ResourceStatisticInfo {
-
+    public final class ResourceStatisticInfo 
+	{
         public var createdCount:int;
         public var currentCount:int;
         public var type:String = "";
@@ -11,9 +11,9 @@ package deltax.graphic.manager {
         public var delayParse:Boolean;
         public var resources:Dictionary;
 
-        public function ResourceStatisticInfo(){
+        public function ResourceStatisticInfo()
+		{
             this.resources = new Dictionary();
-            super();
         }
     }
-}//package deltax.graphic.manager 
+} 

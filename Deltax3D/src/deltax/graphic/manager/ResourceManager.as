@@ -1,24 +1,36 @@
-﻿package deltax.graphic.manager {
-    import deltax.common.*;
-    import deltax.common.error.*;
-    import deltax.common.log.*;
-    import deltax.common.resource.*;
-    import deltax.common.respackage.common.*;
-    import deltax.common.respackage.loader.*;
-    import deltax.graphic.audio.*;
-    import deltax.graphic.effect.data.*;
-    import deltax.graphic.map.*;
-    import deltax.graphic.material.*;
-    import deltax.graphic.model.*;
-    import deltax.graphic.scenegraph.object.*;
-    import deltax.graphic.texture.*;
-    import deltax.gui.base.*;
+﻿package deltax.graphic.manager 
+{
+    import flash.events.TimerEvent;
+    import flash.utils.ByteArray;
+    import flash.utils.Dictionary;
+    import flash.utils.Endian;
+    import flash.utils.Timer;
+    import flash.utils.getTimer;
     
-    import flash.events.*;
-    import flash.utils.*;
+    import deltax.common.DictionaryUtil;
+    import deltax.common.Util;
+    import deltax.common.error.SingletonMultiCreateError;
+    import deltax.common.log.LogLevel;
+    import deltax.common.log.dtrace;
+    import deltax.common.resource.DownloadStatistic;
+    import deltax.common.respackage.common.LoaderCommon;
+    import deltax.common.respackage.loader.LoaderManager;
+    import deltax.graphic.audio.SoundResource;
+    import deltax.graphic.effect.data.EffectGroup;
+    import deltax.graphic.map.MetaRegion;
+    import deltax.graphic.map.MetaScene;
+    import deltax.graphic.material.Material;
+    import deltax.graphic.model.Animation;
+    import deltax.graphic.model.AnimationGroup;
+    import deltax.graphic.model.HPieceGroup;
+    import deltax.graphic.model.PieceGroup;
+    import deltax.graphic.scenegraph.object.RenderObject;
+    import deltax.graphic.texture.BitmapDataResource2D;
+    import deltax.graphic.texture.BitmapDataResource3D;
+    import deltax.gui.base.WindowResource;
 
-    public class ResourceManager {
-
+    public class ResourceManager 
+	{
         public static const DESTROY_IMMED:uint = 0;
         public static const DESTROY_DELAY:uint = 1;
         public static const DESTROY_NEVER:uint = 2147483647;
@@ -39,10 +51,13 @@
         private var m_delayParseHead:ParseQueueNode;
         private var m_delayParseTail:ParseQueueNode;
 
-        public function ResourceManager(_arg1:SingletonEnforcer){
-            if (m_instance){
+        public function ResourceManager(_arg1:SingletonEnforcer)
+		{
+            if (m_instance)
+			{
                 throw (new SingletonMultiCreateError(ResourceManager));
-            };
+            }
+			
             m_instance = this;
             this.m_resourceTypeInfos = new Dictionary();
             this.m_dependencyToResourceMap = new Dictionary();
@@ -50,56 +65,74 @@
             this.m_extraCompleteHandlers = new Dictionary();
             this.m_freeRefResourceMap = new Dictionary();
         }
-        public static function get instance():ResourceManager{
+		
+        public static function get instance():ResourceManager
+		{
             m_instance = ((m_instance) || (new ResourceManager(new SingletonEnforcer())));
             return (m_instance);
         }
-        public static function makeResourceName(_arg1:String):String{
-            if ((((_arg1 == null)) || ((_arg1.length == 0)))){
+		
+        public static function makeResourceName(_arg1:String):String
+		{
+            if ((((_arg1 == null)) || ((_arg1.length == 0))))
+			{
                 return (_arg1);
-            };
+            }
+			
             return (Util.makeGammaString(_arg1));
         }
 
-        public function get hasResourceInParseQueue():Boolean{
+        public function get hasResourceInParseQueue():Boolean
+		{
             return (((!((this.m_parseHead == null))) || (!((this.m_delayParseHead == null)))));
         }
-        public function get completeResourcCount():uint{
+		
+        public function get completeResourcCount():uint
+		{
             return (this.m_completeResourcCount);
         }
-        public function get totalResourcCount():uint{
+		
+        public function get totalResourcCount():uint
+		{
             return (this.m_totalResourcCount);
         }
-        public function get idle():Boolean{
+		
+        public function get idle():Boolean
+		{
             return ((((this.m_parseHead == null)) && ((this.m_delayParseHead == null))));
         }
-        public function registerResType(_arg1:String, _arg2:Class, _arg3:Boolean=false):void{
-            if (this.m_resourceTypeInfos[_arg1]){
+		
+        public function registerResType(_arg1:String, _arg2:Class, _arg3:Boolean=false):void
+		{
+            if (this.m_resourceTypeInfos[_arg1])
+			{
                 throw (new Error(("already registered resource type " + _arg1)));
-            };
+            }
+			
             var _local4:ResourceStatisticInfo = new ResourceStatisticInfo();
             _local4.derivedResourceClass = _arg2;
             _local4.type = _arg1;
             _local4.delayParse = _arg3;
             this.m_resourceTypeInfos[_arg1] = _local4;
         }
-        public function unregisterResType(_arg1:String):void{
+		
+        public function unregisterResType(_arg1:String):void
+		{
             this.m_resourceTypeInfos[_arg1] = null;
             delete this.m_resourceTypeInfos[_arg1];
         }
-		public function get resourceTypeInfos():Dictionary{
+		
+		public function get resourceTypeInfos():Dictionary
+		{
 			return this.m_resourceTypeInfos;
 		}
-        public function getResource(_arg1:String, _arg2:String, _arg3:Function=null, _arg4:Class=null, _arg5:Boolean=false):IResource{
+		
+        public function getResource(uri:String, type:String, onCompleteHandler:Function=null, resourceClass:Class=null, cacheLoad:Boolean=false):IResource
+		{
             var resource:* = null;
             var resourceNode:* = null;
             var timer:* = null;
             var onTimerToCallCustomCompleteHandler:* = null;
-            var uri:* = _arg1;
-            var type:* = _arg2;
-            var onCompleteHandler:Function = _arg3;
-            var resourceClass = _arg4;
-            var cacheLoad:Boolean = _arg5;
             if (uri.length == 0){
                 return (null);
             };
@@ -172,6 +205,7 @@
             }
             return (resource);
         }
+		
         private function addFreeResource(_arg1:IResource):void{
             if (this.m_freeRefResourceMap[_arg1] != null){
                 throw (new Error("free resource mutiply!!"));
@@ -576,10 +610,16 @@
     }
 }//package deltax.graphic.manager 
 
-import deltax.common.resource.*;
+import flash.events.Event;
+import flash.events.IOErrorEvent;
+import flash.events.SecurityErrorEvent;
+import flash.net.URLLoader;
+import flash.net.URLLoaderDataFormat;
+import flash.net.URLRequest;
 
-import flash.events.*;
-import flash.net.*;
+import deltax.common.resource.FileRevisionManager;
+import deltax.graphic.manager.IResource;
+import deltax.graphic.manager.ResourceStatisticInfo;
 
 class SingletonEnforcer {
 
@@ -606,7 +646,6 @@ class FreeResourceNode {
     public function FreeResourceNode(){
     }
 }
-import deltax.graphic.manager.*;
 class SoundLoader extends URLLoader {
 
     public var m_resource:IResource;

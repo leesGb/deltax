@@ -1,33 +1,48 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.map {
-    import flash.geom.*;
-    import __AS3__.vec.*;
-    import flash.utils.*;
-
-    public class MetaSceneInfo {
-
+﻿package deltax.graphic.map 
+{
+    import flash.geom.Matrix3D;
+    import flash.utils.ByteArray;
+    
+    public class MetaSceneInfo 
+	{
+		/***/
         public var m_regionWidth:uint;//地图块
-        public var m_regionHeight:uint;
+		/***/
+		public var m_regionHeight:uint;
+		/***/
         public var m_cameraInfo:SceneCameraInfo;
+		/***/
         public var m_envGroups:Vector.<SceneEnvGroup>;
+		/***/
         public var m_skyDomeInfo:SkyDomeCreateInfo;
+		/***/
         public var m_waveInfo:WaveInfo;
+		/***/
         public var m_ambientFxInfos:Vector.<AmbientFxInfo>;
+		/***/
         public var m_isCave:Boolean;
+		/***/
         public var m_waterSpecularPower:Number;
+		/***/
         public var m_waterInvertWeight:Number;
+		/***/
         public var m_waterFaceDisturb:Number;
+		/***/
         public var m_waterBottomDisturb:Number;
+		/***/
         public var m_shadowBlur:Number;
+		/***/
         public var m_shadowProject:Matrix3D;
 
-        public function MetaSceneInfo(){
+        public function MetaSceneInfo()
+		{
             this.m_cameraInfo = new SceneCameraInfo();
             this.m_skyDomeInfo = new SkyDomeCreateInfo();
             this.m_waveInfo = new WaveInfo();
-            super();
         }
-        public function Load(_arg1:ByteArray, _arg2:MetaScene):void{
+		
+        public function Load(_arg1:ByteArray, _arg2:MetaScene):void
+		{
             var _local4:Vector.<Number>;
             var _local5:uint;
             this.m_regionWidth = _arg1.readUnsignedByte();
@@ -43,15 +58,18 @@ package deltax.graphic.map {
             this.m_waterBottomDisturb = _arg1.readFloat();
             this.m_shadowBlur = _arg1.readFloat();
             this.m_shadowProject = ((this.m_shadowProject) || (new Matrix3D()));
-            if (_arg2.m_version >= MetaScene.VERSION_ADD_STATIC_SHADOW_MATRIX){
+            if (_arg2.m_version >= MetaScene.VERSION_ADD_STATIC_SHADOW_MATRIX)
+			{
                 _local4 = new Vector.<Number>(16);
                 _local5 = 0;
-                while (_local5 < 16) {
+                while (_local5 < 16) 
+				{
                     _local4[_local5] = _arg1.readFloat();
                     _local5++;
-                };
+                }
                 this.m_shadowProject.rawData = _local4;
-            };
+            }
+			
             this.m_isCave = _arg1.readBoolean();
             this.m_cameraInfo.load(_arg1);
             this.m_skyDomeInfo.Load(_arg1);
@@ -60,37 +78,46 @@ package deltax.graphic.map {
             this.LoadAmbientFxInfos(_arg1, _arg2);
             this.LoadEnvGroups(_arg1, _arg2);//环境光照等
             this.m_waveInfo.Load(_arg1, _arg2);
-            if (_arg2.m_version >= MetaScene.VERSION_ADD_FOG_ADJUST_PARAM){
+            if (_arg2.m_version >= MetaScene.VERSION_ADD_FOG_ADJUST_PARAM)
+			{
                 _arg1.position = (_arg1.position + 8);
-            };
+            }
         }
-        private function LoadEnvGroups(_arg1:ByteArray, _arg2:MetaScene):void{
+		
+        private function LoadEnvGroups(_arg1:ByteArray, _arg2:MetaScene):void
+		{
             var _local3:uint = _arg1.readUnsignedByte();
             this.m_envGroups = new Vector.<SceneEnvGroup>(_local3, true);
             var _local4:uint;
-            while (_local4 < _local3) {
+            while (_local4 < _local3) 
+			{
                 (this.m_envGroups[_local4] = new SceneEnvGroup()).Load(_arg1, _arg2);
                 _local4++;
-            };
+            }
         }
-        private function LoadAmbientFxInfos(_arg1:ByteArray, _arg2:MetaScene):void{
+		
+        private function LoadAmbientFxInfos(_arg1:ByteArray, _arg2:MetaScene):void
+		{
             var _local3:uint = _arg1.readUnsignedInt();
             this.m_ambientFxInfos = new Vector.<AmbientFxInfo>(_local3, true);
             var _local4:uint;
-            while (_local4 < _local3) {
+            while (_local4 < _local3) 
+			{
                 (this.m_ambientFxInfos[_local4] = new AmbientFxInfo()).Load(_arg1, _arg2);
                 _local4++;
-            };
+            }
         }
 
     }
-}//package deltax.graphic.map 
+} 
 
-import deltax.common.*;
-import flash.utils.*;
+import flash.utils.ByteArray;
 
-class SkyDomeCreateInfo {
+import deltax.common.Util;
+import deltax.graphic.map.MetaScene;
 
+class SkyDomeCreateInfo 
+{
     public var m_skyPercent:Number;
     public var m_skyRadius:Number;
     public var m_cloudPercent:Number;
@@ -98,9 +125,13 @@ class SkyDomeCreateInfo {
     public var m_cloudRadiusXZ:Number;
     public var m_bottomCloud:Boolean;
 
-    public function SkyDomeCreateInfo(){
+    public function SkyDomeCreateInfo()
+	{
+		//
     }
-    public function Load(_arg1:ByteArray):void{
+	
+    public function Load(_arg1:ByteArray):void
+	{
         this.m_skyPercent = _arg1.readFloat();
         this.m_skyRadius = _arg1.readFloat();
         this.m_cloudPercent = _arg1.readFloat();
@@ -110,19 +141,28 @@ class SkyDomeCreateInfo {
     }
 
 }
-class BGMInfo {
+
+
+class BGMInfo 
+{
 
     private static const StoredSize:uint = 18;
 
-    public function BGMInfo(){
+    public function BGMInfo()
+	{
+		//
     }
-    public function Load(_arg1:ByteArray):void{
+	
+    public function Load(_arg1:ByteArray):void
+	{
         _arg1.position = (_arg1.position + StoredSize);
     }
 
 }
-import deltax.graphic.map.*;
-class WaveInfo {
+
+
+class WaveInfo 
+{
 
     public var m_wavePerGrid:int;
     public var m_waveSize:int;
@@ -135,9 +175,13 @@ class WaveInfo {
     public var m_standFxFile:String;
     public var m_standFxName:String;
 
-    public function WaveInfo(){
+    public function WaveInfo()
+	{
+		//
     }
-    public function Load(_arg1:ByteArray, _arg2:MetaScene):void{
+	
+    public function Load(_arg1:ByteArray, _arg2:MetaScene):void
+	{
         this.m_wavePerGrid = _arg1.readInt();
         this.m_waveSize = _arg1.readInt();
         this.m_waveOffset = _arg1.readInt();
@@ -154,15 +198,21 @@ class WaveInfo {
     }
 
 }
-class AmbientFxInfo {
 
+
+class AmbientFxInfo 
+{
     public var m_probability:int;
     public var m_fxFileIndex:uint;
     public var m_fxName:String;
 
-    public function AmbientFxInfo(){
+    public function AmbientFxInfo()
+	{
+		//
     }
-    public function Load(_arg1:ByteArray, _arg2:MetaScene):void{
+	
+    public function Load(_arg1:ByteArray, _arg2:MetaScene):void
+	{
         this.m_probability = _arg1.readInt();
         this.m_fxFileIndex = _arg1.readUnsignedShort();
         _arg2.registAmbientFx(this.m_fxFileIndex);

@@ -1,7 +1,8 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.graphic.map {
+﻿package deltax.graphic.map 
+{
 
-    public final class GridFlag {
+    public final class GridFlag 
+	{
 
         public static const NoBarrier:uint = 0;
         public static const LowBarrier:uint = 1;
@@ -13,4 +14,4 @@ package deltax.graphic.map {
         public static const HideGrid:uint = 8;
 
     }
-}//package deltax.graphic.map 
+} 
