@@ -4,46 +4,48 @@
     import flash.utils.Dictionary;
     
     import deltax.graphic.texture.TextureByteArray;
+	
+	/**
+	 * 纹理内存管理器
+	 * @author lees
+	 * @date 2015/06/22
+	 */	
 
     public class TextureMemoryManager 
 	{
-        private static const MINSIZE:uint = 0x1000;
-        private static const MAXSIZE:uint = 4194304;
+        private static const MINSIZE:uint = 0x1000;//4096
+        private static const MAXSIZE:uint = 4194304;//1024*4096
         private static const MAX_POOL_SIZE:uint = 4194304;
 
         private static var m_instance:TextureMemoryManager;
 
+		/**数据池*/
         private var m_byteArrayPool:Dictionary;
-        private var m_disableAlway:Boolean = false;
 
-        public function TextureMemoryManager(_arg1:SingletonEnforcer)
+        public function TextureMemoryManager(s:SingletonEnforcer)
 		{
-            var _local3:ByteArrayPool;
+            var bp:ByteArrayPool;
             var _local4:uint;
             this.m_byteArrayPool = new Dictionary();
-            if (this.m_disableAlway)
+            var idx:uint = MINSIZE;
+            while (idx <= MAXSIZE) 
 			{
-                return;
-            }
-            var _local2:uint = MINSIZE;
-            while (_local2 <= MAXSIZE) 
-			{
-                _local3 = new ByteArrayPool();
-                this.m_byteArrayPool[_local2] = _local3;
-                _local4 = Math.min((MAX_POOL_SIZE / _local2), 20);
-                while (_local3.m_pool.length < _local4) 
+				bp = new ByteArrayPool();
+                this.m_byteArrayPool[idx] = bp;
+                _local4 = Math.min((MAX_POOL_SIZE / idx), 20);
+                while (bp.m_pool.length < _local4) 
 				{
-                    _local3.m_pool.push(new TextureByteArray(_local2));
-                    _local3.m_totalAllocCount++;
+					bp.m_pool.push(new TextureByteArray(idx));
+					bp.m_totalAllocCount++;
                 }
-                _local2 = (_local2 << 1);
+				idx = idx << 1;
             }
         }
 		
         public static function get Instance():TextureMemoryManager
 		{
             m_instance = ((m_instance) || (new TextureMemoryManager(new SingletonEnforcer())));
-            return (m_instance);
+            return m_instance;
         }
 
         public function get info():String
@@ -81,11 +83,6 @@
                 }
             }
 			
-            if (this.m_disableAlway)
-			{
-                return (new TextureByteArray(_arg1));
-            }
-			
             var _local2:ByteArrayPool = ByteArrayPool(this.m_byteArrayPool[_arg1]);
             if (_local2.m_pool.length == 0)
 			{
@@ -99,10 +96,6 @@
 		{
             var _local2:ByteArrayPool;
             var _local3:uint;
-            if (this.m_disableAlway)
-			{
-                return;
-            }
             var _local1:uint = MINSIZE;
             while (_local1 <= MAXSIZE) 
 			{
@@ -130,7 +123,7 @@
 		
         public function free(_arg1:ByteArray):void
 		{
-            if (((((this.m_disableAlway) || ((_arg1.length < MINSIZE)))) || (!((_arg1 is TextureByteArray)))))
+            if ((_arg1.length < MINSIZE) || !(_arg1 is TextureByteArray))
 			{
                 return;
             }

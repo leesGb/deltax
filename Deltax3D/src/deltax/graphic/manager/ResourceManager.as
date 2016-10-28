@@ -28,6 +28,12 @@
     import deltax.graphic.texture.BitmapDataResource2D;
     import deltax.graphic.texture.BitmapDataResource3D;
     import deltax.gui.base.WindowResource;
+	
+	/**
+	 * 资源管理器
+	 * @author lees
+	 * @date 2014/05/20
+	 */	
 
     public class ResourceManager 
 	{
@@ -37,28 +43,42 @@
 
         private static var m_instance:ResourceManager;
 
+		/**资源类型信息列表*/
         private var m_resourceTypeInfos:Dictionary;
+		/**依赖资源的宿主资源列表列表*/
         private var m_dependencyToResourceMap:Dictionary;
+		/**宿主资源类中的注入依赖关系资源的列表，也就是说宿主资源类中加载其他类型的资源，而其他资源加载完后会在宿主资源中回调的一种相互依赖关系*/
         private var m_resourceToDependencyMap:Dictionary;
+		/**释放资源列表*/
         private var m_freeRefResourceMap:Dictionary;
+		/**释放资源头节点*/
         private var m_freeRefResourceHead:FreeResourceNode;
+		/**释放资源尾节点*/
         private var m_freeRefResourceTail:FreeResourceNode;
+		/**资源加载完的回调处理方法*/
         private var m_extraCompleteHandlers:Dictionary;
+		/**加载完的资源个数*/
         private var m_completeResourcCount:uint;
+		/**资源的总个数*/
         private var m_totalResourcCount:uint;
+		/**即时数据解析头节点*/
         private var m_parseHead:ParseQueueNode;
+		/**即时数据解析尾节点*/
         private var m_parseTail:ParseQueueNode;
+		/**延时数据解析头节点*/
         private var m_delayParseHead:ParseQueueNode;
+		/**延时数据解析尾节点*/
         private var m_delayParseTail:ParseQueueNode;
 
-        public function ResourceManager(_arg1:SingletonEnforcer)
+        public function ResourceManager(s:SingletonEnforcer)
 		{
             if (m_instance)
 			{
-                throw (new SingletonMultiCreateError(ResourceManager));
+                throw new SingletonMultiCreateError(ResourceManager);
             }
 			
             m_instance = this;
+			
             this.m_resourceTypeInfos = new Dictionary();
             this.m_dependencyToResourceMap = new Dictionary();
             this.m_resourceToDependencyMap = new Dictionary();
@@ -69,107 +89,200 @@
         public static function get instance():ResourceManager
 		{
             m_instance = ((m_instance) || (new ResourceManager(new SingletonEnforcer())));
-            return (m_instance);
+            return m_instance;
         }
 		
-        public static function makeResourceName(_arg1:String):String
+		/**
+		 * 构建资源名
+		 * @param path
+		 * @return 
+		 */		
+        public static function makeResourceName(path:String):String
 		{
-            if ((((_arg1 == null)) || ((_arg1.length == 0))))
+            if (path == null || path.length == 0)
 			{
-                return (_arg1);
+                return path;
             }
 			
-            return (Util.makeGammaString(_arg1));
+            return Util.makeGammaString(path);
         }
 
+		/**
+		 * 是否有资源在解析队列中
+		 * @return 
+		 */		
         public function get hasResourceInParseQueue():Boolean
 		{
-            return (((!((this.m_parseHead == null))) || (!((this.m_delayParseHead == null)))));
+            return (this.m_parseHead != null || this.m_delayParseHead != null);
         }
 		
+		/**
+		 * 获取已加载的资源个数
+		 * @return 
+		 */		
         public function get completeResourcCount():uint
 		{
-            return (this.m_completeResourcCount);
+            return this.m_completeResourcCount;
         }
 		
+		/**
+		 * 获取资源的总加载个数
+		 * @return 
+		 */		
         public function get totalResourcCount():uint
 		{
-            return (this.m_totalResourcCount);
+            return this.m_totalResourcCount;
         }
 		
+		/**
+		 * 资源解析器是否空闲中
+		 * @return 
+		 */		
         public function get idle():Boolean
 		{
-            return ((((this.m_parseHead == null)) && ((this.m_delayParseHead == null))));
+            return (this.m_parseHead == null && this.m_delayParseHead == null);
         }
 		
-        public function registerResType(_arg1:String, _arg2:Class, _arg3:Boolean=false):void
+		/**
+		 * 注册资源类型
+		 * @param type										类型
+		 * @param derivedResourceClass				资源类
+		 * @param delayParse								是否延迟解析
+		 */		
+        public function registerResType(type:String, derivedResourceClass:Class, delayParse:Boolean=false):void
 		{
-            if (this.m_resourceTypeInfos[_arg1])
+            if (this.m_resourceTypeInfos[type])
 			{
-                throw (new Error(("already registered resource type " + _arg1)));
+                throw new Error("already registered resource type " + type);
             }
 			
-            var _local4:ResourceStatisticInfo = new ResourceStatisticInfo();
-            _local4.derivedResourceClass = _arg2;
-            _local4.type = _arg1;
-            _local4.delayParse = _arg3;
-            this.m_resourceTypeInfos[_arg1] = _local4;
+            var rInfo:ResourceStatisticInfo = new ResourceStatisticInfo();
+			rInfo.derivedResourceClass = derivedResourceClass;
+			rInfo.type = type;
+			rInfo.delayParse = delayParse;
+            this.m_resourceTypeInfos[type] = rInfo;
         }
 		
-        public function unregisterResType(_arg1:String):void
+		/**
+		 * 注销资源类型
+		 * @param type
+		 */		
+        public function unregisterResType(type:String):void
 		{
-            this.m_resourceTypeInfos[_arg1] = null;
-            delete this.m_resourceTypeInfos[_arg1];
+            this.m_resourceTypeInfos[type] = null;
+            delete this.m_resourceTypeInfos[type];
         }
 		
+		/**
+		 * 获取资源类型信息列表
+		 * @return 
+		 */		
 		public function get resourceTypeInfos():Dictionary
 		{
 			return this.m_resourceTypeInfos;
 		}
 		
-        public function getResource(uri:String, type:String, onCompleteHandler:Function=null, resourceClass:Class=null, cacheLoad:Boolean=false):IResource
+		/**
+		 * 获取指定类型的资源信息
+		 * @param type
+		 * @return 
+		 */		
+		public function getResourceStatiticInfo(type:String):ResourceStatisticInfo
 		{
-            var resource:* = null;
-            var resourceNode:* = null;
-            var timer:* = null;
-            var onTimerToCallCustomCompleteHandler:* = null;
-            if (uri.length == 0){
-                return (null);
-            };
+			return this.m_resourceTypeInfos[type];
+		}
+		
+		/**
+		 * 注册资源类型
+		 */		
+		public function registerGraphicResources():void
+		{
+			this.registerResType(ResourceType.ANI_GROUP, AnimationGroup);
+			this.registerResType(ResourceType.PIECE_GROUP, PieceGroup);
+			this.registerResType(ResourceType.MAP, MetaScene);
+			this.registerResType(ResourceType.REGION, MetaRegion);
+			this.registerResType(ResourceType.TEXTURE2D, BitmapDataResource2D, true);
+			this.registerResType(ResourceType.TEXTURE3D, BitmapDataResource3D, true);
+			this.registerResType(ResourceType.MATERIAL, Material);
+			this.registerResType(ResourceType.EFFECT_GROUP, EffectGroup);
+			this.registerResType(ResourceType.RENDER_OBJECT, RenderObject);
+			this.registerResType(ResourceType.GUI, WindowResource);
+			this.registerResType(ResourceType.SOUND, SoundResource);
+			
+			this.registerResType(ResourceType.MD5MESH_GROUP,HPieceGroup);
+			this.registerResType(ResourceType.BMS_GROUP,HPieceGroup);			
+			this.registerResType(ResourceType.SKELETON_GROUP,AnimationGroup);
+			this.registerResType(ResourceType.ANIMATION_SEQ,Animation);
+		}
+
+		
+		/**
+		 * 获取资源
+		 * @param url											资源路径
+		 * @param type										资源类型
+		 * @param onCompleteHandler				资源加载完的处理方法
+		 * @param resourceClass							资源类
+		 * @param notCacheLoad								是否缓存
+		 * @return 
+		 */		
+        public function getResource(url:String, type:String, onCompleteHandler:Function=null, resourceClass:Class=null, notCacheLoad:Boolean=false):IResource
+		{
+            if (!url || url.length == 0)
+			{
+                return null;
+            }
+			
+			url = Util.makeGammaString(url);
+			if (url.charAt(url.length - 1) == "/")
+			{
+				throw new Error("invalid url for a urlRequest!!!" + url);
+			}
+			
             var resInfo:* = this.m_resourceTypeInfos[type];
-            uri = Util.makeGammaString(uri);
-            if (uri.charAt((uri.length - 1)) == "/"){
-                throw (new Error(("invalid url for a urlRequest!!!" + uri)));
-            };
-            if (resInfo == null){
-                throw (new Error(("try to loade a resource type not registered: " + type)));
-            };
-            var resourceInList:* = resInfo.resources[uri];
-            if (resourceInList){
-                if ((resourceInList is IResource)){
-                    //resource = IResource(resourceInList);//取消缓存　每次都加载 by hmh
-                } else {
-                    if ((resourceInList is ParseQueueNode)){
+            if (resInfo == null)
+			{
+                throw new Error("try to loade a resource type not registered: " + type);
+            }
+			
+			var resource:*;
+            var resourceInList:* = resInfo.resources[url];
+            if (resourceInList)
+			{
+                if (resourceInList is IResource)
+				{
+                    resource = IResource(resourceInList);
+                } else 
+				{
+                    if (resourceInList is ParseQueueNode)
+					{
                         resource = ParseQueueNode(resourceInList).m_resource;
-                    };
-                };
-            };
-			if(cacheLoad){
+                    }
+                }
+            }
+			
+			if(notCacheLoad)
+			{
 				if(resource)
+				{
 					releaseResource(resource);
+				}
 				resource = null;
 			}
-            if (!resource){
+			
+            if (!resource)
+			{
                 this.m_totalResourcCount++;
                 resource = new (resourceClass ? resourceClass : resInfo.derivedResourceClass)();
-                resource.name = uri;
-                resourceNode = new ParseQueueNode();
+                resource.name = url;
+				var resourceNode:ParseQueueNode = new ParseQueueNode();
                 resourceNode.m_resource = resource;
-                resInfo.resources[uri] = resourceNode;
-                if (type == ResourceType.SOUND){
+                resInfo.resources[url] = resourceNode;
+                if (type == ResourceType.SOUND)
+				{
                     new SoundLoader(resource, resInfo, this.queuedResourceDataRetrieved, this.queuedResourceDataRetrieveError);
-                } else {
-                    LoaderManager.getInstance().load(uri, {
+                } else 
+				{
+                    LoaderManager.getInstance().load(url, {
                         onComplete:this.queuedResourceDataRetrieved,
                         onIOError:this.queuedResourceDataRetrieveError
                     }, LoaderCommon.LOADER_URL, false, {
@@ -177,438 +290,603 @@
                         resourceInfo:resInfo,
                         dataFormat:resource.dataFormat
                     });
-                };
-            } else {
-                if (resource.refCount == 0){
+                }
+            } else 
+			{
+                if (resource.refCount == 0)
+				{
                     this.delFreeResource(resource);
-                };
+                }
                 resource.reference();
-            };
-            if (onCompleteHandler != null){
-                if (((resource.loadfailed) || (((resource.loaded) && (!(this.resourceHasDependency(resource))))))){
-                    onTimerToCallCustomCompleteHandler = function (_arg1:TimerEvent):void{
+            }
+			
+            if (onCompleteHandler != null)
+			{
+                if (resource.loadfailed || (resource.loaded && !this.resourceHasDependency(resource)))
+				{
+					var onTimerToCallCustomCompleteHandler:Function = function (evt:TimerEvent):void
+					{
                         onCompleteHandler(resource, (resource.loadfailed == false));
 						
                         timer.stop();
                         timer.removeEventListener(TimerEvent.TIMER, onTimerToCallCustomCompleteHandler);
-                    };
-                    timer = new Timer(1);
+                    }
+						
+					var timer:Timer = new Timer(1);
                     timer.addEventListener(TimerEvent.TIMER, onTimerToCallCustomCompleteHandler);
                     timer.start();
-                } else {
+                } else 
+				{
                     this.m_extraCompleteHandlers[resource] = ((this.m_extraCompleteHandlers[resource]) || (new Dictionary(false)));
-					if (this.m_extraCompleteHandlers[resource][onCompleteHandler])//by hmh
-						this.m_extraCompleteHandlers[resource]["temp"] = onCompleteHandler;
+					if (this.m_extraCompleteHandlers[resource][onCompleteHandler])
+					{
+						trace("this handler is regist!!!!");
+					}
 					else
+					{
 						this.m_extraCompleteHandlers[resource][onCompleteHandler] = onCompleteHandler;
+					}
                 }
             }
-            return (resource);
+			
+            return resource;
         }
 		
-        private function addFreeResource(_arg1:IResource):void{
-            if (this.m_freeRefResourceMap[_arg1] != null){
-                throw (new Error("free resource mutiply!!"));
-            };
-            var _local2:FreeResourceNode = new FreeResourceNode();
-            _local2.m_resource = _arg1;
-            _local2.m_preNode = this.m_freeRefResourceTail;
-            _local2.m_nextNode = null;
-            _local2.m_freeTime = getTimer();
-            this.m_freeRefResourceMap[_arg1] = _local2;
-            if (this.m_freeRefResourceTail == null){
-                this.m_freeRefResourceHead = _local2;
-            } else {
-                this.m_freeRefResourceTail.m_nextNode = _local2;
-            };
-            this.m_freeRefResourceTail = _local2;
+		private function queuedResourceDataRetrieved(obj:Object = null):void 
+		{
+			DownloadStatistic.instance.addDownloadedBytes((obj["data"] as ByteArray).length, (obj["resource"] as IResource).name);
+			this.addParseData(obj["resource"], obj["resourceInfo"], (obj["data"] as ByteArray));
+			this.m_completeResourcCount++;
+		}
+		
+		private function queuedResourceDataRetrieveError(obj:Object=null):void
+		{
+			this.checkResourceLoadState(obj["resource"], false);
+			dtrace(LogLevel.FATAL, "queuedResourceDataRetrieveError ", obj.resource.name, obj["extra"]);
+		}
+		
+		private function addParseData(res:IResource, rInfo:ResourceStatisticInfo, data:ByteArray):void
+		{
+			var resInfo:ResourceStatisticInfo = this.m_resourceTypeInfos[res.type];
+			var obj:Object = resInfo.resources[res.name];
+			if (obj == null || !(obj is ParseQueueNode) || ParseQueueNode(obj).m_resource != res)
+			{
+				return;
+			}
+			
+			var node:ParseQueueNode = ParseQueueNode(obj);
+			res = node.m_resource;
+			data.endian = Endian.LITTLE_ENDIAN;
+			node.m_data = data;
+			if (this.m_parseTail == null)
+			{
+				this.m_parseHead = node;
+				this.m_parseTail = node;
+			} else 
+			{
+				if ((res is BitmapDataResource2D) || (res is WindowResource))
+				{
+					node.m_nextNode = this.m_parseHead;
+					this.m_parseHead = node;
+				} else 
+				{
+					this.m_parseTail.m_nextNode = node;
+					this.m_parseTail = node;
+				}
+			}
+		}
+		
+		private function addDelayParseData(node:ParseQueueNode):void
+		{
+			node.m_nextNode = null;
+			node.m_data = node.m_resource;
+			
+			if (this.m_delayParseTail == null)
+			{
+				this.m_delayParseHead = node;
+				this.m_delayParseTail = node;
+			} else
+			{
+				this.m_delayParseTail.m_nextNode = node;
+			}
+			
+			this.m_delayParseTail = node;
+		}
+		
+        private function addFreeResource(res:IResource):void
+		{
+            if (this.m_freeRefResourceMap[res] != null)
+			{
+                throw new Error("free resource mutiply!!");
+            }
+			
+            var node:FreeResourceNode = new FreeResourceNode();
+			node.m_resource = res;
+			node.m_preNode = this.m_freeRefResourceTail;
+			node.m_nextNode = null;
+			node.m_freeTime = getTimer();
+            this.m_freeRefResourceMap[res] = node;
+			
+            if (this.m_freeRefResourceTail == null)
+			{
+                this.m_freeRefResourceHead = node;
+            } else 
+			{
+                this.m_freeRefResourceTail.m_nextNode = node;
+            }
+			
+            this.m_freeRefResourceTail = node;
         }
-        private function delFreeResource(_arg1:IResource):void{
-            var _local2:FreeResourceNode = (this.m_freeRefResourceMap[_arg1] as FreeResourceNode);
-            if (_local2 == null){
+		
+        private function delFreeResource(res:IResource):void
+		{
+            var node:FreeResourceNode = this.m_freeRefResourceMap[res] as FreeResourceNode;
+            if (node == null)
+			{
                 return;
-            };
-            if (_local2.m_preNode == null){
-                this.m_freeRefResourceHead = _local2.m_nextNode;
-            } else {
-                _local2.m_preNode.m_nextNode = _local2.m_nextNode;
-            };
-            if (_local2.m_nextNode == null){
-                this.m_freeRefResourceTail = _local2.m_preNode;
-            } else {
-                _local2.m_nextNode.m_preNode = _local2.m_preNode;
-            };
-            this.m_freeRefResourceMap[_arg1] = null;
-            delete this.m_freeRefResourceMap[_arg1];
+            }
+			
+            if (node.m_preNode == null)
+			{
+                this.m_freeRefResourceHead = node.m_nextNode;
+            } else 
+			{
+				node.m_preNode.m_nextNode = node.m_nextNode;
+            }
+			
+            if (node.m_nextNode == null)
+			{
+                this.m_freeRefResourceTail = node.m_preNode;
+            } else 
+			{
+				node.m_nextNode.m_preNode = node.m_preNode;
+            }
+			
+            this.m_freeRefResourceMap[res] = null;
+            delete this.m_freeRefResourceMap[res];
         }
-        public function getResourceStatiticInfo(_arg1:String):ResourceStatisticInfo{
-            return (this.m_resourceTypeInfos[_arg1]);
+		
+		/**
+		 * 该宿主资源是否有从属依赖资源
+		 * @param res									宿主资源
+		 * @return 
+		 */		
+        public function resourceHasDependency(res:IResource):Boolean
+		{
+            var map:Dictionary = this.m_resourceToDependencyMap[res];
+            if (!map)
+			{
+                return false;
+            }
+
+			var obj:Object;
+            for (obj in map) 
+			{
+                return true;
+            }
+			
+            this.m_resourceToDependencyMap[res] = null;
+            delete this.m_resourceToDependencyMap[res];
+			
+            return false;
         }
-        public function resourceHasDependency(_arg1:IResource):Boolean{
-            var _local3:Object;
-            var _local2:Dictionary = this.m_resourceToDependencyMap[_arg1];
-            if (!_local2){
-                return (false);
-            };
-            for (_local3 in _local2) {
-                return (true);
-            };
-            this.m_resourceToDependencyMap[_arg1] = null;
-            delete this.m_resourceToDependencyMap[_arg1];
-            return (false);
+		
+		/**
+		 * 该资源是否存在宿主资源
+		 * @param res						依赖注入的资源
+		 * @return 
+		 */		
+        public function hasResourceDependencyOn(res:IResource):Boolean
+		{
+            var map:Dictionary = this.m_dependencyToResourceMap[res];
+            if (!map)
+			{
+                return false;
+            }
+			
+			var obj:Object;
+            for (obj in map) 
+			{
+                return true;
+            }
+			
+            return false;
         }
-        public function hasResourceDependencyOn(_arg1:IResource):Boolean{
-            var _local3:Object;
-            var _local2:Dictionary = this.m_dependencyToResourceMap[_arg1];
-            if (!_local2){
-                return (false);
-            };
-            for (_local3 in _local2) {
-                return (true);
-            };
-            return (false);
-        }
-        public function getDependencyOnResource(_arg1:IResource, _arg2:String, _arg3:String):IResource{
-            var dependResource:* = null;
-            var timer:* = null;
-            var onTimerToRemoveDependencyRelation:* = null;
-            var resourceSrc:* = _arg1;
-            var dependUri:* = _arg2;
-            var dependType:* = _arg3;
-            dependResource = this.getResource(dependUri, dependType);
+		
+		/**
+		 * 获取宿主资源的依赖资源
+		 * @param resourceSrc				宿主资源
+		 * @param dependUri				注入资源的路径
+		 * @param dependType			注入资源的类型
+		 * @return 
+		 */		
+        public function getDependencyOnResource(resourceSrc:IResource, dependUri:String, dependType:String):IResource
+		{
+            var dependResource:IResource = this.getResource(dependUri, dependType);
+			
             this.m_dependencyToResourceMap[dependResource] = ((this.m_dependencyToResourceMap[dependResource]) || (new Dictionary()));
             this.m_dependencyToResourceMap[dependResource][resourceSrc] = resourceSrc;
-            this.m_resourceToDependencyMap[resourceSrc] = ((this.m_resourceToDependencyMap[resourceSrc]) || (new Dictionary()));
+            
+			this.m_resourceToDependencyMap[resourceSrc] = ((this.m_resourceToDependencyMap[resourceSrc]) || (new Dictionary()));
             this.m_resourceToDependencyMap[resourceSrc][dependResource] = dependResource;
-            if (((((dependResource.loaded) && (!(this.resourceHasDependency(dependResource))))) || (dependResource.loadfailed))){
-                onTimerToRemoveDependencyRelation = function (_arg1:TimerEvent):void{
-                    checkResourceLoadState(dependResource, !(dependResource.loadfailed));
+			
+            if ((dependResource.loaded && !this.resourceHasDependency(dependResource)) || dependResource.loadfailed)
+			{
+                var onTimerToRemoveDependencyRelation:Function = function (evt:TimerEvent):void
+				{
+                    checkResourceLoadState(dependResource, !dependResource.loadfailed);
                     timer.stop();
                     timer.removeEventListener(TimerEvent.TIMER, onTimerToRemoveDependencyRelation);
-                };
-                timer = new Timer(1);
+                }
+                var timer:Timer = new Timer(1);
                 timer.addEventListener(TimerEvent.TIMER, onTimerToRemoveDependencyRelation);
                 timer.start();
-            };
-            return (dependResource);
-        }
-        private function removeDependencyRelation(_arg1:IResource, _arg2:IResource, _arg3:Boolean, _arg4:Boolean):void{
-            if (this.m_resourceToDependencyMap[_arg1] != null){
-                this.m_resourceToDependencyMap[_arg1][_arg2] = null;
-                delete this.m_resourceToDependencyMap[_arg1][_arg2];
-            };
-            if (((_arg4) && (!((this.m_dependencyToResourceMap[_arg2] == null))))){
-                this.m_dependencyToResourceMap[_arg2][_arg1] = null;
-                delete this.m_dependencyToResourceMap[_arg2][_arg1];
-            };
-            _arg1.onDependencyRetrieve(_arg2, _arg3);
-            if (_arg1.name == null){
-                throw (new Error("resourceSrc.name == null"));
-            };
-            if (!_arg3){
-                dtrace(LogLevel.IMPORTANT, (((_arg1.name + " 's depends ") + _arg2.name) + " retrieved failed"));
-            };
-            if (((_arg1.loaded) && (!(this.resourceHasDependency(_arg1))))){
-                this.checkResourceLoadState(_arg1, true);
-            };
-        }
-        private function addParseData(_arg1:IResource, _arg2:ResourceStatisticInfo, _arg3:ByteArray):void{
-            var _local4:ResourceStatisticInfo = this.m_resourceTypeInfos[_arg1.type];
-            var _local5:Object = _local4.resources[_arg1.name];
-            if ((((((_local5 == null)) || (((_local5 is ParseQueueNode) == false)))) || (!((ParseQueueNode(_local5).m_resource == _arg1))))){
-                return;
-            };
-            var _local6:ParseQueueNode = ParseQueueNode(_local5);
-            _arg1 = _local6.m_resource;
-            _arg3.endian = Endian.LITTLE_ENDIAN;
-            _local6.m_data = _arg3;
-            if (this.m_parseTail == null){
-                this.m_parseHead = _local6;
-                this.m_parseTail = _local6;
-            } else {
-                if ((((_arg1 is BitmapDataResource2D)) || ((_arg1 is WindowResource)))){
-                    _local6.m_nextNode = this.m_parseHead;
-                    this.m_parseHead = _local6;
-                } else {
-                    this.m_parseTail.m_nextNode = _local6;
-                    this.m_parseTail = _local6;
-                };
-            };
-        }
-        private function addDelayParseData(_arg1:ParseQueueNode):void{
-            _arg1.m_nextNode = null;
-            _arg1.m_data = _arg1.m_resource;
-            if (this.m_delayParseTail == null){
-                this.m_delayParseHead = (this.m_delayParseTail = _arg1);
-            } else {
-                this.m_delayParseTail.m_nextNode = _arg1;
-            };
-            this.m_delayParseTail = _arg1;
-        }
-        public function Log(_arg1:String, _arg2:String, _arg3:uint):void{
-            var _local4:uint;
-        }
-        public function parseDataInCommon():void{
-            var preParseNode:* = null;
-            var curParseNode:* = null;
-            var resource:* = null;
-            var resourceInfo:* = null;
-            var loadSuccess:* = false;
-            var preStepTime:* = 0;
-            var i:* = 0;
-            curParseNode = this.m_delayParseHead;
-            preParseNode = null;
-            while (curParseNode) {
-                resource = curParseNode.m_resource;
-                if (resource == null){
-                    if (preParseNode){
-                        preParseNode.m_nextNode = curParseNode.m_nextNode;
-                    } else {
-                        this.m_delayParseHead = curParseNode.m_nextNode;
-                    };
-                    if (curParseNode == this.m_delayParseTail){
-                        this.m_delayParseTail = preParseNode;
-                    };
-                    curParseNode = curParseNode.m_nextNode;
-                } else {
-                    preStepTime = StepTimeManager.instance.totalStepTime;
-                    if (curParseNode.m_data){
-                        curParseNode.m_parseResult = resource.parse(null);
-                        if (curParseNode.m_parseResult == 0){
-                            preParseNode = curParseNode;
-                            curParseNode = curParseNode.m_nextNode;
-                            this.Log(resource.name, "delayparse", preStepTime);
-                            continue;
-                        };
-                        curParseNode.m_data = null;
-                    };
-                    this.Log(resource.name, "delayparse", preStepTime);
-                    preStepTime = StepTimeManager.instance.totalStepTime;
-                    if (!StepTimeManager.instance.stepBegin()){
-                        break;
-                    };
-                    if (preParseNode){
-                        preParseNode.m_nextNode = curParseNode.m_nextNode;
-                    } else {
-                        this.m_delayParseHead = curParseNode.m_nextNode;
-                    };
-                    if (curParseNode == this.m_delayParseTail){
-                        this.m_delayParseTail = preParseNode;
-                    };
-                    if (this.m_delayParseHead == null){
-                        this.m_delayParseTail = null;
-                    };
-                    loadSuccess = ((resource.loaded) && (!(this.resourceHasDependency(resource))));
-                    resourceInfo = this.m_resourceTypeInfos[resource.type];
-                    resourceInfo.resources[resource.name] = resource;
-                    curParseNode.m_resource = null;
-                    if (resource.loaded){
-                        resourceInfo.createdCount++;
-                        resourceInfo.currentCount++;
-                    };
-                    this.checkResourceLoadState(resource, loadSuccess);
-                    StepTimeManager.instance.stepEnd();
-                    this.Log(resource.name, "delaycheck", preStepTime);
-                    curParseNode = curParseNode.m_nextNode;
-                };
-            };
-            while (this.m_parseHead) {
-                curParseNode = this.m_parseHead;
-                resource = curParseNode.m_resource;
-                if (resource == null){
-                    this.m_parseHead = curParseNode.m_nextNode;
-                    if (this.m_parseHead == null){
-                        this.m_parseTail = null;
-                    };
-                } else {
-                    resourceInfo = this.m_resourceTypeInfos[resource.type];
-                    preStepTime = StepTimeManager.instance.totalStepTime;
-                    if (curParseNode.m_data){
-                        //try {
-                            curParseNode.m_parseResult = resource.parse(ByteArray(curParseNode.m_data));
-                        //} catch(error:Error) {
-                         //   curParseNode.m_parseResult = -1;
-                         //   dtrace(LogLevel.FATAL, "resource.parse Error:", resource.type, resource.name);
-                        //};
-                        if (curParseNode.m_parseResult == 0){
-                            this.Log(resource.name, "parse", preStepTime);
-                            break;
-                        };
-                        curParseNode.m_data = null;
-                    };
-                    preStepTime = StepTimeManager.instance.totalStepTime;
-                    if (!StepTimeManager.instance.stepBegin()){
-                        break;
-                    };
-                    this.m_parseHead = curParseNode.m_nextNode;
-                    if (this.m_parseHead == null){
-                        this.m_parseTail = null;
-                    };
-                    if (curParseNode.m_parseResult < 0){
-                        this.checkResourceLoadState(resource, false);
-                    } else {
-                        if (!resourceInfo.delayParse){
-                            resourceInfo.resources[resource.name] = resource;
-                            curParseNode.m_resource = null;
-                            if (resource.loaded){
-                                resourceInfo.createdCount++;
-                                resourceInfo.currentCount++;
-                            };
-                            loadSuccess = (((((curParseNode.m_parseResult > 0)) && (resource.loaded))) && (!(this.resourceHasDependency(resource))));
-                            if (loadSuccess){
-                                this.checkResourceLoadState(resource, loadSuccess);
-                            };
-                        } else {
-                            this.addDelayParseData(curParseNode);
-                        };
-                    };
-                    StepTimeManager.instance.stepEnd();
-                    this.Log(resource.name, "check", preStepTime);
-                };
-            };
-            var curTime:* = getTimer();
-            var freeRefResourceHead:* = this.m_freeRefResourceHead;
-            while (((freeRefResourceHead) && ((curTime > (freeRefResourceHead.m_freeTime + 10000))))) {
-                preStepTime = StepTimeManager.instance.totalStepTime;
-                if (!StepTimeManager.instance.stepBegin()){
-                    break;
-                };
-                i = 0;
-                while (((freeRefResourceHead) && ((i < 10)))) {
-                    resource = freeRefResourceHead.m_resource;
-                    freeRefResourceHead = freeRefResourceHead.m_nextNode;
-                    if (((!(resource.loaded)) && (!(resource.loadfailed)))){
-                    } else {
-                        this.delFreeResource(resource);
-                        this.releaseResource(resource);
-                    };
-                    i = (i + 1);
-                };
-                StepTimeManager.instance.stepEnd();
-            };
-        }
-        private function queuedResourceDataRetrieved(_arg1:Object = null):void {
-//			trace("loadcomplete:" + (_arg1["resource"] as IResource).name);
-            DownloadStatistic.instance.addDownloadedBytes((_arg1["data"] as ByteArray).length, (_arg1["resource"] as IResource).name);
-            this.addParseData(_arg1["resource"], _arg1["resourceInfo"], (_arg1["data"] as ByteArray));
-            this.m_completeResourcCount++;
-        }
-        private function queuedResourceDataRetrieveError(_arg1:Object=null):void{
-            this.checkResourceLoadState(_arg1["resource"], false);
-            dtrace(LogLevel.FATAL, "queuedResourceDataRetrieveError ", _arg1.resource.name, _arg1["extra"]);
+            }
+			
+            return dependResource;
         }
 		
-        private function checkResourceLoadState(_arg1:IResource, _arg2:Boolean):void
+        private function removeDependencyRelation(srcRes:IResource, dependencyRes:IResource, isSuccess:Boolean, isDeleteDependency:Boolean):void
 		{
-            var _local5:Function;
-            var _local6:IResource;
-            if (_arg2){
-                _arg1.onAllDependencyRetrieved();
-            } else {
-                _arg1.loadfailed = true;
-            };
+            if (this.m_resourceToDependencyMap[srcRes] != null)
+			{
+                this.m_resourceToDependencyMap[srcRes][dependencyRes] = null;
+                delete this.m_resourceToDependencyMap[srcRes][dependencyRes];
+            }
 			
-            var _local3:Dictionary = this.m_extraCompleteHandlers[_arg1];
-            if (_local3){
-                this.m_extraCompleteHandlers[_arg1] = null;
-                delete this.m_extraCompleteHandlers[_arg1];
-                for each (_local5 in _local3) {
-                    _local5(_arg1, _arg2);
-                };
-                DictionaryUtil.clearDictionary(_local3);
-            };
-            var _local4:Dictionary = this.m_dependencyToResourceMap[_arg1];
-            if (_local4){
-                this.m_dependencyToResourceMap[_arg1] = null;
-                delete this.m_dependencyToResourceMap[_arg1];
-                for each (_local6 in _local4) {
-                    this.removeDependencyRelation(_local6, _arg1, _arg2, false);
-                };
-                DictionaryUtil.clearDictionary(_local4);
-            };
+            if (isDeleteDependency && this.m_dependencyToResourceMap[dependencyRes] != null)
+			{
+                this.m_dependencyToResourceMap[dependencyRes][srcRes] = null;
+                delete this.m_dependencyToResourceMap[dependencyRes][srcRes];
+            }
+			
+			srcRes.onDependencyRetrieve(dependencyRes, isSuccess);
+            
+			if (srcRes.name == null)
+			{
+                throw new Error("resourceSrc.name == null");
+            }
+			
+            if (!isSuccess)
+			{
+                dtrace(LogLevel.IMPORTANT, (srcRes.name + " 's depends " + dependencyRes.name + " retrieved failed"));
+            }
+			
+            if (srcRes.loaded && !this.resourceHasDependency(srcRes))
+			{
+                this.checkResourceLoadState(srcRes, true);
+            }
         }
-        public function releaseResource(_arg1:IResource, _arg2:uint=0):void{
-            var _local6:ParseQueueNode;
-            var _local8:IResource;
-            var _local9:Dictionary;
-            var _local10:Boolean;
-            if (_arg2 == DESTROY_NEVER){
+		
+		/**
+		 * 资源数据解析（每帧）
+		 */		
+		public function parseDataInCommon():void
+		{
+			var resource:* = null;
+			var preStepTime:uint = 0;
+			var loadSuccess:Boolean = false;
+			var resourceInfo:ResourceStatisticInfo = null;
+			var preParseNode:ParseQueueNode = null;
+			var curParseNode:ParseQueueNode = this.m_delayParseHead;
+			while (curParseNode)//延迟解析 
+			{
+				resource = curParseNode.m_resource;
+				if (resource == null)
+				{
+					if (preParseNode)
+					{
+						preParseNode.m_nextNode = curParseNode.m_nextNode;
+					} else 
+					{
+						this.m_delayParseHead = curParseNode.m_nextNode;
+					}
+					
+					if (curParseNode == this.m_delayParseTail)
+					{
+						this.m_delayParseTail = preParseNode;
+					}
+					curParseNode = curParseNode.m_nextNode;
+				} else 
+				{
+					preStepTime = StepTimeManager.instance.totalStepTime;
+					if (curParseNode.m_data)
+					{
+						curParseNode.m_parseResult = resource.parse(null);
+						if (curParseNode.m_parseResult == 0)
+						{
+							preParseNode = curParseNode;
+							curParseNode = curParseNode.m_nextNode;
+							this.Log(resource.name, "delayparse", preStepTime);
+							continue;
+						}
+						curParseNode.m_data = null;
+					}
+					
+					this.Log(resource.name, "delayparse", preStepTime);
+					preStepTime = StepTimeManager.instance.totalStepTime;
+					if (!StepTimeManager.instance.stepBegin())
+					{
+						break;
+					}
+					
+					if (preParseNode)
+					{
+						preParseNode.m_nextNode = curParseNode.m_nextNode;
+					} else 
+					{
+						this.m_delayParseHead = curParseNode.m_nextNode;
+					}
+					
+					if (curParseNode == this.m_delayParseTail)
+					{
+						this.m_delayParseTail = preParseNode;
+					}
+					
+					if (this.m_delayParseHead == null)
+					{
+						this.m_delayParseTail = null;
+					}
+					
+					loadSuccess = (resource.loaded && !this.resourceHasDependency(resource));
+					resourceInfo = this.m_resourceTypeInfos[resource.type];
+					resourceInfo.resources[resource.name] = resource;
+					curParseNode.m_resource = null;
+					if (resource.loaded)
+					{
+						resourceInfo.createdCount++;
+						resourceInfo.currentCount++;
+					}
+					
+					this.checkResourceLoadState(resource, loadSuccess);
+					
+					StepTimeManager.instance.stepEnd();
+					
+					this.Log(resource.name, "delaycheck", preStepTime);
+					
+					curParseNode = curParseNode.m_nextNode;
+				}
+			}
+			
+			//即时解析
+			while (this.m_parseHead) 
+			{
+				curParseNode = this.m_parseHead;
+				resource = curParseNode.m_resource;
+				if (resource == null)
+				{
+					this.m_parseHead = curParseNode.m_nextNode;
+					if (this.m_parseHead == null)
+					{
+						this.m_parseTail = null;
+					}
+				} else 
+				{
+					resourceInfo = this.m_resourceTypeInfos[resource.type];
+					preStepTime = StepTimeManager.instance.totalStepTime;
+					if (curParseNode.m_data)
+					{
+						curParseNode.m_parseResult = resource.parse(ByteArray(curParseNode.m_data));
+						if (curParseNode.m_parseResult == 0)
+						{
+							this.Log(resource.name, "parse", preStepTime);
+							break;
+						}
+						curParseNode.m_data = null;
+					}
+					
+					preStepTime = StepTimeManager.instance.totalStepTime;
+					
+					if (!StepTimeManager.instance.stepBegin())
+					{
+						break;
+					}
+					
+					this.m_parseHead = curParseNode.m_nextNode;
+					if (this.m_parseHead == null)
+					{
+						this.m_parseTail = null;
+					}
+					
+					if (curParseNode.m_parseResult < 0)
+					{
+						this.checkResourceLoadState(resource, false);
+					} else 
+					{
+						if (!resourceInfo.delayParse)
+						{
+							resourceInfo.resources[resource.name] = resource;
+							curParseNode.m_resource = null;
+							if (resource.loaded)
+							{
+								resourceInfo.createdCount++;
+								resourceInfo.currentCount++;
+							}
+							
+							loadSuccess = (curParseNode.m_parseResult > 0 && resource.loaded && !this.resourceHasDependency(resource));
+							if (loadSuccess)
+							{
+								this.checkResourceLoadState(resource, loadSuccess);
+							}
+						} else 
+						{
+							this.addDelayParseData(curParseNode);
+						}
+					}
+					
+					StepTimeManager.instance.stepEnd();
+					this.Log(resource.name, "check", preStepTime);
+				}
+			}
+			
+			var i:uint = 0;
+			var boo:Boolean;
+			var curTime:uint = getTimer();
+			var freeRefResourceHead:FreeResourceNode= this.m_freeRefResourceHead;
+			while (freeRefResourceHead && (curTime > (freeRefResourceHead.m_freeTime + 10000))) 
+			{
+				preStepTime = StepTimeManager.instance.totalStepTime;
+				if (!StepTimeManager.instance.stepBegin())
+				{
+					break;
+				}
+				
+				i = 0;
+				while (freeRefResourceHead && (i < 10)) 
+				{
+					resource = freeRefResourceHead.m_resource;
+					freeRefResourceHead = freeRefResourceHead.m_nextNode;
+					boo = (!resource.loaded && !resource.loadfailed);
+					if (!boo)
+					{
+						this.delFreeResource(resource);
+						this.releaseResource(resource);
+					}
+					i ++;
+				}
+				
+				StepTimeManager.instance.stepEnd();
+			}
+		}
+        
+        private function checkResourceLoadState(res:IResource, isSuccess:Boolean):void
+		{
+            if (isSuccess)
+			{
+				res.onAllDependencyRetrieved();
+            } else 
+			{
+				res.loadfailed = true;
+            }
+			
+            var handlerMap:Dictionary = this.m_extraCompleteHandlers[res];
+            if (handlerMap)
+			{
+                this.m_extraCompleteHandlers[res] = null;
+                delete this.m_extraCompleteHandlers[res];
+				
+				var fun:Function;
+                for each (fun in handlerMap) 
+				{
+					fun(res, isSuccess);
+                }
+                DictionaryUtil.clearDictionary(handlerMap);
+            }
+			
+            var dToRMap:Dictionary = this.m_dependencyToResourceMap[res];
+            if (dToRMap)
+			{
+                this.m_dependencyToResourceMap[res] = null;
+                delete this.m_dependencyToResourceMap[res];
+				
+				var srcRes:IResource;
+                for each (srcRes in dToRMap) 
+				{
+                    this.removeDependencyRelation(srcRes, res, isSuccess, false);
+                }
+				
+                DictionaryUtil.clearDictionary(dToRMap);
+            }
+        }
+		
+		/**
+		 * 资源释放
+		 * @param res						
+		 * @param destoryType
+		 */		
+        public function releaseResource(res:IResource, destoryType:uint=0):void
+		{
+            if (destoryType == DESTROY_NEVER)
+			{
                 return;
-            };
-            if (_arg2 != DESTROY_IMMED){
-                return (this.addFreeResource(_arg1));
-            };
-            var _local3:String = _arg1.name;
-            var _local4:ResourceStatisticInfo = this.m_resourceTypeInfos[_arg1.type];
-            var _local5:Object = _local4.resources[_local3];
-            if (((_local5) && ((_local5 is ParseQueueNode)))){
-                _local6 = ParseQueueNode(_local5);
-                _local5 = _local6.m_resource;
-            };
-            var _local7:Dictionary = this.m_resourceToDependencyMap[_arg1];
-            if (_local7){
-                for each (_local8 in _local7) {
-                    _local9 = this.m_dependencyToResourceMap[_local8];
-                    if (_local9){
-                        delete _local9[_arg1];
-                    };
-                };
-                DictionaryUtil.clearDictionary(_local7);
-                delete this.m_resourceToDependencyMap[_arg1];
-            };
-            if (((_local4) && ((_local5 == _arg1)))){
-                this.checkResourceLoadState(_arg1, false);
-                _local10 = _arg1.loaded;
-                _arg1.dispose();
-                _local4.resources[_local3] = null;
-                delete _local4.resources[_local3];
-                if (_local6){
-                    _local6.m_resource = null;
-                    _local6.m_data = null;
-                };
-                if (_local10){
-                    _local4.currentCount--;
-                };
-                if (_local4.currentCount < 0){
-                    dtrace(LogLevel.FATAL, "impossible: m_resourceTypeInfos[ resource.type ].currentCount < 0", _local4.type);
-                };
-            } else {
-                _arg1.dispose();
-            };
-        }
-        public function dumpResourceInfo(_arg1:String):void{
-            var _local3:String;
-            trace("=================================");
-            trace((("begin dump " + _arg1) + " detail: "));
-            var _local2:ResourceStatisticInfo = this.m_resourceTypeInfos[_arg1];
-            for (_local3 in _local2.resources) {
-                trace(_local3);
-            };
-            trace((("end dump " + _arg1) + " detail: "));
-            trace("=================================");
-        }
-        public function registerGraphicResources():void{
-            this.registerResType(ResourceType.ANI_GROUP, AnimationGroup);
-            this.registerResType(ResourceType.PIECE_GROUP, PieceGroup);
-            this.registerResType(ResourceType.ANI_SEQUENCE, Animation);
-            this.registerResType(ResourceType.MAP, MetaScene);
-            this.registerResType(ResourceType.REGION, MetaRegion);
-            this.registerResType(ResourceType.TEXTURE2D, BitmapDataResource2D, true);
-            this.registerResType(ResourceType.TEXTURE3D, BitmapDataResource3D, true);
-            this.registerResType(ResourceType.MATERIAL, Material);
-            this.registerResType(ResourceType.EFFECT_GROUP, EffectGroup);
-            this.registerResType(ResourceType.RENDER_OBJECT, RenderObject);
-            this.registerResType(ResourceType.GUI, WindowResource);
-            this.registerResType(ResourceType.SOUND, SoundResource);
+            }
 			
-			this.registerResType(ResourceType.MD5MESH_GROUP,HPieceGroup);
-			this.registerResType(ResourceType.BMS_GROUP,HPieceGroup);			
-			this.registerResType(ResourceType.SKELETON_GROUP,AnimationGroup);
-			this.registerResType(ResourceType.ANIMATION_SEQ,Animation);
+            if (destoryType != DESTROY_IMMED)
+			{
+                return this.addFreeResource(res);
+            }
+			
+            var resName:String = res.name;
+            var resInfo:ResourceStatisticInfo = this.m_resourceTypeInfos[res.type];
+            var obj:Object = resInfo.resources[resName];
+			var node:ParseQueueNode;
+            if (obj && (obj is ParseQueueNode))
+			{
+				node = ParseQueueNode(obj);
+				obj = node.m_resource;
+            }
+			
+            var rToDMap:Dictionary = this.m_resourceToDependencyMap[res];
+            if (rToDMap)
+			{
+				var srcRes:IResource;
+				var dToRMap:Dictionary;
+                for each (srcRes in rToDMap) 
+				{
+					dToRMap = this.m_dependencyToResourceMap[srcRes];
+                    if (dToRMap)
+					{
+                        delete dToRMap[res];
+                    }
+                }
+				
+                DictionaryUtil.clearDictionary(rToDMap);
+                delete this.m_resourceToDependencyMap[res];
+            }
+			
+            if (resInfo && obj == res)
+			{
+                this.checkResourceLoadState(res, false);
+				
+				var resLoaded:Boolean = res.loaded;
+				res.dispose();
+				resInfo.resources[resName] = null;
+                delete resInfo.resources[resName];
+               
+				if (node)
+				{
+					node.m_resource = null;
+					node.m_data = null;
+                }
+				
+                if (resLoaded)
+				{
+					resInfo.currentCount--;
+                }
+				
+                if (resInfo.currentCount < 0)
+				{
+                    dtrace(LogLevel.FATAL, "impossible: m_resourceTypeInfos[ resource.type ].currentCount < 0", resInfo.type);
+                }
+            } else 
+			{
+				res.dispose();
+            }
         }
+		
+		public function Log(sourceName:String, str:String, preStepTime:uint):void
+		{
+			//trace(str+"::::::::::::::::::::::::::::::::::::::::::",sourceName+":"+sourceName,preStepTime+":"+preStepTime);
+		}
+		
+        public function dumpResourceInfo(type:String):void
+		{
+            trace("=================================");
+            trace((("begin dump " + type) + " detail: "));
+            var resInfo:ResourceStatisticInfo = this.m_resourceTypeInfos[type];
+			var str:String;
+            for (str in resInfo.resources) 
+			{
+                trace(str);
+            }
+            trace((("end dump " + type) + " detail: "));
+            trace("=================================");
+        }
+		
+        
 
     }
-}//package deltax.graphic.manager 
+}
 
 import flash.events.Event;
 import flash.events.IOErrorEvent;
@@ -621,79 +899,93 @@ import deltax.common.resource.FileRevisionManager;
 import deltax.graphic.manager.IResource;
 import deltax.graphic.manager.ResourceStatisticInfo;
 
-class SingletonEnforcer {
-
-    public function SingletonEnforcer(){
+class SingletonEnforcer 
+{
+    public function SingletonEnforcer()
+	{
+		//
     }
 }
-class ParseQueueNode {
 
+class ParseQueueNode 
+{
     public var m_resource:IResource;
     public var m_data:Object;
     public var m_nextNode:ParseQueueNode;
     public var m_parseResult:int;
 
-    public function ParseQueueNode(){
+    public function ParseQueueNode()
+	{
+		//
     }
 }
-class FreeResourceNode {
 
+class FreeResourceNode 
+{
     public var m_resource:IResource;
     public var m_freeTime:uint;
     public var m_preNode:FreeResourceNode;
     public var m_nextNode:FreeResourceNode;
 
-    public function FreeResourceNode(){
+    public function FreeResourceNode()
+	{
+		//
     }
 }
-class SoundLoader extends URLLoader {
 
+class SoundLoader extends URLLoader 
+{
     public var m_resource:IResource;
     public var m_resourceInfo:ResourceStatisticInfo;
     public var m_onComplete:Function;
     public var m_onIOError:Function;
 
-    public function SoundLoader(_arg1:IResource, _arg2:ResourceStatisticInfo, _arg3:Function, _arg4:Function){
-        var versionedUrl:* = null;
-        var resource:* = _arg1;
-        var resourceInfo:* = _arg2;
-        var onComplete:* = _arg3;
-        var onIOError:* = _arg4;
-        super();
+    public function SoundLoader(resource:IResource, resourceInfo:ResourceStatisticInfo, onComplete:Function, onIOError:Function)
+	{
         this.m_resource = resource;
         this.m_resourceInfo = resourceInfo;
         this.m_onComplete = onComplete;
         this.m_onIOError = onIOError;
-        try {
+        try 
+		{
             addEventListener(Event.COMPLETE, this.onSoundLoaded);
             addEventListener(IOErrorEvent.IO_ERROR, this.onSoundIOError);
             addEventListener(SecurityErrorEvent.SECURITY_ERROR, this.onSoundIOError);
             dataFormat = URLLoaderDataFormat.BINARY;
-            versionedUrl = FileRevisionManager.instance.getVersionedURL(resource.name);
+            var versionedUrl:String = FileRevisionManager.instance.getVersionedURL(resource.name);
             load(new URLRequest(versionedUrl));
-        } catch(e:Error) {
+        } catch(e:Error) 
+		{
             onSoundIOError(null);
-        };
+        }
     }
-    private function onSoundLoaded(_arg1:Event):void{
+	
+    private function onSoundLoaded(evt:Event):void
+	{
         removeEventListener(Event.COMPLETE, this.onSoundLoaded);
         removeEventListener(IOErrorEvent.IO_ERROR, this.onSoundIOError);
         removeEventListener(SecurityErrorEvent.SECURITY_ERROR, this.onSoundIOError);
-        this.m_onComplete({
+        
+		this.m_onComplete({
             resource:this.m_resource,
             resourceInfo:this.m_resourceInfo,
             data:this.data
         });
+		
         this.m_resource = null;
         this.m_resourceInfo = null;
         this.m_onComplete = null;
         this.m_onIOError = null;
     }
-    private function onSoundIOError(_arg1:Object):void{
+	
+    private function onSoundIOError(obj:Object):void
+	{
         removeEventListener(Event.COMPLETE, this.onSoundLoaded);
         removeEventListener(IOErrorEvent.IO_ERROR, this.onSoundIOError);
         removeEventListener(SecurityErrorEvent.SECURITY_ERROR, this.onSoundIOError);
+		
         this.m_onIOError({resource:this.m_resource});
+		
         this.m_resource = null;
         this.m_resourceInfo = null;
         this.m_onComplete = null;

@@ -4,16 +4,25 @@
     
     import deltax.graphic.material.RenderObjectMaterialInfo;
     import deltax.graphic.material.SkinnedMeshMaterial;
+	
+	/**
+	 * 材质管理器
+	 * @author lees
+	 * @date 2015/04/10
+	 */	
 
     public class MaterialManager 
 	{
         private static var m_instance:MaterialManager;
 
+		/**材质列表*/
         private var m_materialContainer:Dictionary;
+		/**回收材质列表*/
         private var m_materialRecycle:Dictionary;
+		/**使用的材质数量*/
         private var m_usedMaterialCount:uint;
 
-        public function MaterialManager(_arg1:SingletonEnforcer)
+        public function MaterialManager(s:SingletonEnforcer)
 		{
             this.m_materialContainer = new Dictionary(true);
             this.m_materialRecycle = new Dictionary();
@@ -26,67 +35,85 @@
 
         public function get totalMaterialCount():uint
 		{
-            return (this.m_usedMaterialCount);
+            return this.m_usedMaterialCount;
         }
 		
+		/**
+		 * 检测材质使用寿命
+		 */		
         public function checkUsage():void
 		{
-            var _local1:Object;
-            var _local2:SkinnedMeshMaterial;
-            for (_local1 in this.m_materialRecycle) 
+            var key:Object;
+            var material:SkinnedMeshMaterial;
+            for (key in this.m_materialRecycle) 
 			{
-                _local2 = this.m_materialRecycle[_local1];
-                _local2.mainPass.dispose();
-                this.m_materialRecycle[_local1] = null;
-                delete this.m_materialRecycle[_local1];
+				material = this.m_materialRecycle[key];
+				material.mainPass.dispose();
+                this.m_materialRecycle[key] = null;
+                delete this.m_materialRecycle[key];
             }
         }
 		
-        public function freeMaterial(_arg1:SkinnedMeshMaterial):void
+		/**
+		 * 材质释放
+		 * @param material
+		 */		
+        public function freeMaterial(material:SkinnedMeshMaterial):void
 		{
-            if (this.m_materialContainer[_arg1.name] == null)
+            if (this.m_materialContainer[material.name] == null)
 			{
-                throw (new Error("material not exist when call freeMaterial"));
+                throw new Error("material not exist when call freeMaterial");
             }
-            this.m_materialRecycle[_arg1.name] = _arg1;
-            delete this.m_materialContainer[_arg1.name];
+			
+            this.m_materialRecycle[material.name] = material;
+            delete this.m_materialContainer[material.name];
             this.m_usedMaterialCount--;
         }
 		
-        public function createMaterial(_arg1:Vector.<Vector.<BitmapMergeInfo>>, _arg2:String, _arg3:RenderObjectMaterialInfo):SkinnedMeshMaterial
+		/**
+		 * 材质创建
+		 * @param infoList 								位图信息列表
+		 * @param materialFileName				材质文件名
+		 * @param mInfo									渲染对象的材质信息
+		 * @return 
+		 */		
+        public function createMaterial(infoList:Vector.<Vector.<BitmapMergeInfo>>, materialFileName:String, mInfo:RenderObjectMaterialInfo):SkinnedMeshMaterial
 		{
-            var _local5:Vector.<BitmapMergeInfo>;
-            var _local6:SkinnedMeshMaterial;
-            var _local4:String = "";
-            for each (_local5 in _arg1) 
+            var list:Vector.<BitmapMergeInfo>;
+            var key:String = "";
+            for each (list in infoList) 
 			{
-                _local4 = (_local4 + BitmapMergeInfo.bitmapMergeInfoArraToString(_local5));
+				key += BitmapMergeInfo.bitmapMergeInfoArraToString(list);
             }
-            _local4 = (_local4 + (_arg2 ? _arg2 : "null_mat"));
-            if (_arg3)
+			
+			key += (materialFileName ? materialFileName : "null_mat");
+            if (mInfo)
 			{
-                _local4 = (_local4 + (("_" + _arg3.shadowMask) + "_"));
-                _local4 = (_local4 + (_arg3.invertCullMode ? "normal_cull_" : "invert_cull_"));
-                _local4 = (_local4 + _arg3.diffuse.toString(16));
+				key += ("_" + mInfo.shadowMask + "_");
+				key += (mInfo.invertCullMode ? "normal_cull_" : "invert_cull_");
+				key += mInfo.diffuse.toString(16);
             }
-            _local6 = this.m_materialContainer[_local4];
-            if (_local6)
+			
+			var material:SkinnedMeshMaterial = this.m_materialContainer[key];
+            if (material)
 			{
-                _local6.reference();
-                return (_local6);
+				material.reference();
+                return material;
             }
+			
             this.m_usedMaterialCount++;
-            _local6 = this.m_materialRecycle[_local4];
-            if (_local6)
+			material = this.m_materialRecycle[key];
+            if (material)
 			{
-                this.m_materialContainer[_local4] = _local6;
-                delete this.m_materialRecycle[_local4];
-                _local6.reference();
-                return (_local6);
+                this.m_materialContainer[key] = material;
+                delete this.m_materialRecycle[key];
+				material.reference();
+                return material;
             }
-            _local6 = new SkinnedMeshMaterial(_arg1, _arg2, _arg3, _local4);
-            this.m_materialContainer[_local4] = _local6;
-            return (_local6);
+			
+			material = new SkinnedMeshMaterial(infoList, materialFileName, mInfo, key);
+            this.m_materialContainer[key] = material;
+            return material;
         }
 
 		

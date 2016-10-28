@@ -12,6 +12,12 @@
     import deltax.graphic.scenegraph.object.RenderScene;
     import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
     import deltax.graphic.shader.DeltaXProgram3D;
+	
+	/**
+	 * 程序着色器管理器
+	 * @author lees
+	 * @date 2015/06/20
+	 */	
 
     public class ShaderManager 
 	{
@@ -90,15 +96,12 @@
 		
 		public function ShaderManager() 
 		{
-			var subArr:Array;
-			var subArrIndex:uint;
-			var classIndex:uint;
-			var cl:Class;
 			this.m_program3Ds = new Vector.<DeltaXProgram3D>(SHADER_COUNT);
 			if (m_constrainedModel < 0)
 			{
 				throw (new Error("canot create shader without init constrained model!!!"));
 			}
+			
 			this.m_shaderASMClasses = new Vector.<Array>(SHADER_COUNT, true);
 			this.m_shaderASMClasses[SHADER_DEFAULT] = [DefaultProgram];
 			this.m_shaderASMClasses[SHADER_LIGHT] = [DefaultLightProgram];
@@ -172,6 +175,10 @@
 			
 			var ttt:uint = getTimer();
 			var index:uint;
+			var subArr:Array;
+			var subArrIndex:uint;
+			var classIndex:uint;
+			var cl:Class;
 			while (index < this.m_shaderASMClasses.length) 
 			{
 				subArr = this.m_shaderASMClasses[index];
@@ -194,6 +201,7 @@
 				this.getProgram3D(index);
 				index++;
 			}
+			
 			trace("shader anlyze:" + (getTimer() - ttt));
 		}
 		
@@ -202,6 +210,20 @@
 			return ((m_instance = ((m_instance) || (new ShaderManager()))));
 		}
 		
+		/**
+		 * 获取灯光最大数量
+		 * @return 
+		 */		
+		public function get maxLightCount():uint
+		{
+			return this.m_maxLightCount;
+		}
+		
+		/**
+		 * 获取程序着色器的类型
+		 * @param program3D
+		 * @return 
+		 */		
 		public function getShaderTypeByProgram3D(program3D:DeltaXProgram3D):int
 		{
 			if(program3D)
@@ -211,6 +233,206 @@
 			return -1;
 		}
 		
+		/**
+		 * 设置设备硬件的约束条件
+		 * @param isBaseLineConstrained
+		 */		
+		public static function set constrained(isBaseLineConstrained:Boolean):void
+		{
+			var constrainedModel:int = isBaseLineConstrained ? 1 : 0;
+			if (m_constrainedModel >= 0 && constrainedModel != m_constrainedModel)
+			{
+				var i:uint = 0;
+				var j:uint = 0;
+				var shaderArr:Array = null;
+				while (i < instance.m_shaderASMClasses.length) 
+				{
+					shaderArr = instance.m_shaderASMClasses[i];
+					if (shaderArr[0] is Array)
+					{
+						shaderArr = shaderArr[constrainedModel];
+						j = 0;
+						while (j < shaderArr.length) 
+						{
+							shaderArr[j].position = 0;
+							j++;
+						}
+						
+						instance.rebuildProgram3D(i, shaderArr);
+					}
+					i++;
+				}
+			}
+			
+			m_constrainedModel = constrainedModel;
+		}
+		
+		/**
+		 * 获取指定ID的程序着色器
+		 * @param shaderID					程序着色器ID
+		 * @return 
+		 */		
+		public function getProgram3D(shaderID:uint):DeltaXProgram3D
+		{
+			var program3d:DeltaXProgram3D = this.m_program3Ds[shaderID];
+			if (!program3d)
+			{
+				program3d = new DeltaXProgram3D();
+				var arr:Array = this.m_shaderASMClasses[shaderID];
+				if (arr[0] is Array)
+				{
+					arr = arr[m_constrainedModel];
+				}
+				
+				if (arr.length == 3)
+				{
+					program3d.buildPBProgram3D(arr[0], arr[1], arr[2]);
+				} else 
+				{
+					ByteArray(arr[0]).position = 0;
+					program3d.buildDeltaXProgram3D(arr[0],uint.MAX_VALUE);
+				}
+				
+				this.m_program3Ds[shaderID] = program3d;
+				this.m_maxLightCount = Math.max(this.m_maxLightCount, program3d.getVertexParamRegisterCount(DeltaXProgram3D.LIGHTPOS));
+			}
+			
+			return program3d;
+		}
+		
+		/**
+		 * 创建程序着色器
+		 * @param byte			着色器数据
+		 * @return 
+		 */		
+		public function createDeltaXProgram3D(byte:ByteArray):uint
+		{
+			var index:uint = this.m_program3Ds.length;
+			this.m_program3Ds[index] = new DeltaXProgram3D();
+			this.rebuildProgram3D(index, [byte]);
+			return index;
+		}
+		
+		/**
+		 * 重新构建着色器程序
+		 * @param index
+		 * @param arr
+		 */		
+		public function rebuildProgram3D(index:uint, arr:Array):void
+		{
+			if (index >= this.m_program3Ds.length || !this.m_program3Ds[index])
+			{
+				return;
+			}
+			
+			if (arr.length < 3)
+			{
+				this.m_program3Ds[index].buildDeltaXProgram3D(arr[0]);
+			} else 
+			{
+				this.m_program3Ds[index].buildPBProgram3D(arr[0], arr[1], arr[2]);
+			}
+		}
+		
+		/**
+		 * 重新加载着色器程序
+		 * @param index
+		 * @param vertexShader
+		 * @param fragmentShader
+		 * @param materialShader
+		 */				
+		public function reloadShader(index:uint, vertexShader:String, fragmentShader:String, materialShader:String):void
+		{
+			if (index >= this.m_program3Ds.length || !this.m_program3Ds[index])
+			{
+				return;
+			}
+			
+			var shaderLoaded:Function = function (event:Event):void
+			{
+				var error:Boolean = true;
+				var urlLoader:URLLoader = URLLoader(event.target);
+				var arrIndex:uint;
+				while (arrIndex < loaderArray.length) 
+				{
+					if (loaderArray[arrIndex] == urlLoader)
+					{
+						loaderArray[arrIndex] = urlLoader.data;
+					}
+					
+					if (loaderArray[arrIndex] is URLLoader)
+					{
+						error = false;
+					}
+					arrIndex++;
+				}
+				
+				if (!error)
+				{
+					return;
+				}
+				
+				ShaderManager.instance.rebuildProgram3D(index, loaderArray);
+			}
+			
+			var loaderArray:Array = new Array(vertexShader);
+			if (fragmentShader != null && fragmentShader != "")
+			{
+				loaderArray[1] = fragmentShader;
+			}
+			
+			if (materialShader != null && materialShader != "")
+			{
+				loaderArray[2] = materialShader;
+			}
+			
+			var i:int = 0;
+			var loader:URLLoader;
+			while (i < loaderArray.length) 
+			{
+				loader = new URLLoader();
+				loader.dataFormat = URLLoaderDataFormat.BINARY;
+				loader.load(new URLRequest(loaderArray[i]));
+				loader.addEventListener(Event.COMPLETE, shaderLoaded);
+				loaderArray[i] = loader;
+				i++;
+			}
+		}
+		
+		/**
+		 * 每帧开始时程序着色器状态重置
+		 * @param context3d
+		 * @param rScene
+		 * @param entityCollector
+		 * @param camera
+		 */		
+		public function resetOnFrameStart(context3d:Context3D, rScene:RenderScene, entityCollector:DeltaXEntityCollector, camera:Camera3D):void
+		{
+			var index:uint;
+			while (index < SHADER_COUNT) 
+			{
+				this.getProgram3D(index).resetOnFrameStart(context3d, rScene, entityCollector, camera);
+				index++;
+			}
+		}
+		
+		/**
+		 * 重置摄像机状态
+		 * @param camera
+		 */		
+		public function resetCameraState(camera:Camera3D):void
+		{
+			var index:uint;
+			while (index < SHADER_COUNT) 
+			{
+				this.getProgram3D(index).resetCameraState(camera);
+				index++;
+			}
+		}
+		
+		/**
+		 * 设备丢失
+		 */		
 		public static function onLostDevice():void
 		{
 			if (m_constrainedModel < 0)
@@ -225,171 +447,7 @@
 			}
 		}
 		
-		public static function set constrained(isBaseLineConstrained:Boolean):void
-		{
-			var shaderIndex:uint;
-			var shaderArr:Array;
-			var index:uint;
-			var constrainedModel:int = (isBaseLineConstrained) ? 1 : 0;
-			if ((m_constrainedModel >= 0) && (!(constrainedModel == m_constrainedModel)))
-			{
-				shaderIndex = 0;
-				while (shaderIndex < instance.m_shaderASMClasses.length) 
-				{
-					shaderArr = instance.m_shaderASMClasses[shaderIndex];
-					if (!(shaderArr[0] is Array))
-					{
-						//
-					} else 
-					{
-						shaderArr = shaderArr[constrainedModel];
-						index = 0;
-						while (index < shaderArr.length) 
-						{
-							shaderArr[index].position = 0;
-							index++;
-						}
-						instance.rebuildProgram3D(shaderIndex, shaderArr);
-					}
-					shaderIndex++;
-				}
-			}
-			m_constrainedModel = constrainedModel;
-		}
 		
-		public function getProgram3D(index:uint):DeltaXProgram3D
-		{
-			var programIdx:uint = index;
-			var arr:Array;
-			var program3d:DeltaXProgram3D = this.m_program3Ds[programIdx];
-			if (!program3d)
-			{
-				program3d = new DeltaXProgram3D();
-				arr = this.m_shaderASMClasses[programIdx];
-				if ((arr[0] is Array))
-				{
-					arr = arr[m_constrainedModel];
-				}
-				if (arr.length == 3)
-				{
-					program3d.buildPBProgram3D(arr[0], arr[1], arr[2]);
-				} else 
-				{
-					ByteArray(arr[0]).position = 0;
-					program3d.buildDeltaXProgram3D(arr[0],uint.MAX_VALUE);
-				}
-				this.m_program3Ds[programIdx] = program3d;
-				this.m_maxLightCount = Math.max(this.m_maxLightCount, program3d.getVertexParamRegisterCount(DeltaXProgram3D.LIGHTPOS));
-			}
-			return (program3d);
-		}
-		
-		public function createDeltaXProgram3D(byte:ByteArray):uint
-		{
-			var index:uint = this.m_program3Ds.length;
-			this.m_program3Ds[index] = new DeltaXProgram3D();
-			this.rebuildProgram3D(index, [byte]);
-			return (index);
-		}
-		
-		public function rebuildProgram3D(index:uint, arr:Array):void
-		{
-			if ((((index >= this.m_program3Ds.length)) || (!(this.m_program3Ds[index]))))
-			{
-				return;
-			}
-			if (arr.length < 3)
-			{
-				this.m_program3Ds[index].buildDeltaXProgram3D(arr[0]);
-			} else 
-			{
-				this.m_program3Ds[index].buildPBProgram3D(arr[0], arr[1], arr[2]);
-			}
-		}
-		
-		public function reloadShader(index:uint, vertexShader:String, fragmentShader:String, materialShader:String):void
-		{
-			var loadType:uint = 0;
-			var loaderArray:Array = null;
-			var shaderLoaded:Function = null;
-			var loader:URLLoader = null;
-			shaderLoaded = function (event:Event):void
-			{
-				var boo:Boolean = true;
-				var urlLoader:URLLoader = URLLoader(event.target);
-				var arrIndex:uint;
-				while (arrIndex < loaderArray.length) 
-				{
-					if (loaderArray[arrIndex] == urlLoader)
-					{
-						loaderArray[arrIndex] = urlLoader.data;
-					}
-					if ((loaderArray[arrIndex] is URLLoader))
-					{
-						boo = false;
-					}
-					arrIndex++;
-				}
-				if (!boo)
-				{
-					return;
-				}
-				ShaderManager.instance.rebuildProgram3D(loadType, loaderArray);
-			}
-			
-			if (index >= this.m_program3Ds.length || (!this.m_program3Ds[index]))
-			{
-				return;
-			}
-			
-			loadType = index;
-			loaderArray = new Array(vertexShader);
-			if (fragmentShader != null && fragmentShader != "")
-			{
-				loaderArray[1] = fragmentShader;
-			}
-			
-			if (materialShader != null && materialShader != "")
-			{
-				loaderArray[2] = materialShader;
-			}
-			
-			var i:int = 0;
-			while (i < loaderArray.length) 
-			{
-				loader = new URLLoader();
-				loader.dataFormat = URLLoaderDataFormat.BINARY;
-				loader.load(new URLRequest(loaderArray[i]));
-				loader.addEventListener(Event.COMPLETE, shaderLoaded);
-				loaderArray[i] = loader;
-				i++;
-			}
-		}
-		
-		public function resetOnFrameStart(context3d:Context3D, rScene:RenderScene, entityCollector:DeltaXEntityCollector, camera:Camera3D):void
-		{
-			var index:uint;
-			while (index < SHADER_COUNT) 
-			{
-				this.getProgram3D(index).resetOnFrameStart(context3d, rScene, entityCollector, camera);
-				index++;
-			}
-		}
-		
-		public function resetCameraState(camera:Camera3D):void
-		{
-			var index:uint;
-			while (index < SHADER_COUNT) 
-			{
-				this.getProgram3D(index).resetCameraState(camera);
-				index++;
-			}
-		}
-		
-		public function get maxLightCount():uint
-		{
-			return (this.m_maxLightCount);
-		}
 
     }
 }
