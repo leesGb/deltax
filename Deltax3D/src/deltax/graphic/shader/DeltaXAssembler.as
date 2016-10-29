@@ -74,44 +74,6 @@
 			return ((index > OUTPUT) ? null : this.m_vecFragmentRegisterGroup[index]);
 		}
 		
-		public function save(data:ByteArray):void
-		{
-			var _local2:int;
-			var _local3:int;
-			var _local4:int;
-			var _local5:DeltaXAssembleShaderRegister;
-			_local2 = 0;
-			while (_local2 <= OUTPUT) 
-			{
-				_local4 = this.m_vecVertexRegisterGroup[_local2].length;
-				data.writeInt(_local4);
-				_local3 = 0;
-				while (_local3 < _local4) 
-				{
-					DeltaXAssembleShaderRegister(this.m_vecVertexRegisterGroup[_local2][_local3]).save(data);
-					_local3++;
-				}
-				_local2++;
-			}
-			data.writeInt(this.m_asmVertexByteCode.length);
-			data.writeBytes(this.m_asmVertexByteCode, 0, this.m_asmVertexByteCode.length);
-			_local2 = 0;
-			while (_local2 <= OUTPUT) 
-			{
-				_local4 = this.m_vecFragmentRegisterGroup[_local2].length;
-				data.writeInt(_local4);
-				_local3 = 0;
-				while (_local3 < _local4) 
-				{
-					DeltaXAssembleShaderRegister(this.m_vecFragmentRegisterGroup[_local2][_local3]).save(data);
-					_local3++;
-				}
-				_local2++;
-			}
-			data.writeInt(this.m_asmFragmentByteCode.length);
-			data.writeBytes(this.m_asmFragmentByteCode, 0, this.m_asmFragmentByteCode.length);
-		}
-		
 		/**
 		 * 着色器解析
 		 * @param data
@@ -193,22 +155,6 @@ class DeltaXAssembleShaderRegister extends DeltaXShaderRegister
 	public function clone():DeltaXAssembleShaderRegister
 	{
 		return (new DeltaXAssembleShaderRegister(index, ((name == null)) ? null : name.concat(), ((semantics == null)) ? null : semantics.concat(), ((format == null)) ? null : format.concat(), (values) ? values : null));
-	}
-	
-	public function save(_arg1:ByteArray):void
-	{
-		_arg1.writeInt(index);
-		_arg1.writeUTF(name);
-		_arg1.writeUTF((semantics) ? semantics : "");
-		_arg1.writeUTF(format);
-		var _local2:int = (values) ? values.length : -1;
-		_arg1.writeInt(_local2);
-		var _local3:uint;
-		while (_local3 < _local2) 
-		{
-			_arg1.writeDouble(values[_local3]);
-			_local3++;
-		}
 	}
 	
 	/**

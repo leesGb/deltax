@@ -24,16 +24,16 @@
 
         public function TextureMemoryManager(s:SingletonEnforcer)
 		{
-            var bp:ByteArrayPool;
-            var _local4:uint;
+            var count:uint;
+			var bp:ByteArrayPool;
             this.m_byteArrayPool = new Dictionary();
             var idx:uint = MINSIZE;
             while (idx <= MAXSIZE) 
 			{
 				bp = new ByteArrayPool();
                 this.m_byteArrayPool[idx] = bp;
-                _local4 = Math.min((MAX_POOL_SIZE / idx), 20);
-                while (bp.m_pool.length < _local4) 
+				count = Math.min((MAX_POOL_SIZE / idx), 20);
+                while (bp.m_pool.length < count) 
 				{
 					bp.m_pool.push(new TextureByteArray(idx));
 					bp.m_totalAllocCount++;
@@ -48,94 +48,113 @@
             return m_instance;
         }
 
+		/**
+		 * 获取数据池相关信息
+		 * @return 
+		 */		
         public function get info():String
 		{
-            var _local2:*;
-            var _local3:ByteArrayPool;
-            var _local1:String = "";
-            for (_local2 in this.m_byteArrayPool) 
+            var bp:ByteArrayPool;
+            var info:String = "";
+			var idx:uint;
+            for (idx in this.m_byteArrayPool) 
 			{
-                _local3 = ByteArrayPool(this.m_byteArrayPool[_local2]);
-                _local1 = (_local1 + (((_local2 + "(") + _local3.m_totalAllocCount) + "); "));
+				bp = ByteArrayPool(this.m_byteArrayPool[idx]);
+				info += idx + "(" + bp.m_totalAllocCount + "); ";
             }
-            return (_local1);
+            return info;
         }
 		
-        public function alloc(_arg1:uint):ByteArray
+		/**
+		 * 分配指定大小的内存数据
+		 * @param size
+		 * @return 
+		 */		
+        public function alloc(size:uint):ByteArray
 		{
-            var _local3:uint;
-            if ((((_arg1 == 0)) || ((_arg1 > MAXSIZE))))
+            if (size == 0 || size > MAXSIZE)
 			{
-                return (null);
+                return null;
             }
 			
-            if (_arg1 < 0x1000)
+            if (size < 0x1000)
 			{
-                _arg1 = 0x1000;
+				size = 0x1000;
             } else 
 			{
-                _local3 = (_arg1 - 1);
-                _arg1 = 1;
-                while (_local3) 
+				var count:uint = size - 1;
+				size = 1;
+                while (count) 
 				{
-                    _arg1 = (_arg1 << 1);
-                    _local3 = (_local3 >> 1);
+					size = size << 1;
+					count = count >> 1;
                 }
             }
 			
-            var _local2:ByteArrayPool = ByteArrayPool(this.m_byteArrayPool[_arg1]);
-            if (_local2.m_pool.length == 0)
+            var bp:ByteArrayPool = ByteArrayPool(this.m_byteArrayPool[size]);
+            if (bp.m_pool.length == 0)
 			{
-                _local2.m_pool.push(new TextureByteArray(_arg1));
-                _local2.m_totalAllocCount++;
+				bp.m_pool.push(new TextureByteArray(size));
+				bp.m_totalAllocCount++;
             }
-            return (_local2.m_pool.pop());
+			
+            return bp.m_pool.pop();
         }
 		
+		/**
+		 * 检测是否超出内存池里的总数 
+		 */		
         public function check():void
 		{
-            var _local2:ByteArrayPool;
-            var _local3:uint;
-            var _local1:uint = MINSIZE;
-            while (_local1 <= MAXSIZE) 
+            var bp:ByteArrayPool;
+            var count:uint;
+            var idx:uint = MINSIZE;
+            while (idx <= MAXSIZE) 
 			{
-                _local2 = this.m_byteArrayPool[_local1];
-                _local3 = Math.min((MAX_POOL_SIZE / _local1), 20);
-                while (_local2.m_pool.length < _local3) 
+				bp = this.m_byteArrayPool[idx];
+				count = Math.min((MAX_POOL_SIZE / idx), 20);
+                while (bp.m_pool.length < count) 
 				{
                     if (!StepTimeManager.instance.stepBegin())
 					{
                         return;
                     }
-                    _local2.m_pool.push(new TextureByteArray(_local1));
-                    _local2.m_totalAllocCount++;
+					bp.m_pool.push(new TextureByteArray(idx));
+					bp.m_totalAllocCount++;
                     StepTimeManager.instance.stepEnd();
                 }
 				
-                while (_local2.m_pool.length > _local3) 
+                while (bp.m_pool.length > count) 
 				{
-                    _local2.m_totalAllocCount--;
-                    _local2.m_pool.pop();
+					bp.m_totalAllocCount--;
+					bp.m_pool.pop();
                 }
-                _local1 = (_local1 << 1);
+				
+				idx = idx << 1;
             }
         }
 		
-        public function free(_arg1:ByteArray):void
+		/**
+		 * 数据释放
+		 * @param data
+		 */		
+        public function free(data:ByteArray):void
 		{
-            if ((_arg1.length < MINSIZE) || !(_arg1 is TextureByteArray))
+            if (data.length < MINSIZE || !(data is TextureByteArray))
 			{
                 return;
             }
-            var _local2:uint = 1;
-            var _local3:uint = _arg1.length;
-            while (_local3) 
+			
+            var size:uint = 1;
+            var length:uint = data.length;
+            while (length) 
 			{
-                _local2 = (_local2 << 1);
-                _local3 = (_local3 >>> 1);
+				size = size << 1;
+				length = length >>> 1;
             }
-            _arg1.position = 0;
-            ByteArrayPool(this.m_byteArrayPool[(_local2 >>> 1)]).m_pool.push(_arg1);
+			
+			data.position = 0;
+            ByteArrayPool(this.m_byteArrayPool[(size >>> 1)]).m_pool.push(data);
         }
 
 		
@@ -157,7 +176,9 @@ class SingletonEnforcer
 
 class ByteArrayPool 
 {
+	/**总的分配数量*/
     public var m_totalAllocCount:uint = 0;
+	/**池列表*/
     public var m_pool:Vector.<TextureByteArray>;
 
     public function ByteArrayPool()

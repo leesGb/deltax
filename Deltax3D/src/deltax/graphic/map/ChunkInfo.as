@@ -10,15 +10,18 @@
         public static const TYPE_SCENE_PARAM:uint = 3;
         public static const StoredSize:uint = 9;
 
+		/***/
         public var m_type:uint;
+		/***/
         public var m_offset:uint;
+		/***/
         public var m_size:uint;
 
-        public function Load(_arg1:ByteArray):void
+        public function Load(data:ByteArray):void
 		{
-            this.m_type = _arg1.readUnsignedByte();
-            this.m_offset = _arg1.readUnsignedInt();
-            this.m_size = _arg1.readUnsignedInt();
+            this.m_type = data.readUnsignedByte();
+            this.m_offset = data.readUnsignedInt();
+            this.m_size = data.readUnsignedInt();
         }
 
     }
