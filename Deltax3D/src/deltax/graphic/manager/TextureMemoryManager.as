@@ -56,7 +56,7 @@
 		{
             var bp:ByteArrayPool;
             var info:String = "";
-			var idx:uint;
+			var idx:*;
             for (idx in this.m_byteArrayPool) 
 			{
 				bp = ByteArrayPool(this.m_byteArrayPool[idx]);
