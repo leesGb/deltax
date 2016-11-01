@@ -5,7 +5,7 @@
     import deltax.common.Util;
 	
 	/**
-	 * 场景区域分块的灯光信息
+	 * 场景分块的灯光信息
 	 * @author lees
 	 * @date 2015/11/2
 	 */	
@@ -34,6 +34,10 @@
         public var m_dyn_DarkTime:uint;
 		/**改变的时间*/
         public var m_dyn_ChangeTime:uint;
+		/**格子内偏移像素（x）*/
+		public var m_x:uint;
+		/**格子内偏移像素（z）*/
+		public var m_z:uint;
 
         public function RegionLightInfo()
 		{
@@ -54,8 +58,8 @@
             this.m_range = data.readUnsignedShort();
 			
             var count:uint = MapConstants.ENV_STATE_COUNT;
-            var idx:uint;
 			var info:LightColorInfo;
+            var idx:uint;
 			var r:uint;
 			var g:uint;
 			var b:uint;
@@ -78,6 +82,9 @@
             this.m_dyn_BrightTime = data.readUnsignedByte();
             this.m_dyn_DarkTime = data.readUnsignedByte();
             this.m_dyn_ChangeTime = data.readUnsignedByte();
+			
+			this.m_x = data.readUnsignedByte();
+			this.m_z = data.readUnsignedByte();
         }
 		
 		/**

@@ -3,13 +3,24 @@
 	import  deltax.graphic.map.MetaRegion;
 	import  deltax.graphic.map.MetaScene;
 	
+	/**
+	 * 地图加载处理方法接口
+	 * @author lees
+	 * @date 2015/04/08
+	 */	
+	
     public interface IMapLoadHandler 
 	{
+		/**开始加载*/
         function onLoadingStart():void;
-        function onLoading(_arg1:Number):void;
+		/**加载中*/
+        function onLoading(va:Number):void;
+		/**加载完成*/
         function onLoadingDone():void;
-        function onRegionLoaded(_arg1:MetaRegion):void;
-        function onSceneInfoRetrieved(_arg1:MetaScene):void;
+		/**场景分块加载完调用*/
+        function onRegionLoaded(rgn:MetaRegion):void;
+		/**场景信息加载完*/
+        function onSceneInfoRetrieved(metaScene:MetaScene):void;
 
     }
 } 

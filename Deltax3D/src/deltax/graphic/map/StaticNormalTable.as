@@ -4,27 +4,34 @@
     
     import deltax.common.error.SingletonMultiCreateError;
     import deltax.graphic.util.TinyNormal;
+	
+	/**
+	 * 法线列表
+	 * @author lees
+	 * @date 2014/06/21
+	 */	
 
     public class StaticNormalTable 
 	{
         private static var m_instance:StaticNormalTable;
 
+		/**法线列表*/
         private var m_normals:Vector.<Vector3D>;
 
-        public function StaticNormalTable(_arg1:SingletonEnforcer)
+        public function StaticNormalTable(s:SingletonEnforcer)
 		{
             if (m_instance)
 			{
-                throw (new SingletonMultiCreateError(StaticNormalTable));
+                throw new SingletonMultiCreateError(StaticNormalTable);
             }
 			
-            var _local2:TinyNormal = TinyNormal.TINY_NORMAL_8;
+            var nor_8:TinyNormal = TinyNormal.TINY_NORMAL_8;
             this.m_normals = new Vector.<Vector3D>(0x0100, true);
-            var _local3:uint;
-            while (_local3 < 0x0100) 
+            var idx:uint;
+            while (idx < 0x0100) 
 			{
-                this.m_normals[_local3] = _local2.Decompress1(_local3, new Vector3D());
-                _local3++;
+                this.m_normals[idx] = nor_8.Decompress1(idx, new Vector3D());
+				idx++;
             }
         }
 		
@@ -33,14 +40,24 @@
             return ((m_instance = ((m_instance) || (new StaticNormalTable(new SingletonEnforcer())))));
         }
 
-        public function getIndexOfNormal(_arg1:Vector3D):uint
+		/**
+		 * 获取法线的索引
+		 * @param va
+		 * @return 
+		 */		
+        public function getIndexOfNormal(va:Vector3D):uint
 		{
-            return (TinyNormal.TINY_NORMAL_8.Compress1(_arg1));
+            return TinyNormal.TINY_NORMAL_8.Compress1(va);
         }
 		
-        public function getNormalByIndex(_arg1:uint):Vector3D
+		/**
+		 * 获取指定索引处的法线
+		 * @param idx
+		 * @return 
+		 */				
+        public function getNormalByIndex(idx:uint):Vector3D
 		{
-            return (this.m_normals[_arg1]);
+            return this.m_normals[idx];
         }
 
     }

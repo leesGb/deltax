@@ -1,6 +1,12 @@
 ﻿package deltax.graphic.map 
 {
     import flash.utils.ByteArray;
+	
+	/**
+	 * 场景分块的模型信息
+	 * @author lees
+	 * @date 2015/04/12
+	 */	
 
     public class RegionModelInfo 
 	{
@@ -12,53 +18,82 @@
         public static const FLAG_SETGRIDMASK:uint = 128;
         public static const OBJ_SCALE_POW_BASE:Number = 1.0001;
 
+		/**分块单元索引*/
         public var m_tileUnitIndex:uint;
+		/**格子位置索引*/
         public var m_gridIndex:uint;
+		/**格子内偏移（x）*/
         public var m_x:int;
+		/**格子内偏移（y）*/
         public var m_y:int;
+		/**格子内偏移（z）*/
         public var m_z:int;
+		/**x轴旋转值*/
         public var m_rotationX:Number;
+		/**y轴旋转值*/
         public var m_rotationY:Number;
+		/**z轴旋转值*/
         public var m_rotationZ:Number;
+		/**标识*/
         public var m_flag:uint;
+		/**指数*/
         public var m_figure:uint;
+		/**散射颜色*/
         public var m_diffuse:uint = 4278190080;
+		/**等比例缩放值*/
         public var m_uniformScalar:int;
+		
+		public function RegionModelInfo()
+		{
+			//
+		}
 
-        public function Load(_arg1:ByteArray, _arg2:uint):void{
-            this.m_tileUnitIndex = _arg1.readUnsignedShort();
-            this.m_gridIndex = _arg1.readUnsignedByte();
-            this.m_x = _arg1.readByte();
-            this.m_y = _arg1.readShort();
-            this.m_z = _arg1.readByte();
+		/**
+		 * 数据解析
+		 * @param data
+		 * @param version
+		 */		
+        public function Load(data:ByteArray, version:uint):void
+		{
+            this.m_tileUnitIndex = data.readUnsignedShort();
+            this.m_gridIndex = data.readUnsignedByte();
+            this.m_x = data.readByte();
+            this.m_y = data.readShort();
+            this.m_z = data.readByte();
 			
-			var _local6:Number;
-			if (_arg2 >= MetaScene.VERSION_ADD_16BIT_ROTATION)
+			var radius_per_unit:Number;
+			if (version >= MetaScene.VERSION_ADD_16BIT_ROTATION)
 			{
-				_local6 = ((Math.PI * 2) / 0x010000);
-				this.m_rotationX = _arg1.readUnsignedShort()*_local6;
-				this.m_rotationY = _arg1.readUnsignedShort()*_local6;
-				this.m_rotationZ = _arg1.readUnsignedShort()*_local6;
+				radius_per_unit = Math.PI * 2 / 0x010000;
+				this.m_rotationX = data.readUnsignedShort()*radius_per_unit;
+				this.m_rotationY = data.readUnsignedShort()*radius_per_unit;
+				this.m_rotationZ = data.readUnsignedShort()*radius_per_unit;
 			}
 			else
 			{
-				_local6 = ((Math.PI * 2) / 0x0100);
-				this.m_rotationX = _arg1.readUnsignedByte()*_local6;
-				this.m_rotationY = _arg1.readUnsignedByte()*_local6;
-				this.m_rotationZ = _arg1.readUnsignedByte()*_local6;
+				radius_per_unit = Math.PI * 2 / 0x0100;
+				this.m_rotationX = data.readUnsignedByte()*radius_per_unit;
+				this.m_rotationY = data.readUnsignedByte()*radius_per_unit;
+				this.m_rotationZ = data.readUnsignedByte()*radius_per_unit;
 			}
 
-            this.m_flag = _arg1.readUnsignedByte();
-            this.m_figure = _arg1.readUnsignedByte();
-            this.m_diffuse = (this.m_diffuse | (_arg1.readUnsignedByte() << 16));
-            this.m_diffuse = (this.m_diffuse | (_arg1.readUnsignedByte() << 8));
-            if (_arg2 >= MetaScene.VERSION_RESTORE_AMBIENT_COLOR){
-                this.m_diffuse = (this.m_diffuse | _arg1.readUnsignedByte());
-            };
-            if ((((_arg2 >= MetaScene.VERSION_ADD_OBJECT_SCALE)) && (((this.m_flag & FLAG_UNIFORM_SCALE) > 0)))){
-                this.m_uniformScalar = _arg1.readShort();
-            };
+            this.m_flag = data.readUnsignedByte();
+            this.m_figure = data.readUnsignedByte();
+            this.m_diffuse = (this.m_diffuse | (data.readUnsignedByte() << 16));
+            this.m_diffuse = (this.m_diffuse | (data.readUnsignedByte() << 8));
+            if (version >= MetaScene.VERSION_RESTORE_AMBIENT_COLOR)
+			{
+                this.m_diffuse = (this.m_diffuse | data.readUnsignedByte());
+            }
+			
+            if ((version >= MetaScene.VERSION_ADD_OBJECT_SCALE) && ((this.m_flag & FLAG_UNIFORM_SCALE) > 0))
+			{
+                this.m_uniformScalar = data.readShort();
+            }
+			
         }
 
+		
+		
     }
 } 

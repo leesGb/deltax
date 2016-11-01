@@ -945,30 +945,6 @@
 		}
 		
 		/**
-		 * 场景分块加载完调用
-		 * @param rgn
-		 */		
-		public function onRegionLoaded(rgn:MetaRegion):void
-		{
-			if (this.curLogicScene)
-			{
-				this.curLogicScene.onRegionLoaded(rgn);
-			}
-		}
-		
-		/**
-		 * 场景信息加载完
-		 * @param metaScene
-		 */		
-		public function onSceneInfoRetrieved(metaScene:MetaScene):void
-		{
-			if (this.curLogicScene)
-			{
-				this.m_camController.sceneCameraInfo = metaScene.sceneInfo.m_cameraInfo;
-			}
-		}
-		
-		/**
 		 * gc
 		 */		
 		public function forceGC():void
@@ -1121,31 +1097,6 @@
 		}
 		
 		/**
-		 * 开始加载
-		 */		
-		public function onLoadingStart():void
-		{
-			//
-		}
-		
-		/**
-		 * 加载中
-		 * @param va
-		 */		
-		public function onLoading(va:Number):void
-		{
-			//
-		}
-		
-		/**
-		 * 加载完成
-		 */		
-		public function onLoadingDone():void
-		{
-			//
-		}
-		
-		/**
 		 * 上下文丢失
 		 * @param evt
 		 */		
@@ -1284,16 +1235,6 @@
 			//
 		}
 		
-		
-		
-		
-		public function doSetCursor(cursorName:String):Boolean
-		{
-			Mouse.cursor = cursorName;
-			return true;
-		}
-		
-		
 		/**
 		 * 数据销毁
 		 */		
@@ -1307,6 +1248,52 @@
 			this.m_camController.destroy();
 			this.m_render.delta::dispose();
 		}
+		
+		
+		//========================================================================================================================
+		//========================================================================================================================
+		//
+		public function onLoadingStart():void
+		{
+			//
+		}
+		
+		public function onLoading(va:Number):void
+		{
+			//
+		}
+		
+		public function onLoadingDone():void
+		{
+			//
+		}
+		
+		public function onRegionLoaded(rgn:MetaRegion):void
+		{
+			if (this.curLogicScene)
+			{
+				this.curLogicScene.onRegionLoaded(rgn);
+			}
+		}
+		
+		public function onSceneInfoRetrieved(metaScene:MetaScene):void
+		{
+			if (this.curLogicScene)
+			{
+				this.m_camController.sceneCameraInfo = metaScene.sceneInfo.m_cameraInfo;
+			}
+		}
+		
+		//========================================================================================================================
+		//========================================================================================================================
+		//
+		public function doSetCursor(cursorName:String):Boolean
+		{
+			Mouse.cursor = cursorName;
+			return true;
+		}
+		
+		
 		
 	}
 }
