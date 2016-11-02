@@ -88,6 +88,8 @@
 		
 		public static var TraverseSceneTime:uint;
 		public static var RenderSceneTime:uint;
+		public static var RenderTriangleNum:uint;
+		public static var RenderEffectUnitNum:uint;
 		
 		/**角色操作者（一般是主角色）*/
 		private var m_directorObject:DirectorObject;
@@ -157,7 +159,7 @@
 			this.m_textInput.type = TextFieldType.INPUT;
 			this.m_textInput.doubleClickEnabled = true;
 			this.m_container.doubleClickEnabled = true;
-			this.m_container.alpha = 0;
+//			this.m_container.alpha = 0;
 //			
 			if($container.stage)
 			{
@@ -867,7 +869,9 @@
 			}
 			
 			ShaderManager.instance.resetCameraState(this.camera2D);
+			var guiTime:uint = getTimer();
 			GUIManager.instance.render(context, false);
+			GUIManager.RENDER_TIME = getTimer() - guiTime;
 			this.m_render.present();
 			
 			this.onPostRender(context, (this.m_camera as DeltaXCamera3D));
@@ -896,6 +900,7 @@
 			this.m_collector.lastTraverseTime = curTime;
 			this.m_scene3D.traversePartitions(this.m_collector);
 			this.m_collector.finish();
+			RenderTriangleNum = this.m_collector.numTriangles;
 			TraverseSceneTime = getTimer() - curTime;
 			
 			if (this.m_render.delta::showPartitionNode)
@@ -910,6 +915,8 @@
 			
 			this.m_render.delta::render(this.m_collector);
 			RenderSceneTime = getTimer() - curTime;
+			
+			RenderEffectUnitNum = EffectManager.instance.curRenderingEffectUnitCount;
 			
 			this.m_collector.clearOnRenderEnd();
 			this.m_camera.onFrameEnd();

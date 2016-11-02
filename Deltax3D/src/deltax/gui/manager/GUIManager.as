@@ -44,6 +44,8 @@
 		
 		public static var CUR_ROOT_WND:DeltaXRootWnd;
 		
+		public static var RENDER_TIME:uint;
+		
 		/***/
 		private var m_cursorPos:Point;
 		private var m_curMouseEvent:MouseEvent = null;

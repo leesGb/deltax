@@ -205,6 +205,17 @@
 				this._material.release();
 				this._material = null;
 			}
+			
+			if(this.delta::_animationController)
+			{
+				
+			}
+			
+			if(this.delta::_animationState)
+			{
+				this.delta::_animationState.destory();
+			}
+			
 			super.dispose();
         }
 		

@@ -1,5 +1,7 @@
 ﻿package app
 {
+	import com.hmh.utils.FpsUtil;
+	
 	import flash.display.DisplayObjectContainer;
 	import flash.display.Sprite;
 	import flash.display3D.Context3D;
@@ -156,6 +158,7 @@
 			EffectManager.instance.screenDisturbEnable = true;
 			EffectManager.instance.screenFilterEnable = true;
 		}
+		
 		public function newLoginUI():void
 		{
 			registerPreloadStuffs();
