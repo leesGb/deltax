@@ -988,7 +988,7 @@
 								_local31.fixed = true;
 							}
 							_local41.m_regionID = _local30;
-							_local22.GetStaticShadowBuffer(_local31, _local19, _local18);
+							_local22.GetStaticShadowBuffer(_local31);
 							_local42 = (_local38 * _local5);
 							_local43 = (((_local7 - _local39) - 1) * _local5);
 							_local17.offset(_local42, _local43);

@@ -8,13 +8,18 @@
     import deltax.common.BitSet;
     import deltax.common.LittleEndianByteArray;
     import deltax.common.Util;
-    import deltax.common.debug.ObjectCounter;
     import deltax.common.math.MathUtl;
     import deltax.graphic.manager.IResource;
     import deltax.graphic.manager.ResourceManager;
     import deltax.graphic.manager.ResourceType;
     import deltax.graphic.util.Color;
     import deltax.graphic.util.NeighborType;
+	
+	/**
+	 * 地图分块数据
+	 * @author lees
+	 * @date 2015/04/12
+	 */	
 
     public class MetaRegion implements IResource 
 	{
@@ -70,7 +75,7 @@
             this.m_borderVerticeNormalCalced = new Vector.<Boolean>(BORDER_TYPE_COUNT, true);
             this.m_cornerVerticeNormalCalced = new Vector.<Boolean>(CORNER_TYPE_COUNT, true);
             this.delta::m_barrierInfo = new ByteArray();
-            this.delta::m_terrainHeight = new LittleEndianByteArray((MapConstants.GRID_PER_REGION * 2));
+            this.delta::m_terrainHeight = new LittleEndianByteArray((MapConstants.GRID_PER_REGION * 8));
             this.delta::m_terrainOffsetHeight = new LittleEndianByteArray((MapConstants.GRID_PER_REGION * 2));
             this.delta::m_terrainColor = new LittleEndianByteArray((MapConstants.GRID_PER_REGION * 4));
             this.delta::m_terrainNormal = new LittleEndianByteArray(MapConstants.GRID_PER_REGION);
@@ -83,6 +88,10 @@
             m_shadowMapInfo = ((m_shadowMapInfo) || (new ShadowMapColorInfo()));
         }
 		
+		/**
+		 * 地图数据类
+		 * @return 
+		 */		
 		delta function get metaScene():MetaScene
 		{
 			return this.delta::m_metaScene;
@@ -92,6 +101,10 @@
             this.delta::m_metaScene = va;
         }
         
+		/**
+		 * 分块ID
+		 * @return 
+		 */		
 		delta function get regionID():uint
 		{
 			return this.m_regionID;
@@ -101,964 +114,1076 @@
             this.m_regionID = va;
         }
         
-        public function get name():String
-		{
-            if (!this.m_name)
-			{
-                this.m_name = this.delta::m_metaScene.name.concat(this.m_regionID);
-            }
-            return this.m_name;
-        }
-        public function set name(va:String):void
-		{
-            this.m_name = va;
-        }
-		
-        public function dispose():void
-		{
-            this.delta::m_barrierInfo = null;
-            this.delta::m_terrainOffsetHeight = null;
-            this.delta::m_terrainHeight = null;
-            this.delta::m_terrainColor = null;
-            this.delta::m_terrainNormal = null;
-            this.delta::m_terrainNormalWithLogic = null;
-            this.delta::m_terrainTexIndice1 = null;
-            this.delta::m_terrainTexIndice2 = null;
-            this.delta::m_terrainTexUV = null;
-            this.delta::m_modelInfos = null;
-            this.delta::m_terrainLights = null;
-            this.delta::m_water = null;
-            this.delta::m_staticShadowIndice = null;
-            this.delta::m_staticShadow = null;
-        }
-		
+		/**
+		 * 分块x坐标
+		 * @return 
+		 */		
         public function get regionLeftBottomGridX():uint
 		{
-            return (((this.m_regionID % this.delta::m_metaScene.regionWidth) * MapConstants.REGION_SPAN));
+            return (this.m_regionID % this.delta::m_metaScene.regionWidth) * MapConstants.REGION_SPAN;
         }
 		
+		/**
+		 * 分块z坐标
+		 * @return 
+		 */		
         public function get regionLeftBottomGridZ():uint
 		{
-            return ((uint((this.m_regionID / this.delta::m_metaScene.regionWidth)) * MapConstants.REGION_SPAN));
+            return uint(this.m_regionID / this.delta::m_metaScene.regionWidth) * MapConstants.REGION_SPAN;
         }
 		
-        public function getGridFlag(_arg1:uint, _arg2:uint):uint
+		/**
+		 * 分块最小高度
+		 * @return 
+		 */		
+		public function get minHeight():int
 		{
-            return (this.delta::m_barrierInfo[((_arg2 * MapConstants.GRID_PER_REGION) + _arg1)]);
+			return this.m_minHeight;
+		}
+		
+		/**
+		 * 分块最大高度
+		 * @return 
+		 */		
+		public function get maxHeight():int
+		{
+			return this.m_maxHeight;
+		}
+		
+		/**
+		 * 分块是否可见
+		 * @return 
+		 */		
+		public function get visible():Boolean
+		{
+			return (this.delta::m_regionFlag == RegionFlag.Visible);
+		}
+		
+		/**
+		 * 分块格子标识
+		 * @param gx
+		 * @param gz
+		 * @return 
+		 */		
+        public function getGridFlag(gx:uint, gz:uint):uint
+		{
+            return this.delta::m_barrierInfo[(gz * MapConstants.GRID_PER_REGION + gx)];
         }
 		
-        public function getGridFlagByGridID(_arg1:uint):uint
+		/**
+		 * 获取指定格子处的标识
+		 * @param gIdx
+		 * @return 
+		 */		
+        public function getGridFlagByGridID(gIdx:uint):uint
 		{
-            return (this.delta::m_barrierInfo[_arg1]);
+            return this.delta::m_barrierInfo[gIdx];
         }
 		
-        public function getBarrier(_arg1:uint):uint
+		/**
+		 * 获取指定处的格子障碍值
+		 * @param idx
+		 * @return 
+		 */		
+        public function getBarrier(idx:uint):uint
 		{
-            return ((this.delta::m_barrierInfo[_arg1] & GridFlag.BarrierBits));
+            return (this.delta::m_barrierInfo[idx] & GridFlag.BarrierBits);
         }
 		
-        public function getColor(_arg1:uint):uint
+		/**
+		 * 获取指定位置的格子颜色
+		 * @param idx
+		 * @return 
+		 */		
+        public function getColor(idx:uint):uint
 		{
-            this.delta::m_terrainColor.position = (_arg1 << 2);
-            return (this.delta::m_terrainColor.readUnsignedInt());
+//            this.delta::m_terrainColor.position = idx << 2;
+//            return this.delta::m_terrainColor.readUnsignedInt();
+			this.delta::m_terrainColor.position = idx << 2;
+			return this.delta::m_terrainColor.readUnsignedInt();
         }
 		
-        public function getTerrainHeight(_arg1:uint):int
+		/**
+		 * 获取指定位置处的地形高度
+		 * @param idx
+		 * @return 
+		 */		
+        public function getTerrainHeight(idx:uint):int
 		{
-            this.delta::m_terrainHeight.position = (_arg1 << 1);
-            return (this.delta::m_terrainHeight.readShort());
+//            this.delta::m_terrainHeight.position = (_arg1 << 1);
+//            return (this.delta::m_terrainHeight.readShort());
+			var left:int = getVertexHeight(idx*4);
+			var top:int = getVertexHeight(idx*4+1);
+			var right:int = getVertexHeight(idx*4+2);
+			var bottom:int = getVertexHeight(idx*4+3);
+			var h:int = (left+top+right+bottom)*0.25;
+			return h;
         }
 		
-        public function getTerrainOffsetHeight(_arg1:uint):int
+		/**
+		 * 获取顶点的高度
+		 * @param vIdx
+		 * @return 
+		 */		
+		public function getVertexHeight(vIdx:uint):int
 		{
-            this.delta::m_terrainOffsetHeight.position = (_arg1 << 1);
-            return (this.delta::m_terrainOffsetHeight.readShort());
+			this.delta::m_terrainHeight.position = vIdx << 1;
+			return this.delta::m_terrainHeight.readShort();
+		}
+		
+		/**
+		 * 获取地形偏移高度
+		 * @param idx
+		 * @return 
+		 */		
+        public function getTerrainOffsetHeight(idx:uint):int
+		{
+            this.delta::m_terrainOffsetHeight.position = idx << 1;
+            return this.delta::m_terrainOffsetHeight.readShort();
         }
 		
-        private function setTerrainOffsetHeight(_arg1:uint, _arg2:int):void
+        private function setTerrainOffsetHeight(idx:uint, va:int):void
 		{
-            this.delta::m_terrainOffsetHeight.position = (_arg1 << 1);
-			this.delta::m_terrainOffsetHeight.writeShort(_arg2)
+            this.delta::m_terrainOffsetHeight.position = idx << 1;
+			this.delta::m_terrainOffsetHeight.writeShort(va)
         }
 		
-        public function load(_arg1:ByteArray):Boolean
+		private function getRelativeRegionIdByNeighborType(type:uint):int
 		{
-            var _local5:Function;
+			if (type == NeighborType.CENTER)
+			{
+				return this.m_regionID;
+			}
+			
+			if (type == NeighborType.LEFT)
+			{
+				return this.m_regionID - 1;
+			}
+			
+			if (type == NeighborType.RIGHT)
+			{
+				return this.m_regionID + 1;
+			}
+			
+			if (type == NeighborType.TOP)
+			{
+				return (this.m_regionID + this.delta::m_metaScene.regionWidth);
+			}
+			
+			if (type == NeighborType.BOTTOM)
+			{
+				return (this.m_regionID - this.delta::m_metaScene.regionWidth);
+			}
+			
+			if (type == NeighborType.TOP_LEFT)
+			{
+				return (this.m_regionID + this.delta::m_metaScene.regionWidth - 1);
+			}
+			
+			if (type == NeighborType.TOP_RIGHT)
+			{
+				return (this.m_regionID + this.delta::m_metaScene.regionWidth + 1);
+			}
+			
+			if (type == NeighborType.BOTTOM_LEFT)
+			{
+				return (this.m_regionID - this.delta::m_metaScene.regionWidth - 1);
+			}
+			
+			if (type == NeighborType.BOTTOM_RIGHT)
+			{
+				return (this.m_regionID - this.delta::m_metaScene.regionWidth + 1);
+			}
+			
+			throw new Error("unknown neighbor type! " + type);
+		}
+		
+		/**
+		 * 数据解析
+		 * @param data
+		 * @return 
+		 */		
+        public function load(data:ByteArray):Boolean
+		{
             if (this.refCount == 0)
 			{
-                return (false);
+                return false;
             }
-            var _local2:ChunkHeader = new ChunkHeader();
-            _local2.Load(_arg1);
-            var _local3:uint = _arg1.position;
-            var _local4:ChunkInfo = new ChunkInfo();
-            var _local6:Boolean;
-            var _local7:uint;
-            while (_local7 < _local2.m_count) 
+			
+            var header:ChunkHeader = new ChunkHeader();
+			header.Load(data);
+            var pos:uint = data.position;
+            var cInfo:ChunkInfo = new ChunkInfo();
+            var idx:uint;
+            while (idx < header.m_count) 
 			{
-                _arg1.position = _local3;
-                _local4.Load(_arg1);
-                _local3 = _arg1.position;
-                if (!_local4.m_offset)
+				data.position = pos;
+				cInfo.Load(data);
+				pos = data.position;
+                if (cInfo.m_offset)
 				{
-					//
-                } else 
-				{
-                    _arg1.position = _local4.m_offset;
-                    if (_local4.m_type >= RegionChunkType.COUNT)
+					data.position = cInfo.m_offset;
+					if (cInfo.m_type >= RegionChunkType.COUNT)
 					{
-                        throw (new Error(("[Load chunk]: Unknown chunk " + _local4.m_type)));
-                    }
-                    if (this.loadChunk(_local4.m_type, _arg1) == false)
+						throw new Error("[Load chunk]: Unknown chunk " + cInfo.m_type);
+					}
+					
+					if (!this.loadChunk(cInfo.m_type, data))
 					{
-                        break;
-                    }
+						break;
+					}
                 }
-                _local7++;
+				idx++;
             }
+			
             this.m_loaded = true;
+			
             this.calcNormals();
-            return (true);
+			
+            return true;
         }
+		
+		private function loadChunk(type:uint, data:ByteArray):Boolean
+		{
+			switch (type)
+			{
+				case RegionChunkType.FLAG://地形标识
+					return this.LoadFlag(data);
+				case RegionChunkType.BARRIER://障碍物
+					return this.LoadBarrier(data);
+				case RegionChunkType.VERTEX_HEIGHT://地形高度
+					return this.LoadTerrainHeight(data);
+				case RegionChunkType.LOGIC_HEIGHT://带其他高度的地形高度
+					return this.LoadLogicHeight(data);
+				case RegionChunkType.VERTEX_DIFFUSE:////漫反射
+					return this.LoadDiffuse(data);
+				case RegionChunkType.GRID_TEX_INDEX://贴图
+					return this.LoadTexture(data);
+				case RegionChunkType.TERRAIN_MODEL://模型
+					return this.LoadModel(data);
+				case RegionChunkType.TERRAIN_LIGHT://光照
+					return this.LoadSceneLight(data);
+				case RegionChunkType.WATER://水
+					return this.LoadWater(data);
+				case RegionChunkType.ENVIROMENT://环境
+					return this.LoadRegionEnvInfo(data);
+				case RegionChunkType.STATIC_SHADOW_8x8x2://阴影贴图
+					return this.LoadStaticShadow(data);
+				case RegionChunkType.TEXTURE_UV_INFO://uv
+					return this.LoadTextureUV(data);
+				case RegionChunkType.TRAP://保留
+					return this.LoadTrap(data);
+				case RegionChunkType.OBJECT://保留
+					return this.LoadObj(data);
+				case RegionChunkType.VERTEX_NORMAL://保留
+					return this.LoadVertexNormal(data);
+				case RegionChunkType.STATIC_SHADOW_8x8://保留
+					return this.LoadStaticShadow2(data);
+			}
+			return (true);
+		}
+		
+		private function LoadFlag(data:ByteArray):Boolean
+		{
+			this.delta::m_regionFlag = data.readUnsignedByte();
+			return (this.delta::m_regionFlag != RegionFlag.HideAll);
+		}
+		
+		private function LoadBarrier(data:ByteArray):Boolean
+		{
+			data.readBytes(this.delta::m_barrierInfo, 0, MapConstants.GRID_PER_REGION);
+			return true;
+		}
+		
+		private function LoadTerrainHeight(data:ByteArray):Boolean
+		{
+			this.delta::m_terrainHeight.position = 0;
+			var terrainHeight:int;
+			var index:uint;
+			while (index < MapConstants.GRID_PER_REGION) 
+			{
+				if(this.delta::m_metaScene.m_extraDataSize == 2)
+				{
+					for(var i:uint = index;i<=index+1;i++)
+					{
+						for(var j:uint = index;j<=index+1;j++)
+						{
+							terrainHeight = data.readShort();
+							this.m_minHeight = Math.min(this.m_minHeight, terrainHeight);
+							//							this.m_maxHeight = Math.max(this.m_maxHeight, terrainHeight);
+							this.delta::m_terrainHeight.writeShort(terrainHeight);
+						}
+					}
+				}else
+				{
+					terrainHeight = data.readShort();
+					this.m_minHeight = Math.min(this.m_minHeight, terrainHeight);
+					//					this.m_maxHeight = Math.max(this.m_maxHeight, terrainHeight);
+					for(var l:uint = index;l<=index+1;l++)
+					{
+						for(var k:uint = index;k<=index+1;k++)
+						{
+							this.delta::m_terrainHeight.writeShort(terrainHeight);
+						}
+					}
+				}
+				index++;
+			}
+			
+			if (this.m_minHeight >= this.m_maxHeight)
+			{
+				this.m_maxHeight = this.m_minHeight + 1;
+			}
+			
+			return true;
+		}
+		
+		private function LoadLogicHeight(data:ByteArray):Boolean
+		{
+			var index:uint;
+			var value:int;
+			while(index<MapConstants.GRID_PER_REGION)
+			{
+				value = data.readShort();
+				this.m_minHeight = Math.min(this.m_minHeight, value);
+				//				this.m_maxHeight = Math.max(this.m_maxHeight, value);
+				this.setTerrainOffsetHeight(index,value);
+				index++;
+			}
+			
+			return true;
+		}
+		
+		private function LoadDiffuse(data:ByteArray):Boolean
+		{
+			this.delta::m_terrainColor.position = 0;
+			
+			var alpha:uint;
+			var color:uint;
+			var index:uint;
+			while (index < MapConstants.GRID_PER_REGION) 
+			{
+				if(this.delta::m_metaScene.m_extraDataSize >= 1)
+				{
+					for(var i:uint = index;i<=index+1;i++)
+					{
+						for(var j:uint = index;j<=index+1;j++)
+						{
+							alpha = data.readUnsignedByte();
+							color = data.readUnsignedShort();
+							this.delta::m_terrainColor.writeUnsignedInt(Util.makeDWORD(((color & 0xF800) >>> 8), ((color & 2016) >>> 3), ((color & 31) << 3), alpha));
+						}
+					}
+				}else
+				{
+					alpha = data.readUnsignedByte();
+					color = data.readUnsignedShort();
+					for(var l:uint = index;l<=index+1;l++)
+					{
+						for(var k:uint = index;k<=index+1;k++)
+						{
+							this.delta::m_terrainColor.writeUnsignedInt(Util.makeDWORD(((color & 0xF800) >>> 8), ((color & 2016) >>> 3), ((color & 31) << 3), alpha));
+						}
+					}
+				}
+				index++;
+			}
+			
+			return true;
+		}
+		
+		private function LoadTexture(data:ByteArray):Boolean
+		{
+			if (!this.visible)
+			{
+				return true;
+			}
+			
+			var index:uint;
+			while (index < MapConstants.GRID_PER_REGION)
+			{
+				this.delta::m_terrainTexIndice1[index] =data.readUnsignedByte();//
+				this.delta::m_terrainTexIndice2[index] =data.readUnsignedByte();//
+				index++;
+			}
+			
+			return true;
+		}
+		
+		private function LoadModel(data:ByteArray):Boolean
+		{
+			var rgnModelInfo:RegionModelInfo;
+			var modelCounts:uint = data.readUnsignedShort();
+			this.delta::m_modelInfos = new Vector.<RegionModelInfo>(modelCounts, true);
+			var version:uint = this.delta::m_metaScene.m_version;
+			var index:uint;
+			while (index < modelCounts)
+			{
+				rgnModelInfo = new RegionModelInfo();
+				rgnModelInfo.Load(data, version);
+				this.delta::m_modelInfos[index] = rgnModelInfo;
+				index++;
+			}
+			
+			return true;
+		}
+		
+		private function LoadSceneLight(data:ByteArray):Boolean
+		{
+			var rgnLightInfo:RegionLightInfo;
+			var rgnLightCounts:uint = data.readUnsignedByte();
+			this.delta::m_terrainLights = new Vector.<RegionLightInfo>();
+			var index:uint;
+			while (index < rgnLightCounts) 
+			{
+				rgnLightInfo = new RegionLightInfo();
+				rgnLightInfo.Load(data);
+				this.delta::m_terrainLights.push(rgnLightInfo);
+				index++;
+			}
+			
+			return true;
+		}
+		
+		private function LoadWater(data:ByteArray):Boolean
+		{
+			var girdByte:uint;
+			var index:uint;
+			var raw:uint;
+			var ceil:uint;
+			var i:uint;
+			var j:uint;
+			var k:uint;
+			var l:uint;
+			var tempRaw:int;
+			var tempCeil:int;
+			var colorPoint:uint;
+			var waveHeight:int;
+			
+			var tempHasWater:uint;
+			var tempVaterValue:uint;
+			var tempBytes:uint;
+			var girdCounts:uint;
+			var heightVec:Vector.<int>;
+			var colorVec:Vector.<uint>;
+			var bitS:BitSet;
+			var bitIndex:uint;
+			var girdIndexVec:Vector.<uint>;
+			var vertexIndex:uint;
+			var counts:uint = data.readUnsignedByte();
+			if (counts == 0)
+			{
+				return true;
+			}
+			//var version:uint = this.delta::m_metaScene.m_version;
+			this.delta::m_water = new RegionWaterInfo();
+			var vertexPerRgn:uint = MapConstants.VERTEX_PER_REGION;
+			var vertexSpanPerRgn:uint = MapConstants.VERTEX_SPAN_PER_REGION;
+			i = 0;
+			while (i < counts) 
+			{
+				this.delta::m_water.m_texBegin = data.readUnsignedShort();
+				this.delta::m_water.m_texCount = data.readUnsignedShort();
+				girdByte = data.readUnsignedByte();
+				if (girdByte > 32)//所有格子的信息需要32个字节保存。
+				{
+					j = 0;
+					while (j < MapConstants.REGION_SPAN)
+					{
+						k = 0;
+						while (k < MapConstants.REGION_SPAN) 
+						{
+							tempHasWater = data.readUnsignedByte();
+							index = ((j * vertexSpanPerRgn) + k);
+							tempVaterValue = 1;
+							while (tempVaterValue < 0x0100)//每一位表示一个格子是否是水 
+							{
+								this.delta::m_water.m_waterColors[index] = ((tempHasWater & tempVaterValue)) ? 16777216 : 0;
+								tempVaterValue = (tempVaterValue << 1);
+								index++;
+							}
+							k += 8;
+						}
+						j++;
+					}
+				} else//如果小于32个格子有水，可以单独列出每个格子的坐标 
+				{
+					l = 0;
+					while (l < girdByte) 
+					{
+						index = data.readUnsignedByte();
+						raw = (index % MapConstants.REGION_SPAN);
+						ceil = (index / MapConstants.REGION_SPAN);
+						this.delta::m_water.m_waterColors[((ceil * vertexSpanPerRgn) + raw)] = 16777216;
+						l++;
+					}
+				}
+				i++;
+			}
+			//
+			var color:Color = Color.TEMP_COLOR;
+			colorPoint = data.readUnsignedByte();
+			if (colorPoint == 0xFF)//所有点一个颜色，一个高度
+			{
+				waveHeight = data.readShort();
+				color.value = data.readUnsignedInt();
+				i = 0;
+				while (i < vertexPerRgn)//289个点 
+				{
+					this.delta::m_water.m_waterHeight[i] = waveHeight;
+					raw = i % vertexSpanPerRgn;
+					ceil = i / vertexSpanPerRgn;
+					tempRaw = MathUtl.min(raw, (vertexSpanPerRgn - 2));
+					tempCeil = MathUtl.min(ceil, (vertexSpanPerRgn - 2));
+					if ((this.delta::m_water.m_waterColors[((tempCeil * vertexSpanPerRgn) + tempRaw)] & 4278190080))
+					{
+						this.delta::m_water.m_waterColors[i] = color.value;//256个color
+					}
+					i++;
+				}
+			} else 
+			{
+				if (colorPoint >= 240)
+				{
+					i = 0;//所有点单独指定颜色和高度
+					while (i < vertexPerRgn) 
+					{
+						this.delta::m_water.m_waterHeight[i] = data.readShort();
+						color.value = data.readUnsignedInt();
+						raw = i % vertexSpanPerRgn;
+						ceil = i / vertexSpanPerRgn;
+						tempRaw = MathUtl.min(raw, (vertexSpanPerRgn - 2));
+						tempCeil = MathUtl.min(ceil, (vertexSpanPerRgn - 2));
+						if ((this.delta::m_water.m_waterColors[((tempCeil * vertexSpanPerRgn) + tempRaw)] & 4278190080))
+						{
+							this.delta::m_water.m_waterColors[i] = color.value;
+						}
+						i++;
+					}
+				} else 
+				{
+					if (colorPoint)
+					{
+						tempBytes = 1;
+						while ((1 << tempBytes) < (colorPoint + 1))
+						{
+							tempBytes++;//点序号的位长度，比如只有30个点的话，则只要5bit即可
+						} 
+						girdCounts = data.readUnsignedByte();
+						heightVec = new Vector.<int>(vertexPerRgn, true);
+						colorVec = new Vector.<uint>(vertexPerRgn, true);
+						i = 0;
+						while (i < colorPoint) 
+						{
+							heightVec[i] = data.readShort();//高度
+							colorVec[i] = data.readUnsignedInt();//颜色
+							i++;
+						}
+						bitS = new BitSet((vertexPerRgn * 9));//最多9位长度的点序号
+						if (girdCounts != 0xFF)//格子个数不到255
+						{
+							girdIndexVec = new Vector.<uint>(0x0100);
+							i = 0;
+							while (i < girdCounts)
+							{
+								girdIndexVec[i] = data.readUnsignedShort();//格子序号
+								i++;
+							}
+							data.readBytes(bitS.delta::m_buffer, 0, ((((girdCounts * tempBytes) - 1) / 8) + 1));
+							i = 0;
+							while (i < girdCounts) 
+							{
+								bitIndex = bitS.GetBit((tempBytes * i), tempBytes);
+								if (bitIndex < colorPoint)
+								{
+									vertexIndex = girdIndexVec[i];
+									raw = (vertexIndex % vertexSpanPerRgn);
+									ceil = (vertexIndex / vertexSpanPerRgn);
+									this.delta::m_water.m_waterHeight[vertexIndex] = heightVec[bitIndex];
+									tempRaw = MathUtl.min(raw, (vertexSpanPerRgn - 2));
+									tempCeil = MathUtl.min(ceil, (vertexSpanPerRgn - 2));
+									if ((this.delta::m_water.m_waterColors[((tempCeil * vertexSpanPerRgn) + tempRaw)] & 4278190080))
+									{
+										this.delta::m_water.m_waterColors[vertexIndex] = colorVec[bitIndex];
+									}
+								}
+								i++;
+							}
+						} else//所有255个格子 
+						{
+							data.readBytes(bitS.delta::m_buffer, 0, ((((vertexPerRgn * tempBytes) - 1) / 8) + 1));
+							i = 0;
+							while (i < vertexPerRgn) 
+							{
+								bitIndex = bitS.GetBit((tempBytes * i), tempBytes);
+								if (bitIndex < colorPoint)
+								{
+									raw = (i % vertexSpanPerRgn);
+									ceil = (i / vertexSpanPerRgn);
+									this.delta::m_water.m_waterHeight[i] = heightVec[bitIndex];
+									tempRaw = MathUtl.min(raw, (vertexSpanPerRgn - 2));
+									tempCeil = MathUtl.min(ceil, (vertexSpanPerRgn - 2));
+									if ((this.delta::m_water.m_waterColors[((tempCeil * vertexSpanPerRgn) + tempRaw)] & 4278190080))
+									{
+										this.delta::m_water.m_waterColors[i] = colorVec[bitIndex];
+									}
+								}
+								i++;
+							}
+						}
+					}
+				}
+			}
+			
+			return true;
+		}
+		
+		private function LoadRegionEnvInfo(data:ByteArray):Boolean
+		{
+			this.delta::m_envID = data.readUnsignedByte();
+			return true;
+		}
+		
+		private function LoadStaticShadow(data:ByteArray):Boolean
+		{
+			this.delta::m_shadowCount = data.readUnsignedByte();
+			if (this.delta::m_shadowCount >= 240)
+			{
+				this.delta::m_staticShadow = new ByteArray();
+				data.readBytes(this.delta::m_staticShadow, 0, (MapConstants.BYTESIZE_OF_STATIC_SHADOW_PER_GRID * MapConstants.GRID_PER_REGION));
+			} else 
+			{
+				if (this.delta::m_shadowCount)
+				{
+					this.delta::m_staticShadowIndice = new ByteArray();
+					this.delta::m_staticShadowIndice.length = MapConstants.GRID_PER_REGION;
+					data.readBytes(this.delta::m_staticShadowIndice, 0, MapConstants.GRID_PER_REGION);
+					var tempBytes:uint = MapConstants.BYTESIZE_OF_STATIC_SHADOW_PER_GRID * this.delta::m_shadowCount;
+					this.delta::m_staticShadow = new ByteArray();
+					data.readBytes(this.delta::m_staticShadow, 0, tempBytes);
+				}
+			}
+			
+			return true;
+		}
+		
+		private function LoadTextureUV(data:ByteArray):Boolean
+		{
+			var index:uint;
+			var rgnUnit8:uint;
+			var rgnSpan:uint;
+			var counts:uint = data.readUnsignedByte();
+			counts = counts > 128 ? 0x0100 : counts;//256
+			if (counts == 0x0100)
+			{
+				index = 0;
+				while (index < counts) 
+				{
+					this.delta::m_terrainTexUV[index] = data.readUnsignedByte();//0
+					index++;
+				}
+			} else 
+			{
+				rgnSpan = MapConstants.REGION_SPAN;
+				index = 0;
+				while (index < counts) 
+				{
+					rgnUnit8 = data.readUnsignedByte();
+					this.delta::m_terrainTexUV[(((rgnUnit8 >>> 4) * rgnSpan) + rgnUnit8 & 15)] = data.readUnsignedByte();
+					index++;
+				}
+			}
+			return (true);
+		}
+		
+		private function LoadStaticShadow2(data:ByteArray):Boolean
+		{
+			data.readByte();
+			return true;
+		}
+		
+		private function LoadVertexNormal(data:ByteArray):Boolean
+		{
+			data.readByte();
+			return true;
+		}
+		
+		private function LoadObj(data:ByteArray):Boolean
+		{
+			data.readByte();
+			return true;
+		}
+		
+		private function LoadTrap(data:ByteArray):Boolean
+		{
+			data.readByte();
+			return true;
+		}
 		
         private function calcNormals():void
 		{
-            var _local4:uint;
-            var _local5:uint;
-            var _local8:uint;
-            var _local9:uint;
-            var _local10:uint;
-            var _local11:int;
-            var _local1:int = MapConstants.REGION_SPAN;
-            var _local2:Vector.<int> = Vector.<int>([-1, _local1, 1, -(_local1)]);
-            var _local3:Vector.<int> = new Vector.<int>(4, true);
-            var _local6:Vector3D = new Vector3D();
-            _local6.y = (2 * MapConstants.GRID_SPAN);
-            var _local7:StaticNormalTable = StaticNormalTable.instance;
-            _local8 = 1;
-            while (_local8 < (MapConstants.REGION_SPAN - 1)) 
+			var i:uint;
+			var j:uint;
+			var k:uint;
+			var spanIndex:uint;
+			var neighborIndex:uint;
+			var terrainHeight:int;
+			var rgnSpan:int = MapConstants.REGION_SPAN;//16
+			var terrainNeighborList:Vector.<int> = Vector.<int>([-1, rgnSpan, 1, -rgnSpan]);
+			var terrainHeightList:Vector.<int> = new Vector.<int>(4, true);
+			var tempNor:Vector3D = new Vector3D();
+			tempNor.y = 2 * MapConstants.GRID_SPAN;
+			var staticNorTable:StaticNormalTable = StaticNormalTable.instance;
+			i = 1;
+			while (i < MapConstants.REGION_SPAN - 1) 
 			{
-                _local9 = 1;
-                while (_local9 < (MapConstants.REGION_SPAN - 1))
+				j = 1;
+				while (j < MapConstants.REGION_SPAN - 1) 
 				{
-                    _local4 = ((_local8 * MapConstants.REGION_SPAN) + _local9);
-                    _local10 = 0;
-                    while (_local10 < BORDER_TYPE_COUNT) 
+					spanIndex = i * MapConstants.REGION_SPAN + j;
+					k = 0;
+					while (k < BORDER_TYPE_COUNT) 
 					{
-                        _local3[_local10] = this.getTerrainHeight((_local4 + _local2[_local10]));
-                        _local10++;
-                    }
-                    _local6.x = (_local3[0] - _local3[2]);
-                    _local6.z = (_local3[3] - _local3[1]);
-                    this.delta::m_terrainNormal[_local4] = _local7.getIndexOfNormal(_local6);
-                    _local11 = (this.getTerrainHeight(_local4) + this.getTerrainOffsetHeight(_local4));
-                    _local10 = 0;
-                    while (_local10 < BORDER_TYPE_COUNT)
+						terrainHeightList[k] = this.getTerrainHeight(spanIndex + terrainNeighborList[k]);
+						k++;
+					}
+					tempNor.x = terrainHeightList[0] - terrainHeightList[2];
+					tempNor.z = terrainHeightList[3] - terrainHeightList[1];
+					this.delta::m_terrainNormal[spanIndex] = staticNorTable.getIndexOfNormal(tempNor);
+					terrainHeight = this.getTerrainHeight(spanIndex) + this.getTerrainOffsetHeight(spanIndex);
+					k = 0;
+					while (k < BORDER_TYPE_COUNT) 
 					{
-                        _local5 = (_local4 + _local2[_local10]);
-                        _local3[_local10] = (this.getTerrainHeight(_local5) + this.getTerrainOffsetHeight(_local5));
-                        if (Math.abs((_local3[_local10] - _local11)) > MAX_NEIGHBOR_LOGIC_HEIGHT_DELTA)
+						neighborIndex = spanIndex + terrainNeighborList[k];
+						terrainHeightList[k] = this.getTerrainHeight(neighborIndex) + this.getTerrainOffsetHeight(neighborIndex);
+						if (Math.abs(terrainHeightList[k] - terrainHeight) > MAX_NEIGHBOR_LOGIC_HEIGHT_DELTA)
 						{
-                            _local3[_local10] = _local11;
-                        }
-                        _local10++;
-                    }
-                    _local6.x = (_local3[0] - _local3[2]);
-                    _local6.z = (_local3[3] - _local3[1]);
-                    this.delta::m_terrainNormalWithLogic[_local4] = _local7.getIndexOfNormal(_local6);
-                    _local9++;
-                }
-                _local8++;
-            }
-            _local10 = 0;
-            while (_local10 < BORDER_TYPE_COUNT) 
+							terrainHeightList[k] = terrainHeight;
+						}
+						k++;
+					}
+					tempNor.x = terrainHeightList[0] - terrainHeightList[2];
+					tempNor.z = terrainHeightList[3] - terrainHeightList[1];
+					this.delta::m_terrainNormalWithLogic[spanIndex] = staticNorTable.getIndexOfNormal(tempNor);
+					j++;
+				}
+				i++;
+			}
+			
+			k = 0;
+			while (k < BORDER_TYPE_COUNT) 
 			{
-                this.calcBorderVertexNormals(_local10);
-                _local10++;
-            }
-            _local10 = 0;
-            while (_local10 < CORNER_TYPE_COUNT)
+				this.calcBorderVertexNormals(k);
+				k++;
+			}
+			
+			k = 0;
+			while (k < CORNER_TYPE_COUNT) 
 			{
-                this.calcCornerVertexNormals(_local10);
-                _local10++;
-            }
+				this.calcCornerVertexNormals(k);
+				k++;
+			}
         }
 		
-        private function buildBorderNormalCalcInfos():void
+		private function calcBorderVertexNormals(index:uint):void
 		{
-            var _local1:int;
-            var _local11:NeighborBorderNormalCaclInfo;
-            var _local12:uint;
-            var _local14:uint;
-            _local1 = MapConstants.REGION_SPAN;
-            var _local2:uint = ((_local1 * _local1) - (2 * _local1));
-            var _local3:uint = _local1;
-            var _local4:uint = (((_local1 * _local1) - _local1) - 1);
-            var _local5:uint = ((2 * _local1) - 1);
-            var _local6:uint = (((_local1 * _local1) - _local1) + 1);
-            var _local7:uint = ((_local1 * _local1) - 2);
-            var _local8:uint = 1;
-            var _local9:uint = (_local1 - 1);
-            m_neighborBorderNormalCalcInfos = new Vector.<NeighborBorderNormalCaclInfo>(BORDER_TYPE_COUNT, true);
-            var _local10:Array = [[-1, RIGHT_BORDER, _local3, _local2, _local1, LEFT_BORDER, 0, _local1, 1, -(_local1), _local5], [1, BOTTOM_BORDER, _local6, _local7, 1, TOP_BORDER, -1, 0, 1, -(_local1), _local8], [1, LEFT_BORDER, _local5, _local4, _local1, RIGHT_BORDER, -1, _local1, 0, -(_local1), _local3], [-1, TOP_BORDER, _local8, _local9, 1, BOTTOM_BORDER, -1, 0, 1, -(_local1), _local6]];
-            var _local13:uint;
-            while (_local13 < BORDER_TYPE_COUNT) 
+			if (this.m_borderVerticeNormalCalced[index])
+				return;
+			//
+			if (!m_neighborBorderNormalCalcInfos)
+				this.buildBorderNormalCalcInfos();
+			//
+			var bordIndex:uint;
+			var metaRgn:MetaRegion;
+			var rgnIndex:int;
+			var neighborVertexStartIndex:uint;
+			var vertexStartIndex:uint;
+			var terrainHeight:int;
+			var terrainHeightList:Vector.<int> = new Vector.<int>(4, true);
+			var tempNor:Vector3D = new Vector3D(0, 2 * MapConstants.GRID_SPAN, 0);
+			var staticNorTable:StaticNormalTable = StaticNormalTable.instance;
+			var neighborNorInfo:NeighborBorderNormalCaclInfo = m_neighborBorderNormalCalcInfos[index];
+			//
+			if (index == TOP_BORDER || index == BOTTOM_BORDER)
 			{
-                _local11 = new NeighborBorderNormalCaclInfo();
-                m_neighborBorderNormalCalcInfos[_local13] = _local11;
-                _local12 = 0;
-                _local11.neighborRegionIdOffset = _local10[_local13][_local12++];
-                _local11.oppositBorderType = _local10[_local13][_local12++];
-                _local11.vertexStartIndex = _local10[_local13][_local12++];
-                _local11.vertexEndIndex = _local10[_local13][_local12++];
-                _local11.vertexIndexStep = _local10[_local13][_local12++];
-                _local11.neighborOffsetIndex = _local10[_local13][_local12++];
-                _local11.offsets = new Vector.<int>(BORDER_TYPE_COUNT, true);
-                _local14 = 0;
-                while (_local14 < BORDER_TYPE_COUNT) 
+				rgnIndex = this.m_regionID + neighborNorInfo.neighborRegionIdOffset * int(this.delta::m_metaScene.regionWidth);
+			}
+			else
+			{
+				rgnIndex = this.m_regionID + neighborNorInfo.neighborRegionIdOffset;
+			}
+			if (rgnIndex < 0 || rgnIndex >= this.delta::m_metaScene.m_regions.length)
+			{
+				this.m_borderVerticeNormalCalced[index] = true;
+				return;
+			}
+			//
+			metaRgn = this.delta::m_metaScene.m_regions[rgnIndex];
+			if (metaRgn && metaRgn.loaded)
+			{
+				neighborVertexStartIndex = neighborNorInfo.neighborVertexStartIndex;
+				vertexStartIndex = neighborNorInfo.vertexStartIndex;
+				while (vertexStartIndex <= neighborNorInfo.vertexEndIndex) 
 				{
-                    _local11.offsets[_local14] = _local10[_local13][_local12++];
-                    _local14++;
-                }
-                _local11.neighborVertexStartIndex = _local10[_local13][_local12++];
-                _local13++;
-            }
-        }
-		
-        private function buildCornerNormalCalcInfos():void
-		{
-            var _local1:int;
-            var _local7:NeighborCornerNormalCaclInfo;
-            var _local8:uint;
-            var _local9:CornerNormalVertexOffset;
-            var _local11:uint;
-            _local1 = MapConstants.REGION_SPAN;
-            var _local2:uint = ((_local1 * _local1) - _local1);
-            var _local3:uint = ((_local1 * _local1) - 1);
-            var _local4:uint;
-            var _local5:uint = (_local1 - 1);
-            m_neighborCornerNormalCalcInfos = new Vector.<NeighborCornerNormalCaclInfo>(CORNER_TYPE_COUNT, true);
-            var _local6:Array = [[_local2, TOPRIGHT_CORNER, BOTTOMLEFT_CORNER, NeighborType.LEFT, NeighborType.TOP, CornerNormalVertexOffset.OFFSET_NEIGHBOR1, _local3, CornerNormalVertexOffset.OFFSET_NEIGHBOR2, _local4, CornerNormalVertexOffset.OFFSET_SELF, 1, CornerNormalVertexOffset.OFFSET_SELF, -(_local1)], [_local3, TOPLEFT_CORNER, BOTTOMRIGHT_CORNER, NeighborType.RIGHT, NeighborType.TOP, CornerNormalVertexOffset.OFFSET_SELF, -1, CornerNormalVertexOffset.OFFSET_NEIGHBOR2, _local5, CornerNormalVertexOffset.OFFSET_NEIGHBOR1, _local2, CornerNormalVertexOffset.OFFSET_SELF, -(_local1)], [_local5, TOPRIGHT_CORNER, BOTTOMLEFT_CORNER, NeighborType.BOTTOM, NeighborType.RIGHT, CornerNormalVertexOffset.OFFSET_SELF, -1, CornerNormalVertexOffset.OFFSET_SELF, _local1, CornerNormalVertexOffset.OFFSET_NEIGHBOR2, _local4, CornerNormalVertexOffset.OFFSET_NEIGHBOR1, _local3], [_local4, BOTTOMRIGHT_CORNER, TOPLEFT_CORNER, NeighborType.LEFT, NeighborType.BOTTOM, CornerNormalVertexOffset.OFFSET_NEIGHBOR1, _local5, CornerNormalVertexOffset.OFFSET_SELF, _local1, CornerNormalVertexOffset.OFFSET_SELF, 1, CornerNormalVertexOffset.OFFSET_NEIGHBOR2, _local2]];
-            var _local10:uint;
-            while (_local10 < CORNER_TYPE_COUNT) 
-			{
-                _local7 = new NeighborCornerNormalCaclInfo();
-                m_neighborCornerNormalCalcInfos[_local10] = _local7;
-                _local8 = 0;
-                _local7.cornerVertexIndex = _local6[_local10][_local8++];
-                _local7.neighborCornerType1 = _local6[_local10][_local8++];
-                _local7.neighborCornerType2 = _local6[_local10][_local8++];
-                _local7.neighborRegionIdOffsetType1 = _local6[_local10][_local8++];
-                _local7.neighborRegionIdOffsetType2 = _local6[_local10][_local8++];
-                _local7.offsets = new Vector.<CornerNormalVertexOffset>(BORDER_TYPE_COUNT, true);
-                _local11 = 0;
-                while (_local11 < BORDER_TYPE_COUNT) 
-				{
-                    _local9 = new CornerNormalVertexOffset();
-                    _local9.offsetType = _local6[_local10][_local8++];
-                    _local9.offset = _local6[_local10][_local8++];
-                    _local7.offsets[_local11] = _local9;
-                    _local11++;
-                }
-                _local10++;
-            }
-        }
-		
-        private function calcBorderVertexNormals(_arg1:uint):void
-		{
-            var _local5:uint;
-            var _local6:MetaRegion;
-            var _local7:int;
-            var _local9:uint;
-            var _local10:int;
-            var _local11:uint;
-            if (this.m_borderVerticeNormalCalced[_arg1])
-			{
-                return;
-            }
-			
-            if (!m_neighborBorderNormalCalcInfos)
-			{
-                this.buildBorderNormalCalcInfos();
-            }
-            var _local2:Vector.<int> = new Vector.<int>(4, true);
-            var _local3:Vector3D = new Vector3D(0, (2 * MapConstants.GRID_SPAN), 0);
-            var _local4:StaticNormalTable = StaticNormalTable.instance;
-            var _local8:NeighborBorderNormalCaclInfo = m_neighborBorderNormalCalcInfos[_arg1];
-            if ((((_arg1 == TOP_BORDER)) || ((_arg1 == BOTTOM_BORDER))))
-			{
-                _local7 = (this.m_regionID + (_local8.neighborRegionIdOffset * int(this.delta::m_metaScene.regionWidth)));
-            } else 
-			{
-                _local7 = (this.m_regionID + _local8.neighborRegionIdOffset);
-            }
-			
-            if ((((_local7 < 0)) || ((_local7 >= this.delta::m_metaScene.m_regions.length))))
-			{
-                this.m_borderVerticeNormalCalced[_arg1] = true;
-                return;
-            }
-            _local6 = this.delta::m_metaScene.m_regions[_local7];
-            if (((_local6) && (_local6.loaded)))
-			{
-                _local9 = _local8.neighborVertexStartIndex;
-                _local11 = _local8.vertexStartIndex;
-                while (_local11 <= _local8.vertexEndIndex) 
-				{
-                    _local5 = 0;
-                    while (_local5 < BORDER_TYPE_COUNT) 
+					bordIndex = 0;
+					while (bordIndex < BORDER_TYPE_COUNT) 
 					{
-                        if (_local5 == _local8.neighborOffsetIndex)
+						if (bordIndex == neighborNorInfo.neighborOffsetIndex)
 						{
-                            _local2[_local5] = _local6.getTerrainHeight(_local9);
-                        } else 
+							terrainHeightList[bordIndex] = metaRgn.getTerrainHeight(neighborVertexStartIndex);
+						}
+						else
 						{
-                            _local2[_local5] = this.getTerrainHeight((_local11 + _local8.offsets[_local5]));
-                        }
-                        _local5++;
-                    }
-                    _local3.x = (_local2[0] - _local2[2]);
-                    _local3.z = (_local2[3] - _local2[1]);
-                    this.delta::m_terrainNormal[_local11] = _local4.getIndexOfNormal(_local3);
-                    this.delta::m_metaScene.onCalcBorderVertexNormals(this, _local11);
-                    _local10 = (this.getTerrainHeight(_local11) + this.getTerrainOffsetHeight(_local11));
-                    _local5 = 0;
-                    while (_local5 < BORDER_TYPE_COUNT) 
+							terrainHeightList[bordIndex] = this.getTerrainHeight(vertexStartIndex + neighborNorInfo.offsets[bordIndex]);
+						}
+						bordIndex++;
+					}
+					tempNor.x = terrainHeightList[0] - terrainHeightList[2];
+					tempNor.z = terrainHeightList[3] - terrainHeightList[1];
+					this.delta::m_terrainNormal[vertexStartIndex] = staticNorTable.getIndexOfNormal(tempNor);
+					this.delta::m_metaScene.onCalcBorderVertexNormals(this, vertexStartIndex);
+					terrainHeight = this.getTerrainHeight(vertexStartIndex) + this.getTerrainOffsetHeight(vertexStartIndex);
+					bordIndex = 0;
+					while (bordIndex < BORDER_TYPE_COUNT) 
 					{
-                        if (_local5 == _local8.neighborOffsetIndex)
+						if (bordIndex == neighborNorInfo.neighborOffsetIndex)
 						{
-                            _local2[_local5] = (_local6.getTerrainHeight(_local9) + _local6.getTerrainOffsetHeight(_local9));
-                        } else 
+							terrainHeightList[bordIndex] = metaRgn.getTerrainHeight(neighborVertexStartIndex) + metaRgn.getTerrainOffsetHeight(neighborVertexStartIndex);
+						}
+						else
 						{
-                            _local2[_local5] = (this.getTerrainHeight((_local11 + _local8.offsets[_local5])) + this.getTerrainOffsetHeight((_local11 + _local8.offsets[_local5])));
-                        }
-                        if (Math.abs((_local2[_local5] - _local10)) > MAX_NEIGHBOR_LOGIC_HEIGHT_DELTA)
+							terrainHeightList[bordIndex] = this.getTerrainHeight((vertexStartIndex + neighborNorInfo.offsets[bordIndex])) + this.getTerrainOffsetHeight(vertexStartIndex + neighborNorInfo.offsets[bordIndex]);
+						}
+						//
+						if (Math.abs(terrainHeightList[bordIndex] - terrainHeight) > MAX_NEIGHBOR_LOGIC_HEIGHT_DELTA)
 						{
-                            _local2[_local5] = _local10;
-                        }
-                        _local5++;
-                    }
-                    _local3.x = (_local2[0] - _local2[2]);
-                    _local3.z = (_local2[3] - _local2[1]);
-                    this.delta::m_terrainNormalWithLogic[_local11] = _local4.getIndexOfNormal(_local3);
-                    _local11 = (_local11 + _local8.vertexIndexStep);
-                    _local9 = (_local9 + _local8.vertexIndexStep);
-                }
-                this.m_borderVerticeNormalCalced[_arg1] = true;
-                _local6.calcBorderVertexNormals(_local8.oppositBorderType);
-            }
-        }
+							terrainHeightList[bordIndex] = terrainHeight;
+						}
+						bordIndex++;
+					}
+					tempNor.x = terrainHeightList[0] - terrainHeightList[2];
+					tempNor.z = terrainHeightList[3] - terrainHeightList[1];
+					this.delta::m_terrainNormalWithLogic[vertexStartIndex] = staticNorTable.getIndexOfNormal(tempNor);
+					vertexStartIndex = vertexStartIndex + neighborNorInfo.vertexIndexStep;
+					neighborVertexStartIndex = neighborVertexStartIndex + neighborNorInfo.vertexIndexStep;
+				}
+				this.m_borderVerticeNormalCalced[index] = true;
+				metaRgn.calcBorderVertexNormals(neighborNorInfo.oppositBorderType);
+			}
+		}
 		
-        private function getRelativeRegionIdByNeighborType(_arg1:uint):int
+		private function calcCornerVertexNormals(index:uint):void
 		{
-            if (_arg1 == NeighborType.CENTER)
+			if (this.m_cornerVerticeNormalCalced[index])
 			{
-                return (this.m_regionID);
-            }
-			
-            if (_arg1 == NeighborType.LEFT)
+				return;
+			}
+			//
+			if (!m_neighborCornerNormalCalcInfos)
 			{
-                return ((this.m_regionID - 1));
-            }
-			
-            if (_arg1 == NeighborType.RIGHT)
+				this.buildCornerNormalCalcInfos();
+			}
+			//
+			var bordIndex:uint;
+			var terrainHeight:int;
+			var cornerVertexIndex:uint;
+			var neighborType1:int;
+			var neighborType2:int;
+			var neighborRgn1:MetaRegion;
+			var neighborRgn2:MetaRegion;
+			var cornerNorVertexOffset:CornerNormalVertexOffset;
+			var terrainHeightList:Vector.<int> = new Vector.<int>(4, true);
+			var tempNor:Vector3D = new Vector3D(0, 2 * MapConstants.GRID_SPAN, 0);
+			var staticNorTable:StaticNormalTable = StaticNormalTable.instance;
+			var neighborCornerNorInfo:NeighborCornerNormalCaclInfo = m_neighborCornerNormalCalcInfos[index];
+			//
+			neighborType1 = this.getRelativeRegionIdByNeighborType(neighborCornerNorInfo.neighborRegionIdOffsetType1);
+			neighborType2 = this.getRelativeRegionIdByNeighborType(neighborCornerNorInfo.neighborRegionIdOffsetType2);
+			var rgnCount:uint = this.delta::m_metaScene.regionCount;
+			if (neighborType1 >= rgnCount || neighborType1 < 0 || neighborType2 >= rgnCount || neighborType2 < 0)
 			{
-                return ((this.m_regionID + 1));
-            }
-			
-            if (_arg1 == NeighborType.TOP)
-			{
-                return ((this.m_regionID + this.delta::m_metaScene.regionWidth));
-            }
-			
-            if (_arg1 == NeighborType.BOTTOM)
-			{
-                return ((this.m_regionID - this.delta::m_metaScene.regionWidth));
-            }
-			
-            if (_arg1 == NeighborType.TOP_LEFT)
-			{
-                return (((this.m_regionID + this.delta::m_metaScene.regionWidth) - 1));
-            }
-			
-            if (_arg1 == NeighborType.TOP_RIGHT)
-			{
-                return (((this.m_regionID + this.delta::m_metaScene.regionWidth) + 1));
-            }
-			
-            if (_arg1 == NeighborType.BOTTOM_LEFT)
-			{
-                return (((this.m_regionID - this.delta::m_metaScene.regionWidth) - 1));
-            }
-			
-            if (_arg1 == NeighborType.BOTTOM_RIGHT)
-			{
-                return (((this.m_regionID - this.delta::m_metaScene.regionWidth) + 1));
-            }
-            throw (new Error(("unknown neighbor type! " + _arg1)));
-        }
-		
-        private function calcCornerVertexNormals(_arg1:uint):void
-		{
-            var _local5:uint;
-            var _local6:int;
-            var _local7:MetaRegion;
-            var _local8:MetaRegion;
-            var _local9:int;
-            var _local10:int;
-            var _local13:uint;
-            var _local14:CornerNormalVertexOffset;
-            if (!m_neighborCornerNormalCalcInfos)
-			{
-                this.buildCornerNormalCalcInfos();
-            }
-            if (this.m_cornerVerticeNormalCalced[_arg1])
-			{
-                return;
-            }
-            var _local2:Vector.<int> = new Vector.<int>(4, true);
-            var _local3:Vector3D = new Vector3D(0, (2 * MapConstants.GRID_SPAN), 0);
-            var _local4:StaticNormalTable = StaticNormalTable.instance;
-            var _local11:NeighborCornerNormalCaclInfo = m_neighborCornerNormalCalcInfos[_arg1];
-            _local9 = this.getRelativeRegionIdByNeighborType(_local11.neighborRegionIdOffsetType1);
-            _local10 = this.getRelativeRegionIdByNeighborType(_local11.neighborRegionIdOffsetType2);
-            var _local12:uint = this.delta::m_metaScene.regionCount;
-            if ((((((((_local9 >= _local12)) || ((_local9 < 0)))) || ((_local10 >= _local12)))) || ((_local10 < 0))))
-			{
-                this.m_cornerVerticeNormalCalced[_arg1] = true;
-                if ((((((_local9 >= 0)) && ((_local9 < _local12)))) && (this.delta::m_metaScene.m_regions[_local9])))
+				this.m_cornerVerticeNormalCalced[index] = true;
+				if (neighborType1 >= 0 && neighborType1 < rgnCount && this.delta::m_metaScene.m_regions[neighborType1])
 				{
-                    this.delta::m_metaScene.m_regions[_local9].m_cornerVerticeNormalCalced[_local11.neighborCornerType1] = true;
-                }
-                if ((((((_local10 >= 0)) && ((_local10 < _local12)))) && (this.delta::m_metaScene.m_regions[_local10])))
+					this.delta::m_metaScene.m_regions[neighborType1].m_cornerVerticeNormalCalced[neighborCornerNorInfo.neighborCornerType1] = true;
+				}
+				if (neighborType2 >= 0 && neighborType2 < rgnCount && this.delta::m_metaScene.m_regions[neighborType2])
 				{
-                    this.delta::m_metaScene.m_regions[_local10].m_cornerVerticeNormalCalced[_local11.neighborCornerType2] = true;
-                }
-                return;
-            }
-            _local7 = this.delta::m_metaScene.m_regions[_local9];
-            _local8 = this.delta::m_metaScene.m_regions[_local10];
-            if (((((((_local7) && (_local7.loaded))) && (_local8))) && (_local8.loaded)))
+					this.delta::m_metaScene.m_regions[neighborType2].m_cornerVerticeNormalCalced[neighborCornerNorInfo.neighborCornerType2] = true;
+				}
+				return;
+			}
+			//
+			neighborRgn1 = this.delta::m_metaScene.m_regions[neighborType1];
+			neighborRgn2 = this.delta::m_metaScene.m_regions[neighborType2];
+			if (neighborRgn1 && neighborRgn1.loaded && neighborRgn2 && neighborRgn2.loaded)
 			{
-                _local13 = _local11.cornerVertexIndex;
-                _local5 = 0;
-                while (_local5 < BORDER_TYPE_COUNT) 
+				cornerVertexIndex = neighborCornerNorInfo.cornerVertexIndex;
+				bordIndex = 0;
+				while (bordIndex < BORDER_TYPE_COUNT) 
 				{
-                    _local14 = _local11.offsets[_local5];
-                    if (_local14.offsetType == CornerNormalVertexOffset.OFFSET_SELF)
+					cornerNorVertexOffset = neighborCornerNorInfo.offsets[bordIndex];
+					if (cornerNorVertexOffset.offsetType == CornerNormalVertexOffset.OFFSET_SELF)
 					{
-                        _local2[_local5] = this.getTerrainHeight((_local13 + _local14.offset));
-                    } else 
+						terrainHeightList[bordIndex] = this.getTerrainHeight((cornerVertexIndex + cornerNorVertexOffset.offset));
+					} else 
 					{
-                        if (_local14.offsetType == CornerNormalVertexOffset.OFFSET_NEIGHBOR1)
+						if (cornerNorVertexOffset.offsetType == CornerNormalVertexOffset.OFFSET_NEIGHBOR1)
 						{
-                            _local2[_local5] = _local7.getTerrainHeight(_local14.offset);
-                        } else 
+							terrainHeightList[bordIndex] = neighborRgn1.getTerrainHeight(cornerNorVertexOffset.offset);
+						} else 
 						{
-                            if (_local14.offsetType == CornerNormalVertexOffset.OFFSET_NEIGHBOR2)
+							if (cornerNorVertexOffset.offsetType == CornerNormalVertexOffset.OFFSET_NEIGHBOR2)
 							{
-                                _local2[_local5] = _local8.getTerrainHeight(_local14.offset);
-                            }
-                        }
-                    }
-                    _local5++;
-                }
-                _local3.x = (_local2[0] - _local2[2]);
-                _local3.z = (_local2[3] - _local2[1]);
-                this.delta::m_terrainNormal[_local13] = _local4.getIndexOfNormal(_local3);
-                this.delta::m_metaScene.onCalcBorderVertexNormals(this, _local13);
-                _local6 = (this.getTerrainHeight(_local13) + this.getTerrainOffsetHeight(_local13));
-                _local5 = 0;
-                while (_local5 < BORDER_TYPE_COUNT) 
+								terrainHeightList[bordIndex] = neighborRgn2.getTerrainHeight(cornerNorVertexOffset.offset);
+							}
+						}
+					}
+					bordIndex++;
+				}
+				tempNor.x = terrainHeightList[0] - terrainHeightList[2];
+				tempNor.z = terrainHeightList[3] - terrainHeightList[1];
+				this.delta::m_terrainNormal[cornerVertexIndex] = staticNorTable.getIndexOfNormal(tempNor);
+				this.delta::m_metaScene.onCalcBorderVertexNormals(this, cornerVertexIndex);
+				terrainHeight = this.getTerrainHeight(cornerVertexIndex) + this.getTerrainOffsetHeight(cornerVertexIndex);
+				bordIndex = 0;
+				while (bordIndex < BORDER_TYPE_COUNT) 
 				{
-                    _local14 = _local11.offsets[_local5];
-                    if (_local14.offsetType == CornerNormalVertexOffset.OFFSET_SELF)
+					cornerNorVertexOffset = neighborCornerNorInfo.offsets[bordIndex];
+					if (cornerNorVertexOffset.offsetType == CornerNormalVertexOffset.OFFSET_SELF)
 					{
-                        _local2[_local5] = (this.getTerrainHeight((_local13 + _local14.offset)) + this.getTerrainOffsetHeight((_local13 + _local14.offset)));
-                    } else
+						terrainHeightList[bordIndex] = this.getTerrainHeight(cornerVertexIndex + cornerNorVertexOffset.offset) + this.getTerrainOffsetHeight(cornerVertexIndex + cornerNorVertexOffset.offset);
+					} else 
 					{
-                        if (_local14.offsetType == CornerNormalVertexOffset.OFFSET_NEIGHBOR1)
+						if (cornerNorVertexOffset.offsetType == CornerNormalVertexOffset.OFFSET_NEIGHBOR1)
 						{
-                            _local2[_local5] = (_local7.getTerrainHeight(_local14.offset) + _local7.getTerrainOffsetHeight(_local14.offset));
-                        } else 
+							terrainHeightList[bordIndex] = neighborRgn1.getTerrainHeight(cornerNorVertexOffset.offset) + neighborRgn1.getTerrainOffsetHeight(cornerNorVertexOffset.offset);
+						} else 
 						{
-                            if (_local14.offsetType == CornerNormalVertexOffset.OFFSET_NEIGHBOR2)
+							if (cornerNorVertexOffset.offsetType == CornerNormalVertexOffset.OFFSET_NEIGHBOR2)
 							{
-                                _local2[_local5] = (_local8.getTerrainHeight(_local14.offset) + _local8.getTerrainOffsetHeight(_local14.offset));
-                            }
-                        }
-                    }
-                    if (Math.abs((_local2[_local5] - _local6)) > MAX_NEIGHBOR_LOGIC_HEIGHT_DELTA)
+								terrainHeightList[bordIndex] = neighborRgn2.getTerrainHeight(cornerNorVertexOffset.offset) + neighborRgn2.getTerrainOffsetHeight(cornerNorVertexOffset.offset);
+							}
+						}
+					}
+					if (Math.abs(terrainHeightList[bordIndex] - terrainHeight) > MAX_NEIGHBOR_LOGIC_HEIGHT_DELTA)
 					{
-                        _local2[_local5] = _local6;
-                    }
-                    _local5++;
-                }
-                _local3.x = (_local2[0] - _local2[2]);
-                _local3.z = (_local2[3] - _local2[1]);
-                this.delta::m_terrainNormalWithLogic[_local13] = _local4.getIndexOfNormal(_local3);
-                this.m_cornerVerticeNormalCalced[_arg1] = true;
-                _local7.calcCornerVertexNormals(_local11.neighborCornerType1);
-                _local8.calcCornerVertexNormals(_local11.neighborCornerType2);
-            }
-        }
+						terrainHeightList[bordIndex] = terrainHeight;
+					}
+					bordIndex++;
+				}
+				tempNor.x = terrainHeightList[0] - terrainHeightList[2];
+				tempNor.z = terrainHeightList[3] - terrainHeightList[1];
+				this.delta::m_terrainNormalWithLogic[cornerVertexIndex] = staticNorTable.getIndexOfNormal(tempNor);
+				this.m_cornerVerticeNormalCalced[index] = true;
+				neighborRgn1.calcCornerVertexNormals(neighborCornerNorInfo.neighborCornerType1);
+				neighborRgn2.calcCornerVertexNormals(neighborCornerNorInfo.neighborCornerType2);
+			}
+		}
 		
-        private function LoadBarrier(_arg1:ByteArray):Boolean
+		private function buildBorderNormalCalcInfos():void
 		{
-            _arg1.readBytes(this.delta::m_barrierInfo, 0, MapConstants.GRID_PER_REGION);
-            return (true);
-        }
-		
-        private function LoadFlag(_arg1:ByteArray):Boolean
-		{
-            this.delta::m_regionFlag = _arg1.readUnsignedByte();
-            return (!((this.delta::m_regionFlag == RegionFlag.HideAll)));
-        }
-		
-        private function LoadTerrainHeight(_arg1:ByteArray):Boolean
-		{
-            var _local2:int;
-            this.delta::m_terrainHeight.position = 0;
-            var _local3:uint;
-            while (_local3 < MapConstants.GRID_PER_REGION) 
-			{
-                _local2 = _arg1.readShort();
-                this.m_minHeight = Math.min(this.m_minHeight, _local2);
-                this.m_maxHeight = Math.max(this.m_maxHeight, _local2);
-                this.delta::m_terrainHeight.writeShort(_local2);
-                _local3++;
-            }
+			var borderIndex:uint;
+			var cachIndex:uint;
+			var caclInfo:NeighborBorderNormalCaclInfo;
+			var rgnSpan:int = MapConstants.REGION_SPAN;
+			var rightEnd:uint = rgnSpan * rgnSpan - 2 * rgnSpan;
+			var rightStart:uint = rgnSpan;
+			var leftEnd:uint = rgnSpan * rgnSpan - rgnSpan - 1;
+			var leftStart:uint = 2 * rgnSpan - 1;
+			var bottomStart:uint = rgnSpan * rgnSpan - rgnSpan + 1;
+			var bottomEnd:uint = rgnSpan * rgnSpan - 2;
+			var topStart:uint = 1;
+			var topEnd:uint = rgnSpan - 1;
 			
-            if (this.m_minHeight >= this.m_maxHeight)
+			var borderArr:Array = [[-1, RIGHT_BORDER, rightStart, rightEnd, rgnSpan, LEFT_BORDER, 0, rgnSpan, 1, -(rgnSpan), leftStart], 
+				[1, BOTTOM_BORDER, bottomStart, bottomEnd, 1, TOP_BORDER, -1, 0, 1, -(rgnSpan), topStart], 
+				[1, LEFT_BORDER, leftStart, leftEnd, rgnSpan, RIGHT_BORDER, -1, rgnSpan, 0, -(rgnSpan), rightStart], 
+				[-1, TOP_BORDER, topStart, topEnd, 1, BOTTOM_BORDER, -1, 0, 1, -(rgnSpan), bottomStart]];
+			//
+			m_neighborBorderNormalCalcInfos = new Vector.<NeighborBorderNormalCaclInfo>(BORDER_TYPE_COUNT, true);
+			var index:uint;
+			while (index < BORDER_TYPE_COUNT) 
 			{
-                this.m_maxHeight = (this.m_minHeight + 1);
-            }
-            return (true);
-        }
-		
-        private function LoadLogicHeight(_arg1:ByteArray):Boolean
-		{
-            var _local8:uint;
-            var _local9:uint;
-            var _local10:uint;
-            var _local2:Boolean = (this.delta::m_metaScene.m_version >= MetaScene.VERSION_ADD_TEXTURE_SCALE);
-            var _local3:uint = _arg1.readUnsignedShort();
-            var _local4:Boolean = ((_local3 & SaveMask_SaveAsUint8) > 0);
-            var _local5:uint = (_local3 & SaveMask_CountMask);
-            var _local6:uint = MapConstants.GRID_PER_REGION;
-            if (((_local2) && ((_local5 > (_local4 ? 128 : 170)))))
-			{
-                _local5 = _local6;
-            }
-            var _local7:uint = MapConstants.REGION_SPAN;
-            var _local11:uint;
-            while (_local11 < _local5) 
-			{
-                if (((_local2) && ((_local5 == _local6))))
+				caclInfo = new NeighborBorderNormalCaclInfo();
+				m_neighborBorderNormalCalcInfos[index] = caclInfo;
+				borderIndex = 0;
+				caclInfo.neighborRegionIdOffset = borderArr[index][borderIndex++];
+				caclInfo.oppositBorderType = borderArr[index][borderIndex++];
+				caclInfo.vertexStartIndex = borderArr[index][borderIndex++];
+				caclInfo.vertexEndIndex = borderArr[index][borderIndex++];
+				caclInfo.vertexIndexStep = borderArr[index][borderIndex++];
+				caclInfo.neighborOffsetIndex = borderArr[index][borderIndex++];
+				caclInfo.offsets = new Vector.<int>(BORDER_TYPE_COUNT, true);
+				cachIndex = 0;
+				while (cachIndex < BORDER_TYPE_COUNT) 
 				{
-                    if (_local4)
-					{
-                        this.setTerrainOffsetHeight(_local11, _arg1.readByte());
-                    } else 
-					{
-                        this.setTerrainOffsetHeight(_local11, _arg1.readShort());
-                    }
-                } else 
+					caclInfo.offsets[cachIndex] = borderArr[index][borderIndex++];
+					cachIndex++;
+				}
+				caclInfo.neighborVertexStartIndex = borderArr[index][borderIndex++];
+				index++;
+			}
+		}
+		
+		private function buildCornerNormalCalcInfos():void
+		{
+			var neighborCornerInfo:NeighborCornerNormalCaclInfo;
+			var cornerVertexOffset:CornerNormalVertexOffset;
+			var cornerIndex:uint;
+			var cornerOffsetIndex:uint;
+			var cornerVertexIndex:uint;
+			var span:int = MapConstants.REGION_SPAN;
+			var topLeft:uint = 0;
+			var topRight:uint = span - 1;
+			var bottomLeft:uint = span * span - span;
+			var bottomRight:uint = span * span - 1;
+			m_neighborCornerNormalCalcInfos = new Vector.<NeighborCornerNormalCaclInfo>(CORNER_TYPE_COUNT, true);
+			//
+			var cornerArr:Array = [[bottomLeft, TOPRIGHT_CORNER, BOTTOMLEFT_CORNER, NeighborType.LEFT, NeighborType.TOP, CornerNormalVertexOffset.OFFSET_NEIGHBOR1, bottomRight, 
+				CornerNormalVertexOffset.OFFSET_NEIGHBOR2, topLeft, CornerNormalVertexOffset.OFFSET_SELF, 1, CornerNormalVertexOffset.OFFSET_SELF, -(span)], 
+				[bottomRight, TOPLEFT_CORNER, BOTTOMRIGHT_CORNER, NeighborType.RIGHT, NeighborType.TOP, CornerNormalVertexOffset.OFFSET_SELF, -1, 
+					CornerNormalVertexOffset.OFFSET_NEIGHBOR2, topRight, CornerNormalVertexOffset.OFFSET_NEIGHBOR1, bottomLeft, CornerNormalVertexOffset.OFFSET_SELF, -(span)], 
+				[topRight, TOPRIGHT_CORNER, BOTTOMLEFT_CORNER, NeighborType.BOTTOM, NeighborType.RIGHT, CornerNormalVertexOffset.OFFSET_SELF, -1, 
+					CornerNormalVertexOffset.OFFSET_SELF, span, CornerNormalVertexOffset.OFFSET_NEIGHBOR2, topLeft, CornerNormalVertexOffset.OFFSET_NEIGHBOR1, bottomRight], 
+				[topLeft, BOTTOMRIGHT_CORNER, TOPLEFT_CORNER, NeighborType.LEFT, NeighborType.BOTTOM, CornerNormalVertexOffset.OFFSET_NEIGHBOR1, topRight, 
+					CornerNormalVertexOffset.OFFSET_SELF, span, CornerNormalVertexOffset.OFFSET_SELF, 1, CornerNormalVertexOffset.OFFSET_NEIGHBOR2, bottomLeft]];
+			//
+			while (cornerIndex < CORNER_TYPE_COUNT) 
+			{
+				neighborCornerInfo = new NeighborCornerNormalCaclInfo();
+				m_neighborCornerNormalCalcInfos[cornerIndex] = neighborCornerInfo;
+				cornerVertexIndex = 0;
+				neighborCornerInfo.cornerVertexIndex = cornerArr[cornerIndex][cornerVertexIndex++];
+				neighborCornerInfo.neighborCornerType1 = cornerArr[cornerIndex][cornerVertexIndex++];
+				neighborCornerInfo.neighborCornerType2 = cornerArr[cornerIndex][cornerVertexIndex++];
+				neighborCornerInfo.neighborRegionIdOffsetType1 = cornerArr[cornerIndex][cornerVertexIndex++];
+				neighborCornerInfo.neighborRegionIdOffsetType2 = cornerArr[cornerIndex][cornerVertexIndex++];
+				neighborCornerInfo.offsets = new Vector.<CornerNormalVertexOffset>(BORDER_TYPE_COUNT, true);
+				cornerOffsetIndex = 0;
+				while (cornerOffsetIndex < BORDER_TYPE_COUNT) 
 				{
-                    if (_local2)
-					{
-                        _local8 = _arg1.readUnsignedByte();
-                    } else 
-					{
-                        _local8 = _arg1.readUnsignedShort();
-                    }
-                    _local9 = (_local8 >>> 4);
-                    _local10 = (_local8 & 15);
-                    if (_local4)
-					{
-                        this.setTerrainOffsetHeight(((_local9 * _local7) + _local10), _arg1.readByte());
-                    } else
-					{
-                        this.setTerrainOffsetHeight(((_local9 * _local7) + _local10), _arg1.readShort());
-                    }
-                }
-                _local11++;
-            }
-            return (true);
-        }
+					cornerVertexOffset = new CornerNormalVertexOffset();
+					cornerVertexOffset.offsetType = cornerArr[cornerIndex][cornerVertexIndex++];
+					cornerVertexOffset.offset = cornerArr[cornerIndex][cornerVertexIndex++];
+					neighborCornerInfo.offsets[cornerOffsetIndex] = cornerVertexOffset;
+					cornerOffsetIndex++;
+				}
+				cornerIndex++;
+			}
+		}
 		
-        private function LoadDiffuse(_arg1:ByteArray):Boolean
+		/**
+		 * 获取静态阴影buffer
+		 * @param list
+		 */		
+        public function GetStaticShadowBuffer(list:Vector.<uint>):void
 		{
-            var _local2:uint;
-            var _local3:uint;
-            this.delta::m_terrainColor.position = 0;
-            var _local4:uint;
-            while (_local4 < MapConstants.GRID_PER_REGION) 
+			var i:uint = 0;
+            while (i < list.length) 
 			{
-                _local2 = _arg1.readUnsignedByte();
-                _local3 = _arg1.readUnsignedShort();
-                this.delta::m_terrainColor.writeUnsignedInt(Util.makeDWORD(((_local3 & 0xF800) >>> 8), ((_local3 & 2016) >>> 3), ((_local3 & 31) << 3), _local2));
-                _local4++;
-            }
-            return (true);
-        }
-		
-        public function get visible():Boolean
-		{
-            return ((this.delta::m_regionFlag == RegionFlag.Visible));
-        }
-		
-        private function LoadTexture(_arg1:ByteArray):Boolean
-		{
-            if (!this.visible)
-			{
-                return (true);
-            }
-            var _local2:uint;
-            while (_local2 < MapConstants.GRID_PER_REGION)
-			{
-                this.delta::m_terrainTexIndice1[_local2] = _arg1.readUnsignedByte();
-                this.delta::m_terrainTexIndice2[_local2] = _arg1.readUnsignedByte();
-                _local2++;
-            }
-            return (true);
-        }
-		
-        private function LoadTextureUV(_arg1:ByteArray):Boolean
-		{
-            var _local3:uint;
-            var _local4:uint;
-            var _local5:uint;
-            var _local2:uint = _arg1.readUnsignedByte();
-            _local2 = ((_local2 > 128)) ? 0x0100 : _local2;
-            if (_local2 == 0x0100)
-			{
-                _local3 = 0;
-                while (_local3 < _local2) 
-				{
-                    this.delta::m_terrainTexUV[_local3] = _arg1.readUnsignedByte();
-                    _local3++;
-                }
-            } else
-			{
-                _local5 = MapConstants.REGION_SPAN;
-                _local3 = 0;
-                while (_local3 < _local2)
-				{
-                    _local4 = _arg1.readUnsignedByte();
-                    this.delta::m_terrainTexUV[((((_local4 >>> 4) * _local5) + _local4) & 15)] = _arg1.readUnsignedByte();
-                    _local3++;
-                }
-            }
-            return (true);
-        }
-		
-        private function LoadStaticShadow(_arg1:ByteArray):Boolean
-		{
-            var _local2:uint;
-            this.delta::m_shadowCount = _arg1.readUnsignedByte();
-            if (this.delta::m_shadowCount >= 240)
-			{
-                this.delta::m_staticShadow = new ByteArray();
-                _arg1.readBytes(this.delta::m_staticShadow, 0, (MapConstants.BYTESIZE_OF_STATIC_SHADOW_PER_GRID * MapConstants.GRID_PER_REGION));
-            } else 
-			{
-                if (this.delta::m_shadowCount)
-				{
-                    this.delta::m_staticShadowIndice = new ByteArray();
-                    this.delta::m_staticShadowIndice.length = MapConstants.GRID_PER_REGION;
-                    _arg1.readBytes(this.delta::m_staticShadowIndice, 0, MapConstants.GRID_PER_REGION);
-                    _local2 = (MapConstants.BYTESIZE_OF_STATIC_SHADOW_PER_GRID * this.delta::m_shadowCount);
-                    this.delta::m_staticShadow = new ByteArray();
-                    _arg1.readBytes(this.delta::m_staticShadow, 0, _local2);
-                }
-            }
-            return (true);
-        }
-		
-        private function LoadModel(_arg1:ByteArray):Boolean
-		{
-            var _local4:RegionModelInfo;
-            var _local2:uint = _arg1.readUnsignedShort();
-            this.delta::m_modelInfos = new Vector.<RegionModelInfo>(_local2, true);
-            var _local3:uint = this.delta::m_metaScene.m_version;
-            var _local5:uint;
-            while (_local5 < _local2) 
-			{
-                _local4 = new RegionModelInfo();
-                _local4.Load(_arg1, _local3);
-                this.delta::m_modelInfos[_local5] = _local4;
-                _local5++;
-            }
-            return (true);
-        }
-		
-        private function LoadSceneLight(_arg1:ByteArray):Boolean
-		{
-            var _local3:RegionLightInfo;
-            var _local2:uint = _arg1.readUnsignedByte();
-            this.delta::m_terrainLights = new Vector.<RegionLightInfo>(_local2, true);
-            var _local4:uint;
-            while (_local4 < _local2) 
-			{
-                _local3 = new RegionLightInfo();
-                _local3.Load(_arg1);
-                this.delta::m_terrainLights[_local4] = _local3;
-                _local4++;
-            }
-            return (true);
-        }
-		
-        private function LoadWater(_arg1:ByteArray):Boolean
-		{
-            var _local4:uint;
-            var _local5:uint;
-            var _local6:uint;
-            var _local7:uint;
-            var _local10:uint;
-            var _local11:uint;
-            var _local13:int;
-            var _local14:int;
-            var _local15:uint;
-            var _local16:int;
-            var _local17:uint;
-            var _local18:uint;
-            var _local19:uint;
-            var _local20:uint;
-            var _local21:uint;
-            var _local22:uint;
-            var _local23:Vector.<int>;
-            var _local24:Vector.<uint>;
-            var _local25:BitSet;
-            var _local26:uint;
-            var _local27:Vector.<uint>;
-            var _local28:uint;
-            var _local2:uint = _arg1.readUnsignedByte();
-            if (_local2 == 0)
-			{
-                return (true);
-            }
-            var _local3:uint = this.delta::m_metaScene.m_version;
-            this.delta::m_water = new RegionWaterInfo();
-            var _local8:uint = MapConstants.VERTEX_PER_REGION;
-            var _local9:uint = MapConstants.VERTEX_SPAN_PER_REGION;
-            _local10 = 0;
-            while (_local10 < _local2) 
-			{
-                this.delta::m_water.m_texBegin = _arg1.readUnsignedShort();
-                this.delta::m_water.m_texCount = _arg1.readUnsignedShort();
-                _local4 = _arg1.readUnsignedByte();
-                if (_local4 > 32)
-				{
-                    _local17 = 0;
-                    while (_local17 < MapConstants.REGION_SPAN)
-					{
-                        _local18 = 0;
-                        while (_local18 < MapConstants.REGION_SPAN)
-						{
-                            _local19 = _arg1.readUnsignedByte();
-                            _local5 = ((_local17 * _local9) + _local18);
-                            _local20 = 1;
-                            while (_local20 < 0x0100) 
-							{
-                                this.delta::m_water.m_waterColors[_local5] = ((_local19 & _local20)) ? 16777216 : 0;
-                                _local20 = (_local20 << 1);
-                                _local5++;
-                            }
-                            _local18 = (_local18 + 8);
-                        }
-                        _local17++;
-                    }
-                } else
-				{
-                    _local11 = 0;
-                    while (_local11 < _local4) 
-					{
-                        _local5 = _arg1.readUnsignedByte();
-                        _local6 = (_local5 % MapConstants.REGION_SPAN);
-                        _local7 = (_local5 / MapConstants.REGION_SPAN);
-                        this.delta::m_water.m_waterColors[((_local7 * _local9) + _local6)] = 16777216;
-                        _local11++;
-                    }
-                }
-                _local10++;
-            }
-            var _local12:Color = Color.TEMP_COLOR;
-            _local15 = _arg1.readUnsignedByte();
-            if (_local15 == 0xFF)
-			{
-                _local16 = _arg1.readShort();
-                _local12.value = _arg1.readUnsignedInt();
-                _local10 = 0;
-                while (_local10 < _local8)
-				{
-                    this.delta::m_water.m_waterHeight[_local10] = _local16;
-                    _local6 = (_local10 % _local9);
-                    _local7 = (_local10 / _local9);
-                    _local13 = MathUtl.min(_local6, (_local9 - 2));
-                    _local14 = MathUtl.min(_local7, (_local9 - 2));
-                    if ((this.delta::m_water.m_waterColors[((_local14 * _local9) + _local13)] & 4278190080))
-					{
-                        this.delta::m_water.m_waterColors[_local10] = _local12.value;
-                    }
-                    _local10++;
-                }
-            } else 
-			{
-                if (_local15 >= 240)
-				{
-                    _local10 = 0;
-                    while (_local10 < _local8) 
-					{
-                        this.delta::m_water.m_waterHeight[_local10] = _arg1.readShort();
-                        _local12.value = _arg1.readUnsignedInt();
-                        _local6 = (_local10 % _local9);
-                        _local7 = (_local10 / _local9);
-                        _local13 = MathUtl.min(_local6, (_local9 - 2));
-                        _local14 = MathUtl.min(_local7, (_local9 - 2));
-                        if ((this.delta::m_water.m_waterColors[((_local14 * _local9) + _local13)] & 4278190080))
-						{
-                            this.delta::m_water.m_waterColors[_local10] = _local12.value;
-                        }
-                        _local10++;
-                    }
-                } else
-				{
-                    if (_local15)
-					{
-                        _local21 = 1;
-                        while ((1 << _local21) < (_local15 + 1)) 
-						{
-                            _local21++;
-                        }
-                        _local22 = _arg1.readUnsignedByte();
-                        _local23 = new Vector.<int>(_local8, true);
-                        _local24 = new Vector.<uint>(_local8, true);
-                        _local10 = 0;
-                        while (_local10 < _local15) 
-						{
-                            _local23[_local10] = _arg1.readShort();
-                            _local24[_local10] = _arg1.readUnsignedInt();
-                            _local10++;
-                        }
-                        _local25 = new BitSet((_local8 * 9));
-                        if (_local22 != 0xFF)
-						{
-                            _local27 = new Vector.<uint>(0x0100);
-                            _local10 = 0;
-                            while (_local10 < _local22) 
-							{
-                                _local27[_local10] = _arg1.readUnsignedShort();
-                                _local10++;
-                            }
-                            _arg1.readBytes(_local25.delta::m_buffer, 0, ((((_local22 * _local21) - 1) / 8) + 1));
-                            _local10 = 0;
-                            while (_local10 < _local22) 
-							{
-                                _local26 = _local25.GetBit((_local21 * _local10), _local21);
-                                if (_local26 >= _local15)
-								{
-									//
-                                } else 
-								{
-                                    _local28 = _local27[_local10];
-                                    _local6 = (_local28 % _local9);
-                                    _local7 = (_local28 / _local9);
-                                    this.delta::m_water.m_waterHeight[_local28] = _local23[_local26];
-                                    _local13 = MathUtl.min(_local6, (_local9 - 2));
-                                    _local14 = MathUtl.min(_local7, (_local9 - 2));
-                                    if ((this.delta::m_water.m_waterColors[((_local14 * _local9) + _local13)] & 4278190080))
-									{
-                                        this.delta::m_water.m_waterColors[_local28] = _local24[_local26];
-                                    }
-                                }
-                                _local10++;
-                            }
-                        } else 
-						{
-                            _arg1.readBytes(_local25.delta::m_buffer, 0, ((((_local8 * _local21) - 1) / 8) + 1));
-                            _local10 = 0;
-                            while (_local10 < _local8) 
-							{
-                                _local26 = _local25.GetBit((_local21 * _local10), _local21);
-                                if (_local26 >= _local15)
-								{
-									//
-                                } else 
-								{
-                                    _local6 = (_local10 % _local9);
-                                    _local7 = (_local10 / _local9);
-                                    this.delta::m_water.m_waterHeight[_local10] = _local23[_local26];
-                                    _local13 = MathUtl.min(_local6, (_local9 - 2));
-                                    _local14 = MathUtl.min(_local7, (_local9 - 2));
-                                    if ((this.delta::m_water.m_waterColors[((_local14 * _local9) + _local13)] & 4278190080))
-									{
-                                        this.delta::m_water.m_waterColors[_local10] = _local24[_local26];
-                                    }
-                                }
-                                _local10++;
-                            }
-                        }
-                    }
-                }
-            }
-            return (true);
-        }
-		
-        private function LoadRegionEnvInfo(_arg1:ByteArray):Boolean
-		{
-            this.delta::m_envID = _arg1.readUnsignedByte();
-            return (true);
-        }
-		
-        public function loadChunk(_arg1:uint, _arg2:ByteArray):Boolean
-		{
-            switch (_arg1)
-			{
-                case RegionChunkType.FLAG:
-                    return (this.LoadFlag(_arg2));
-                case RegionChunkType.BARRIER://障碍物
-                    return (this.LoadBarrier(_arg2));
-                case RegionChunkType.VERTEX_HEIGHT://地形高度
-                    return (this.LoadTerrainHeight(_arg2));
-                case RegionChunkType.LOGIC_HEIGHT:
-                    return (this.LoadLogicHeight(_arg2));
-                case RegionChunkType.VERTEX_DIFFUSE:
-                    return (this.LoadDiffuse(_arg2));
-                case RegionChunkType.GRID_TEX_INDEX://贴图
-                    return (this.LoadTexture(_arg2));
-                case RegionChunkType.TERRAIN_MODEL://模型
-                    return (this.LoadModel(_arg2));
-                case RegionChunkType.TERRAIN_LIGHT://光照
-                    return (this.LoadSceneLight(_arg2));
-                case RegionChunkType.WATER:
-                    return (this.LoadWater(_arg2));//水
-                case RegionChunkType.ENVIROMENT:
-                    return (this.LoadRegionEnvInfo(_arg2));
-                case RegionChunkType.STATIC_SHADOW_8x8x2:
-                    return (this.LoadStaticShadow(_arg2));
-                case RegionChunkType.TEXTURE_UV_INFO:
-                    return (this.LoadTextureUV(_arg2));
-            }
-            return (true);
-        }
-		
-        public function GetStaticShadowBuffer(_arg1:Vector.<uint>, _arg2:uint, _arg3:uint):void
-		{
-            var _local4:uint;
-            var _local7:uint;
-            var _local8:uint;
-            var _local9:uint;
-            var _local10:uint;
-            var _local11:uint;
-            var _local12:uint;
-            var _local13:uint;
-            var _local14:uint;
-            _local4 = 0;
-            while (_local4 < _arg1.length) 
-			{
-                _arg1[_local4] = 0;
-                _local4++;
+				list[i] = 0;
+				i++;
             }
 			
             if (!this.delta::m_shadowCount)
@@ -1066,161 +1191,201 @@
                 return;
             }
 			
-            var _local5:Vector.<uint> = m_shadowMapInfo.m_staticShadowIndexColor;
-            var _local6:Vector.<uint> = m_shadowMapInfo.m_staticShadowStandardColorBytesInOneGrid;
+			var gx:uint;
+			var gz:uint;
+			var pos:uint;
+			var j:uint;
+			var byteIdx:uint;
+			var cIdx:uint;
+            var sColors:Vector.<uint> = m_shadowMapInfo.m_staticShadowIndexColor;
+            var cBytes:Vector.<uint> = m_shadowMapInfo.m_staticShadowStandardColorBytesInOneGrid;
             if (this.delta::m_shadowCount > 240)
 			{
-                _local4 = 0;
-                while (_local4 < MapConstants.GRID_PER_REGION) 
+				i = 0;
+                while (i < MapConstants.GRID_PER_REGION) 
 				{
-                    _local9 = ((_local4 % MapConstants.REGION_SPAN) * MapConstants.STATIC_SHADOW_SPAN_PER_GRID);
-                    _local10 = (uint((_local4 / MapConstants.REGION_SPAN)) * MapConstants.STATIC_SHADOW_SPAN_PER_GRID);
-                    _local11 = ((((MapConstants.STATIC_SHADOW_SPAN_PER_REGION - 1) - _local10) * MapConstants.STATIC_SHADOW_SPAN_PER_REGION) + _local9);
-                    _local12 = 0;
-                    while (_local12 < MapConstants.STATIC_SHADOW_SPAN_PER_GRID) 
+					gx = (i % MapConstants.REGION_SPAN) * MapConstants.STATIC_SHADOW_SPAN_PER_GRID;
+					gz = uint(i / MapConstants.REGION_SPAN) * MapConstants.STATIC_SHADOW_SPAN_PER_GRID;
+					pos = (MapConstants.STATIC_SHADOW_SPAN_PER_REGION - 1 - gz) * MapConstants.STATIC_SHADOW_SPAN_PER_REGION + gx;
+                    j = 0;
+                    while (j < MapConstants.STATIC_SHADOW_SPAN_PER_GRID) 
 					{
-                        _local8 = (this.delta::m_staticShadow[(_local7 + (_local12 * 2))] * 4);
-                        _arg1[_local11] = _local5[_local8++];
-                        _arg1[(_local11 + 1)] = _local5[_local8++];
-                        _arg1[(_local11 + 2)] = _local5[_local8++];
-                        _arg1[(_local11 + 3)] = _local5[_local8];
-                        _local8 = (this.delta::m_staticShadow[((_local7 + (_local12 * 2)) + 1)] * 4);
-                        _arg1[(_local11 + 4)] = _local5[_local8++];
-                        _arg1[(_local11 + 5)] = _local5[_local8++];
-                        _arg1[(_local11 + 6)] = _local5[_local8++];
-                        _arg1[(_local11 + 7)] = _local5[_local8];
-                        _local12++;
-                        _local11 = (_local11 - MapConstants.STATIC_SHADOW_SPAN_PER_REGION);
+						cIdx = this.delta::m_staticShadow[(byteIdx + j * 2)] * 4;
+						list[pos] = sColors[cIdx++];
+						list[(pos + 1)] = sColors[cIdx++];
+						list[(pos + 2)] = sColors[cIdx++];
+						list[(pos + 3)] = sColors[cIdx];
+						
+						cIdx = this.delta::m_staticShadow[(byteIdx + j * 2 + 1)] * 4;
+						list[(pos + 4)] = sColors[cIdx++];
+						list[(pos + 5)] = sColors[cIdx++];
+						list[(pos + 6)] = sColors[cIdx++];
+						list[(pos + 7)] = sColors[cIdx];
+                        j++;
+						pos -= MapConstants.STATIC_SHADOW_SPAN_PER_REGION;
                     }
-                    _local4++;
-                    _local7 = (_local7 + MapConstants.BYTESIZE_OF_STATIC_SHADOW_PER_GRID);
+					i++;
+					byteIdx += MapConstants.BYTESIZE_OF_STATIC_SHADOW_PER_GRID;
                 }
             } else 
 			{
-                _local4 = 0;
-                while (_local4 < MapConstants.GRID_PER_REGION) 
+				var sIdx:uint;
+				var oIdx:uint;
+				i = 0;
+                while (i < MapConstants.GRID_PER_REGION) 
 				{
-                    _local9 = ((_local4 % MapConstants.REGION_SPAN) * MapConstants.STATIC_SHADOW_SPAN_PER_GRID);
-                    _local10 = (uint((_local4 / MapConstants.REGION_SPAN)) * MapConstants.STATIC_SHADOW_SPAN_PER_GRID);
-                    _local11 = ((((MapConstants.STATIC_SHADOW_SPAN_PER_REGION - 1) - _local10) * MapConstants.STATIC_SHADOW_SPAN_PER_REGION) + _local9);
-                    _local13 = this.delta::m_staticShadowIndice[_local4];
-                    if (_local13 < this.delta::m_shadowCount)
+					gx = (i % MapConstants.REGION_SPAN) * MapConstants.STATIC_SHADOW_SPAN_PER_GRID;
+					gz = uint(i / MapConstants.REGION_SPAN) * MapConstants.STATIC_SHADOW_SPAN_PER_GRID;
+					pos = (MapConstants.STATIC_SHADOW_SPAN_PER_REGION - 1 - gz) * MapConstants.STATIC_SHADOW_SPAN_PER_REGION + gx;
+					sIdx = this.delta::m_staticShadowIndice[i];
+                    if (sIdx < this.delta::m_shadowCount)
 					{
-                        _local7 = (_local13 * MapConstants.BYTESIZE_OF_STATIC_SHADOW_PER_GRID);
+						byteIdx = sIdx * MapConstants.BYTESIZE_OF_STATIC_SHADOW_PER_GRID;
                     } else 
 					{
-                        _local14 = (0xFF - _local13);
+						oIdx = 0xFF - sIdx;
                     }
-                    _local12 = 0;
-                    while (_local12 < MapConstants.STATIC_SHADOW_SPAN_PER_GRID) 
+					
+                    j = 0;
+                    while (j < MapConstants.STATIC_SHADOW_SPAN_PER_GRID) 
 					{
-                        if (_local13 < this.delta::m_shadowCount)
+                        if (sIdx < this.delta::m_shadowCount)
 						{
-                            _local8 = (this.delta::m_staticShadow[(_local7 + (_local12 * 2))] * 4);
+							cIdx = this.delta::m_staticShadow[(byteIdx + j * 2)] * 4;
                         } else 
 						{
-                            _local8 = (_local6[((_local14 * 16) + (_local12 * 2))] * 4);
+							cIdx = cBytes[(oIdx * 16 + j * 2)] * 4;
                         }
-                        _arg1[_local11] = _local5[_local8++];
-                        _arg1[(_local11 + 1)] = _local5[_local8++];
-                        _arg1[(_local11 + 2)] = _local5[_local8++];
-                        _arg1[(_local11 + 3)] = _local5[_local8++];
-                        if (_local13 < this.delta::m_shadowCount)
+						list[pos] = sColors[cIdx++];
+						list[(pos + 1)] = sColors[cIdx++];
+						list[(pos + 2)] = sColors[cIdx++];
+						list[(pos + 3)] = sColors[cIdx++];
+						
+                        if (sIdx < this.delta::m_shadowCount)
 						{
-                            _local8 = (this.delta::m_staticShadow[((_local7 + (_local12 * 2)) + 1)] * 4);
+							cIdx = this.delta::m_staticShadow[(byteIdx + j * 2 + 1)] * 4;
                         } else 
 						{
-                            _local8 = (_local6[(((_local14 * 16) + (_local12 * 2)) + 1)] * 4);
+							cIdx = cBytes[(oIdx * 16 + j * 2 + 1)] * 4;
                         }
-                        _arg1[(_local11 + 4)] = _local5[_local8++];
-                        _arg1[(_local11 + 5)] = _local5[_local8++];
-                        _arg1[(_local11 + 6)] = _local5[_local8++];
-                        _arg1[(_local11 + 7)] = _local5[_local8++];
-                        _local12++;
-                        _local11 = (_local11 - MapConstants.STATIC_SHADOW_SPAN_PER_REGION);
+						list[(pos + 4)] = sColors[cIdx++];
+						list[(pos + 5)] = sColors[cIdx++];
+						list[(pos + 6)] = sColors[cIdx++];
+						list[(pos + 7)] = sColors[cIdx++];
+                        j++;
+						pos -= MapConstants.STATIC_SHADOW_SPAN_PER_REGION;
                     }
-                    _local4++;
+					i++;
                 }
             }
         }
 		
-        public function get loaded():Boolean
+		/**
+		 * 局部格子索引转全局格子索引
+		 * @param gIdx
+		 * @return 
+		 */		
+        public function localGridIndexToGlobal(gIdx:uint):uint
 		{
-            return (this.m_loaded);
+            var gx:uint = gIdx % MapConstants.GRID_SPAN;
+            var gz:uint = gIdx / MapConstants.GRID_SPAN;
+			gx += this.regionLeftBottomGridX;
+			gz += this.regionLeftBottomGridZ;
+            return (gz * this.delta::m_metaScene.gridWidth + gx);
         }
 		
-        public function get dataFormat():String
+		//=======================================================================================================================
+		//=======================================================================================================================
+		//
+		public function get name():String
 		{
-            return (URLLoaderDataFormat.BINARY);
-        }
-		
-        public function parse(_arg1:ByteArray):int
-		{
-            this.load(_arg1);
-            return ((this.m_loaded) ? 1 : -1);
-        }
-		
-        public function onDependencyRetrieve(_arg1:IResource, _arg2:Boolean):void
-		{
-			//
-        }
-		
-        public function onAllDependencyRetrieved():void
-		{
-			//
-        }
-		
-        public function get type():String
-		{
-            return (ResourceType.REGION);
-        }
-		
-        public function reference():void
-		{
-            this.m_refCount++;
-        }
-		
-        public function release():void
-		{
-            if (--this.m_refCount <= 0)
+			if (!this.m_name)
 			{
-                ResourceManager.instance.releaseResource(this);
-            }
-        }
+				this.m_name = this.delta::m_metaScene.name.concat(this.m_regionID);
+			}
+			return this.m_name;
+		}
+		public function set name(va:String):void
+		{
+			this.m_name = va;
+		}
 		
-        public function get refCount():uint
+		public function get loaded():Boolean
 		{
-            return (this.m_refCount);
-        }
+			return this.m_loaded;
+		}
 		
-        public function get minHeight():int
+		public function get loadfailed():Boolean
 		{
-            return (this.m_minHeight);
-        }
+			return this.m_loadfailed;
+		}
+		public function set loadfailed(va:Boolean):void
+		{
+			this.m_loadfailed = va;
+		}
 		
-        public function get maxHeight():int
+		public function get dataFormat():String
 		{
-            return (this.m_maxHeight);
-        }
+			return URLLoaderDataFormat.BINARY;
+		}
 		
-        public function localGridIndexToGlobal(_arg1:uint):uint
+		public function get type():String
 		{
-            var _local2:uint = (_arg1 % MapConstants.GRID_SPAN);
-            var _local3:uint = (_arg1 / MapConstants.GRID_SPAN);
-            _local2 = (_local2 + this.regionLeftBottomGridX);
-            _local3 = (_local3 + this.regionLeftBottomGridZ);
-            return (((_local3 * this.delta::m_metaScene.gridWidth) + _local2));
-        }
+			return ResourceType.REGION;
+		}
 		
-        public function get loadfailed():Boolean
+		public function parse(data:ByteArray):int
 		{
-            return (this.m_loadfailed);
-        }
-        public function set loadfailed(_arg1:Boolean):void
+			this.load(data);
+			return this.m_loaded ? 1 : -1;
+		}
+		
+		public function onDependencyRetrieve(res:IResource, isSuccess:Boolean):void
 		{
-            this.m_loadfailed = _arg1;
-        }
-
+			//
+		}
+		
+		public function onAllDependencyRetrieved():void
+		{
+			//
+		}
+		
+		public function reference():void
+		{
+			this.m_refCount++;
+		}
+		
+		public function release():void
+		{
+			if (--this.m_refCount <= 0)
+			{
+				ResourceManager.instance.releaseResource(this);
+			}
+		}
+		
+		public function get refCount():uint
+		{
+			return this.m_refCount;
+		}
+		
+		public function dispose():void
+		{
+			this.delta::m_barrierInfo = null;
+			this.delta::m_terrainOffsetHeight = null;
+			this.delta::m_terrainHeight = null;
+			this.delta::m_terrainColor = null;
+			this.delta::m_terrainNormal = null;
+			this.delta::m_terrainNormalWithLogic = null;
+			this.delta::m_terrainTexIndice1 = null;
+			this.delta::m_terrainTexIndice2 = null;
+			this.delta::m_terrainTexUV = null;
+			this.delta::m_modelInfos = null;
+			this.delta::m_terrainLights = null;
+			this.delta::m_water = null;
+			this.delta::m_staticShadowIndice = null;
+			this.delta::m_staticShadow = null;
+		}
+		
 		
 		
     }
@@ -1228,7 +1393,6 @@
 
 
 
-import __AS3__.vec.Vector;
 
 final class RegionChunkType 
 {
@@ -1259,13 +1423,21 @@ final class RegionChunkType
 
 class NeighborBorderNormalCaclInfo
 {
+	/***/
     public var neighborRegionIdOffset:int;
+	/***/
     public var oppositBorderType:uint;
+	/***/
     public var vertexStartIndex:uint;
+	/***/
     public var vertexIndexStep:uint;
+	/***/
     public var vertexEndIndex:uint;
+	/***/
     public var offsets:Vector.<int>;
+	/***/
     public var neighborOffsetIndex:uint;
+	/***/
     public var neighborVertexStartIndex:uint;
 
     public function NeighborBorderNormalCaclInfo()
@@ -1276,11 +1448,17 @@ class NeighborBorderNormalCaclInfo
 
 class NeighborCornerNormalCaclInfo 
 {
+	/***/
     public var neighborCornerType1:uint;
+	/***/
     public var neighborCornerType2:uint;
+	/***/
     public var cornerVertexIndex:uint;
+	/***/
     public var neighborRegionIdOffsetType1:int;
+	/***/
     public var neighborRegionIdOffsetType2:int;
+	/***/
     public var offsets:Vector.<CornerNormalVertexOffset>;
 
     public function NeighborCornerNormalCaclInfo()
@@ -1296,7 +1474,9 @@ class CornerNormalVertexOffset
     public static const OFFSET_NEIGHBOR1:uint = 1;
     public static const OFFSET_NEIGHBOR2:uint = 2;
 
+	/***/
     public var offsetType:uint;
+	/***/
     public var offset:int;
 
     public function CornerNormalVertexOffset()
@@ -1308,43 +1488,45 @@ class CornerNormalVertexOffset
 
 class ShadowMapColorInfo 
 {
+	/***/
     public var m_staticShadowIndexColor:Vector.<uint>;
+	/***/
     public var m_staticShadowStandardColorBytesInOneGrid:Vector.<uint>;
 
     public function ShadowMapColorInfo()
 	{
-        var _local2:uint;
-        var _local3:uint;
-        var _local4:uint;
-        var _local1:Array = [4278190080, 4278255615, 4294902015, 4294967040];
-        this.m_staticShadowIndexColor = new Vector.<uint>(0x0400, true);
-        _local2 = 0;
-        _local4 = 0;
-        while (_local2 < 0x0100) 
+		var i:uint = 0;
+		var j:uint = 0;
+		var k:uint = 0;
+        var colors:Array = [4278190080, 4278255615, 4294902015, 4294967040];
+        this.m_staticShadowIndexColor = new Vector.<uint>(0x0400, true);//1024
+		
+        while (i < 0x0100) 
 		{
-            _local3 = 0;
-            while (_local3 < 4) 
+            j = 0;
+            while (j < 4) 
 			{
-                this.m_staticShadowIndexColor[_local4] = _local1[((_local2 >>> (_local3 * 2)) & 3)];
-                _local3++;
-                _local4++;
+                this.m_staticShadowIndexColor[k] = colors[((i >>> (j * 2)) & 3)];
+                j++;
+                k++;
             }
-            _local2++;
+            i++;
         }
-        var _local5:Array = [0, 85, 170, 0xFF];
+		
+        var bytes:Array = [0, 85, 170, 0xFF];
         this.m_staticShadowStandardColorBytesInOneGrid = new Vector.<uint>(64, true);
-        _local2 = 0;
-        _local4 = 0;
-        while (_local2 < 4) 
+        i = 0;
+        k = 0;
+        while (i < 4) 
 		{
-            _local3 = 0;
-            while (_local3 < 16) 
+            j = 0;
+            while (j < 16) 
 			{
-                this.m_staticShadowStandardColorBytesInOneGrid[_local4] = _local5[_local2];
-                _local3++;
-                _local4++;
+                this.m_staticShadowStandardColorBytesInOneGrid[k] = bytes[i];
+                j++;
+                k++;
             }
-            _local2++;
+			i++;
         }
     }
 }
