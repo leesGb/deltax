@@ -3,16 +3,8 @@
 	import com.hmh.loaders.parsers.BJSkeletonGroupParser;
 	import com.hmh.loaders.parsers.SkeletonJoint;
 	
-	import flash.geom.Matrix3D;
-	import flash.geom.Vector3D;
-	import flash.net.URLLoaderDataFormat;
-	import flash.utils.ByteArray;
-	import flash.utils.Dictionary;
-	
-	import deltax.delta;
 	import deltax.common.Constants;
 	import deltax.common.Util;
-	import deltax.common.safeRelease;
 	import deltax.common.error.Exception;
 	import deltax.common.log.LogLevel;
 	import deltax.common.log.dtrace;
@@ -21,9 +13,17 @@
 	import deltax.common.math.VectorUtil;
 	import deltax.common.resource.CommonFileHeader;
 	import deltax.common.resource.DependentRes;
+	import deltax.common.safeRelease;
+	import deltax.delta;
 	import deltax.graphic.manager.IResource;
 	import deltax.graphic.manager.ResourceManager;
 	import deltax.graphic.manager.ResourceType;
+	
+	import flash.geom.Matrix3D;
+	import flash.geom.Vector3D;
+	import flash.net.URLLoaderDataFormat;
+	import flash.utils.ByteArray;
+	import flash.utils.Dictionary;
 	
 	/**
 	 * 动作组数据
@@ -314,7 +314,8 @@
 		
 		private function buildCalculateSkeletonID(curSkeletalID:uint, parentID:uint=0, idx:uint=0):void 
 		{
-			this.m_skeletonInfoforCalculate.push(((idx << 16) | (parentID << 8) | curSkeletalID));
+			var id:uint = ((idx << 16) | (parentID << 8) | curSkeletalID);
+			this.m_skeletonInfoforCalculate.push(id);
 			var childIds:Vector.<uint> = this.getSkeletalByID(curSkeletalID).m_childIds;
 			if(childIds)
 			{

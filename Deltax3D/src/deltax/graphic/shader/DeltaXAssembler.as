@@ -2,6 +2,12 @@
 {
     import flash.utils.ByteArray;
     import flash.utils.Endian;
+	
+	/**
+	 * 着色器装配器
+	 * @author lees
+	 * @date 2015/06/09
+	 */	
 
     public class DeltaXAssembler 
 	{
@@ -21,13 +27,17 @@
 		public static const OUTSIDE_BLOCK:int = -1;
 		public static const WAIT_BLOCK_START:int = 0;
 		public static const WAIT_BLOCK_END:int = 1;
+		
 		private static const REGISTER_TYPE:Vector.<String> = Vector.<String>(["input", "param", "temporary", "varing", "sample", "output"]);
 		private static const VERTEX_REGISTER_NAME:Vector.<String> = Vector.<String>(["va", "vc", "vt", "v", "vs", "op"]);
 		private static const FRAGMENT_REGISTER_NAME:Vector.<String> = Vector.<String>(["fa", "fc", "ft", "v", "fs", "oc"]);
 		
 		private var m_asmVertexByteCode:ByteArray;
 		private var m_asmFragmentByteCode:ByteArray;
+		
+		/**顶点着色器注册组*/
 		public var m_vecVertexRegisterGroup:Vector.<Vector.<DeltaXShaderRegister>>;
+		/**片段着色器注册组*/
 		public var m_vecFragmentRegisterGroup:Vector.<Vector.<DeltaXShaderRegister>>;
 		
 		public function DeltaXAssembler()
@@ -42,7 +52,7 @@
 		 */		
 		public function get asmVertexByteCode():ByteArray
 		{
-			return (this.m_asmVertexByteCode);
+			return this.m_asmVertexByteCode;
 		}
 		
 		/**
@@ -51,7 +61,7 @@
 		 */		
 		public function get asmFragmentByteCode():ByteArray
 		{
-			return (this.m_asmFragmentByteCode);
+			return this.m_asmFragmentByteCode;
 		}
 		
 		/**
@@ -61,7 +71,7 @@
 		 */		
 		public function getVertexRegister(index:uint):Vector.<DeltaXShaderRegister>
 		{
-			return ((index > OUTPUT) ? null : this.m_vecVertexRegisterGroup[index]);
+			return (index > OUTPUT ? null : this.m_vecVertexRegisterGroup[index]);
 		}
 		
 		/**
@@ -71,7 +81,7 @@
 		 */		
 		public function getFragmentRegister(index:uint):Vector.<DeltaXShaderRegister>
 		{
-			return ((index > OUTPUT) ? null : this.m_vecFragmentRegisterGroup[index]);
+			return (index > OUTPUT ? null : this.m_vecFragmentRegisterGroup[index]);
 		}
 		
 		/**
@@ -98,6 +108,7 @@
 				}
 				index++;
 			}
+			
 			this.m_asmVertexByteCode = new ByteArray();
 			this.m_asmVertexByteCode.endian = Endian.LITTLE_ENDIAN;
 			this.m_asmVertexByteCode.length = data.readInt();
@@ -118,6 +129,7 @@
 				}
 				index++;
 			}
+			
 			this.m_asmFragmentByteCode = new ByteArray();
 			this.m_asmFragmentByteCode.endian = Endian.LITTLE_ENDIAN;
 			this.m_asmFragmentByteCode.length = data.readInt();
@@ -128,6 +140,8 @@
 		
 	}
 }
+
+
 
 import deltax.graphic.shader.DeltaXShaderRegister;
 
@@ -141,17 +155,25 @@ class DeltaXAssembleShaderRegister extends DeltaXShaderRegister
 		super($index, $name, $semantics, $format, $values);
 	}
 	
-	public function setNumberVector(_arg1:Vector.<Number>):void
+	/**
+	 * 设置数值列表
+	 * @param list
+	 */	
+	public function setNumberVector(list:Vector.<Number>):void
 	{
-		var _local2:uint = Math.min(_arg1.length, values.length);
-		var _local3:uint;
-		while (_local3 < _local2) 
+		var length:uint = Math.min(list.length, values.length);
+		var idx:uint;
+		while (idx < length) 
 		{
-			values[_local3] = _arg1[_local3];
-			_local3++;
+			values[idx] = list[idx];
+			idx++;
 		}
 	}
 	
+	/**
+	 * 克隆
+	 * @return 
+	 */	
 	public function clone():DeltaXAssembleShaderRegister
 	{
 		return (new DeltaXAssembleShaderRegister(index, ((name == null)) ? null : name.concat(), ((semantics == null)) ? null : semantics.concat(), ((format == null)) ? null : format.concat(), (values) ? values : null));
@@ -173,12 +195,12 @@ class DeltaXAssembleShaderRegister extends DeltaXShaderRegister
 			values = new Vector.<Number>();
 		}
 		//
-		var floatIndex:uint=0;
+		var idx:uint=0;
 		var len:uint = count * 4;
-		while (floatIndex < len) 
+		while (idx < len) 
 		{
-			values[floatIndex] = data.readDouble();
-			floatIndex++;
+			values[idx] = data.readDouble();
+			idx++;
 		}
 	}
 	

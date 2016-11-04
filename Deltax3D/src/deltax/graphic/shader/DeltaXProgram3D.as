@@ -26,6 +26,12 @@
     import deltax.graphic.scenegraph.object.RenderScene;
     import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
     import deltax.graphic.util.Color;
+	
+	/**
+	 * 着色器程序
+	 * @author lees
+	 * @date 2015/06/09
+	 */	
 
     public class DeltaXProgram3D 
 	{
@@ -62,9 +68,6 @@
         private static var m_ParamName:Vector.<String> = Vector.<String>(["PROGRAM3D_WORLD", "PROGRAM3D_VIEW", "PROGRAM3D_PROJECTION", "PROGRAM3D_WORLDVIEW", "PROGRAM3D_WORLDVIEWPROJECTION", "PROGRAM3D_VIEWPROJECTION", "PROGRAM3D_PROJECTIONINVERT", "PROGRAM3D_VIEWINVERT", "PROGRAM3D_TEXTUREMATRIX", "PROGRAM3D_LIGHTPOS", "PROGRAM3D_LIGHTDIR", "PROGRAM3D_LIGHTCOLOR", "PROGRAM3D_LIGHTPARAM", "PROGRAM3D_BASEBRIGHTNESS", "PROGRAM3D_AMBIENTCOLOR", "PROGRAM3D_DIFFUSEMATERIAL", "PROGRAM3D_EMISSIVEMATERIAL", "PROGRAM3D_SPECULARMATERIAL", "PROGRAM3D_SPECULARPOWER", "PROGRAM3D_FACTOR", "PROGRAM3D_FOGPARAM", "PROGRAM3D_FOGCOLOR", "PROGRAM3D_SHADOWTEXTURESCALERECIPROCAL", "PROGRAM3D_SHADOWPROJECTION", "PROGRAM3D_SHADOWMAPMASK", "PROGRAM3D_SHADOWSAMPLE", "PROGRAM3D_ALPHAREF"]);
         private static var m_tempMatrixVector:Vector.<Number> = new Vector.<Number>(16);
 
-        private var m_program3D:Program3D;
-        public var m_vertexByteCode:ByteArray;
-        public var m_fragmentByteCode:ByteArray;
         private var m_vertexConstRegister:Vector.<DeltaXShaderRegister>;
         private var m_vertexInputRegister:Vector.<DeltaXShaderRegister>;
         private var m_fragmentConstRegister:Vector.<DeltaXShaderRegister>;
@@ -99,6 +102,12 @@
         private var m_pointLightPosStart:int;
         private var m_pointLightColorStart:int;
         private var m_pointLightParamStart:int;
+		private var m_program3D:Program3D;
+
+		/***/
+		public var m_vertexByteCode:ByteArray;
+		/***/
+		public var m_fragmentByteCode:ByteArray;
 
         public function DeltaXProgram3D()
 		{
@@ -112,57 +121,87 @@
             this.m_vertexParamIndex = new Vector.<int>(PARAM_COUNT);
             this.m_fragmentParamIndex = new Vector.<int>(PARAM_COUNT);
             this.m_fragmentSampleIndex = new Vector.<int>(PARAM_COUNT);
-            super();
         }
-        public function get positionOffset():int{
-            return (this.m_positionOffset);
+		
+        public function get positionOffset():int
+		{
+            return this.m_positionOffset;
         }
-        public function get normalOffset():int{
-            return (this.m_normalOffset);
+		
+        public function get normalOffset():int
+		{
+            return this.m_normalOffset;
         }
-        public function get tangentOffset():int{
-            return (this.m_tangentOffset);
+		
+        public function get tangentOffset():int
+		{
+            return this.m_tangentOffset;
         }
-        public function get binormalOffset():int{
-            return (this.m_binormalOffset);
+		
+        public function get binormalOffset():int
+		{
+            return this.m_binormalOffset;
         }
-        public function get colorOffset():Vector.<int>{
-            return (this.m_colorOffset);
+		
+        public function get colorOffset():Vector.<int>
+		{
+            return this.m_colorOffset;
         }
-        public function get UVOffset():Vector.<int>{
-            return (this.m_UVOffset);
+		
+        public function get UVOffset():Vector.<int>
+		{
+            return this.m_UVOffset;
         }
-        public function get weightOffset():int{
-            return (this.m_weightOffset);
+		
+        public function get weightOffset():int
+		{
+            return this.m_weightOffset;
         }
-        public function get boneIndexOffset():int{
-            return (this.m_boneIndexOffset);
+		
+        public function get boneIndexOffset():int
+		{
+            return this.m_boneIndexOffset;
         }
-        public function get positionIndex():int{
-            return (this.m_positionIndex);
+		
+        public function get positionIndex():int
+		{
+            return this.m_positionIndex;
         }
-        public function get normalIndex():int{
-            return (this.m_normalIndex);
+		
+        public function get normalIndex():int
+		{
+            return this.m_normalIndex;
         }
-        public function get tangentIndex():int{
-            return (this.m_tangentIndex);
+		
+        public function get tangentIndex():int
+		{
+            return this.m_tangentIndex;
         }
-        public function get binormalIndex():int{
-            return (this.m_binormalIndex);
+		
+        public function get binormalIndex():int
+		{
+            return this.m_binormalIndex;
         }
-        public function get colorIndex():Vector.<int>{
-            return (this.m_colorIndex);
+		
+        public function get colorIndex():Vector.<int>
+		{
+            return this.m_colorIndex;
         }
-        public function get UVIndex():Vector.<int>{
-            return (this.m_UVIndex);
+		
+        public function get UVIndex():Vector.<int>
+		{
+            return this.m_UVIndex;
         }
-        public function get weightIndex():int{
-            return (this.m_weightIndex);
+		
+        public function get weightIndex():int
+		{
+            return this.m_weightIndex;
         }
-        public function get boneIndexIndex():int{
-            return (this.m_boneIndexIndex);
+		
+        public function get boneIndexIndex():int
+		{
+            return this.m_boneIndexIndex;
         }
-		public var m_srcstr:String;
 		
 		/**
 		 * 创建着色器
@@ -171,45 +210,49 @@
 		 * @param deltaxAssembler
 		 * @return 
 		 */		
-        public function buildDeltaXProgram3D(byte:ByteArray, uintMax:uint=4294967295,deltaxAssembler:DeltaXAssembler = null):Boolean
+        public function buildDeltaXProgram3D(byte:ByteArray,deltaxAssembler:DeltaXAssembler = null):Boolean
 		{
-            var index:uint;
             var agalStr:String;
             var position:uint = byte.position;
             var sign:uint = byte.readUnsignedInt();
             var assem:DeltaXAssembler = (deltaxAssembler||new DeltaXAssembler());
             if (sign != 1685283328)
 			{
-            } else assem.load(byte);
+            } else
+			{
+				assem.load(byte);
+			} 
 			//
-            if (this.m_program3D) this.dispose();
+            if (this.m_program3D) 
+			{
+				this.dispose();	
+			}
+			
             this.m_vertexByteCode = assem.asmVertexByteCode;
             this.m_fragmentByteCode = assem.asmFragmentByteCode;
             this.m_vertexConstRegister = assem.getVertexRegister(DeltaXAssembler.PARAM);
             this.m_vertexInputRegister = assem.getVertexRegister(DeltaXAssembler.INPUT);
             this.m_fragmentConstRegister = assem.getFragmentRegister(DeltaXAssembler.PARAM);
             this.m_fragmentSampleRegister = new Vector.<DeltaXShaderRegister>();
-			index = 0;
-            while (index < assem.getFragmentRegister(DeltaXAssembler.SAMPLE).length) 
+			
+			var idx:uint = 0;
+            while (idx < assem.getFragmentRegister(DeltaXAssembler.SAMPLE).length) 
 			{
-                if (assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[index].index >= this.m_fragmentSampleRegister.length)
+                if (assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[idx].index >= this.m_fragmentSampleRegister.length)
 				{
-                    this.m_fragmentSampleRegister.length = (assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[index].index + 1);
+                    this.m_fragmentSampleRegister.length = (assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[idx].index + 1);
                 }
-                this.m_fragmentSampleRegister[assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[index].index] = assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[index];
-				index++;
+                this.m_fragmentSampleRegister[assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[idx].index] = assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[idx];
+				idx++;
             }
+			
             this.buildStandarInfo();
-            //if (sign != 1685283328) trace(((assem.asmVertexSourceCode + "\n\n") + assem.asmFragmentSourceCode));
-            return (true);
+			
+            return true;
         }
 		
 		private function buildStandarInfo():void
 		{
-			var index:uint;
-			var subIndex:uint;
-			var semantics:String;
-			var foalt:uint;
 			this.m_totalInputSize = 0;
 			this.m_colorIndex.fixed = false;
 			this.m_colorOffset.fixed = false;
@@ -219,236 +262,255 @@
 			this.m_colorOffset.length = 0;
 			this.m_UVIndex.length = 0;
 			this.m_UVOffset.length = 0;
-			index = 0;
-			while (index < this.m_vertexInputRegister.length) 
+			
+			var i:uint = 0;
+			var foalt:uint=0;
+			var semantics:String;
+			while (i < this.m_vertexInputRegister.length) 
 			{
-				semantics = this.m_vertexInputRegister[index].semantics;
+				semantics = this.m_vertexInputRegister[i].semantics;
 				if (semantics == "PB3D_POSITION")
 				{
-					this.m_positionIndex = index;
+					this.m_positionIndex = i;
 					this.m_positionOffset = this.m_totalInputSize;
-					this.m_totalInputSize = (this.m_totalInputSize + (4 * 3));
+					this.m_totalInputSize += 12;//4*3
 				} else 
 				{
 					if (semantics.substr(0, 10) == "PB3D_COLOR")
 					{
-						this.m_colorIndex[uint(semantics.substr(10))] = index;
+						this.m_colorIndex[uint(semantics.substr(10))] = i;
 						this.m_colorOffset[uint(semantics.substr(10))] = this.m_totalInputSize;
-						this.m_totalInputSize = (this.m_totalInputSize + 4);
+						this.m_totalInputSize += 4;
 					} else 
 					{
 						if (semantics == "PB3D_NORMAL")
 						{
-							this.m_normalIndex = index;
+							this.m_normalIndex = i;
 							this.m_normalOffset = this.m_totalInputSize;
-							this.m_totalInputSize = (this.m_totalInputSize + (4 * 3));
+							this.m_totalInputSize += 12;//4*3
 						} else 
 						{
 							if (semantics == "PB3D_TANGENT")
 							{
-								this.m_tangentIndex = index;
+								this.m_tangentIndex = i;
 								this.m_tangentOffset = this.m_totalInputSize;
-								this.m_totalInputSize = (this.m_totalInputSize + (4 * 3));
+								this.m_totalInputSize += 12;//4*3
 							} else 
 							{
 								if (semantics == "PB3D_BINORMAL")
 								{
-									this.m_binormalIndex = index;
+									this.m_binormalIndex = i;
 									this.m_binormalOffset = this.m_totalInputSize;
-									this.m_totalInputSize = (this.m_totalInputSize + (4 * 3));
+									this.m_totalInputSize += 12;//4*3
 								} else
 								{
 									if (semantics.substr(0, 7) == "PB3D_UV")
 									{
-										this.m_UVIndex[uint(semantics.substr(7))] = index;
+										this.m_UVIndex[uint(semantics.substr(7))] = i;
 										this.m_UVOffset[uint(semantics.substr(7))] = this.m_totalInputSize;
-										this.m_totalInputSize = (this.m_totalInputSize + (4 * 2));
+										this.m_totalInputSize += 8;//4*2
 									} else 
 									{
 										if (semantics == "PB3D_WEIGHT")
 										{
-											this.m_weightIndex = index;
+											this.m_weightIndex = i;
 											this.m_weightOffset = this.m_totalInputSize;
-											this.m_totalInputSize = (this.m_totalInputSize + 4);
+											this.m_totalInputSize += 4;
 										} else
 										{
 											if (semantics == "PB3D_BONE_INDEX")
 											{
-												this.m_boneIndexIndex = index;
+												this.m_boneIndexIndex = i;
 												this.m_boneIndexOffset = this.m_totalInputSize;
-												this.m_totalInputSize = (this.m_totalInputSize + 4);
+												this.m_totalInputSize += 4;
 											} else
 											{
-												foalt = uint(this.m_vertexInputRegister[index].format.substr(5));
-												this.m_totalInputSize = (this.m_totalInputSize + (foalt * 4));
-											};
-										};
-									};
-								};
-							};
-						};
-					};
-				};
-				index++;
-			};
+												foalt = uint(this.m_vertexInputRegister[i].format.substr(5));
+												this.m_totalInputSize += foalt * 4;
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				i++;
+			}
+			
 			this.m_colorIndex.fixed = true;
 			this.m_colorOffset.fixed = true;
 			this.m_UVIndex.fixed = true;
 			this.m_UVOffset.fixed = true;
-			index = 0;
-			while (index < m_ParamName.length) 
+			
+			var j:uint;
+			i = 0;
+			while (i < m_ParamName.length) 
 			{
-				this.m_vertexParamIndex[index] = -1;
-				subIndex = 0;
-				while (subIndex < this.m_vertexConstRegister.length) 
+				this.m_vertexParamIndex[i] = -1;
+				j = 0;
+				while (j < this.m_vertexConstRegister.length) 
 				{
-					if (this.m_vertexConstRegister[subIndex].semantics == m_ParamName[index])
+					if (this.m_vertexConstRegister[j].semantics == m_ParamName[i])
 					{
-						this.m_vertexParamIndex[index] = subIndex;
+						this.m_vertexParamIndex[i] = j;
 						break;
-					};
-					subIndex++;
-				};
-				this.m_fragmentParamIndex[index] = -1;
-				subIndex = 0;
-				while (subIndex < this.m_fragmentConstRegister.length) 
+					}
+					j++;
+				}
+				
+				this.m_fragmentParamIndex[i] = -1;
+				j = 0;
+				while (j < this.m_fragmentConstRegister.length) 
 				{
-					if (this.m_fragmentConstRegister[subIndex].semantics == m_ParamName[index])
+					if (this.m_fragmentConstRegister[j].semantics == m_ParamName[i])
 					{
-						this.m_fragmentParamIndex[index] = subIndex;
+						this.m_fragmentParamIndex[i] = j;
 						break;
-					};
-					subIndex++;
-				};
-				this.m_fragmentSampleIndex[index] = -1;
-				subIndex = 0;
-				while (subIndex < this.m_fragmentSampleRegister.length)
+					}
+					j++;
+				}
+				
+				this.m_fragmentSampleIndex[i] = -1;
+				j = 0;
+				while (j < this.m_fragmentSampleRegister.length)
 				{
-					if (this.m_fragmentSampleRegister[subIndex].semantics == m_ParamName[index])
+					if (this.m_fragmentSampleRegister[j].semantics == m_ParamName[i])
 					{
-						this.m_fragmentSampleIndex[index] = subIndex;
+						this.m_fragmentSampleIndex[i] = j;
 						break;
-					};
-					subIndex++;
-				};
-				index++;
-			};
+					}
+					j++;
+				}
+				i++;
+			}
+			
 			this.initCache();
 		}
+		
+		/**
+		 * 初始化常量缓存
+		 */		
 		public function initCache():void
 		{
-			var index:uint;
-			var subIndex:uint;
-			var totalLen:uint;
-			var indexLen:int;
-			var countLen:int;
 			this.m_vertexConstCache.fixed = false;
 			this.m_fragmentConstCache.fixed = false;
 			this.m_fragmentSampleCache.fixed = false;
-			index = 0;
-			totalLen = 0;
-			while (index < this.m_vertexConstRegister.length) 
+			
+			var i:uint=0;
+			var j:uint;
+			var index:int;
+			var count:int;
+			var totalCount:uint;
+			
+			totalCount = 0;
+			while (i < this.m_vertexConstRegister.length) 
 			{
-				indexLen = (this.m_vertexConstRegister[index].index * 4);
-				countLen = (this.m_vertexConstRegister[index].count * 4);
-				totalLen = MathUtl.max(totalLen, (indexLen + countLen));
-				this.m_vertexConstCache.length = totalLen;
-				subIndex = 0;
-				while (subIndex < countLen)
+				index = this.m_vertexConstRegister[i].index * 4;
+				count = this.m_vertexConstRegister[i].count * 4;
+				totalCount = MathUtl.max(totalCount, (index + count));
+				this.m_vertexConstCache.length = totalCount;
+				
+				j = 0;
+				while (j < count)
 				{
-					this.m_vertexConstCache[(indexLen + subIndex)] = this.m_vertexConstRegister[index].values[subIndex];
-					subIndex++;
-				};
-				index++;
-			};
-			index = 0;
-			totalLen = 0;
-			while (index < this.m_fragmentConstRegister.length)
+					this.m_vertexConstCache[(index + j)] = this.m_vertexConstRegister[i].values[j];
+					j++;
+				}
+				i++;
+			}
+			
+			i = 0;
+			totalCount = 0;
+			while (i < this.m_fragmentConstRegister.length)
 			{
-				indexLen = (this.m_fragmentConstRegister[index].index * 4);
-				countLen = (this.m_fragmentConstRegister[index].count * 4);
-				totalLen = MathUtl.max(totalLen, (indexLen + countLen));
-				this.m_fragmentConstCache.length = totalLen;
-				subIndex = 0;
-				while (subIndex < countLen) 
+				index = this.m_fragmentConstRegister[i].index * 4;
+				count = this.m_fragmentConstRegister[i].count * 4;
+				totalCount = MathUtl.max(totalCount, (index + count));
+				this.m_fragmentConstCache.length = totalCount;
+				
+				j = 0;
+				while (j < count) 
 				{
-					this.m_fragmentConstCache[(indexLen + subIndex)] = this.m_fragmentConstRegister[index].values[subIndex];
-					subIndex++;
-				};
-				index++;
-			};
+					this.m_fragmentConstCache[(index + j)] = this.m_fragmentConstRegister[i].values[j];
+					j++;
+				}
+				i++;
+			}
+			
 			this.m_fragmentSampleCache.length = this.m_fragmentSampleRegister.length;
-			index = 0;
-			totalLen = 0;
-			while (index < this.m_fragmentSampleCache.length) 
+			
+			i = 0;
+			while (i < this.m_fragmentSampleCache.length) 
 			{
-				this.m_fragmentSampleCache[index] = null;
-				index++;
-			};
+				this.m_fragmentSampleCache[i] = null;
+				i++;
+			}
+			
 			this.m_vertexConstCache.fixed = true;
 			this.m_fragmentConstCache.fixed = true;
 			this.m_fragmentSampleCache.fixed = true;
 		}
 		
 		/**
-		 * 
-		 * @param paramIndex
-		 * @param matrix3d
+		 * 设置矩阵常量参数
+		 * @param idx
+		 * @param mat
 		 * @param transpose
 		 */		
-		public function setParamMatrix(paramIndex:int, matrix3d:Matrix3D, transpose:Boolean=false):void
+		public function setParamMatrix(idx:int, mat:Matrix3D, transpose:Boolean=false):void
 		{
-			var index:int;
-			var shaderR:DeltaXShaderRegister;
-			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
+			
+			if (idx < 0 || idx >= PARAM_COUNT)
 			{
 				return;
 			}
-			index = this.m_vertexParamIndex[paramIndex];
+			
+			var sr:DeltaXShaderRegister;
+			var index:int = this.m_vertexParamIndex[idx];
 			if (index != -1)
 			{
-				shaderR = this.m_vertexConstRegister[index];
-				this.setCacheMatrix(this.m_vertexConstCache, shaderR.index, shaderR.count, matrix3d, transpose);
+				sr = this.m_vertexConstRegister[index];
+				this.setCacheMatrix(this.m_vertexConstCache, sr.index, sr.count, mat, transpose);
 			}
-			index = this.m_fragmentParamIndex[paramIndex];
+			
+			index = this.m_fragmentParamIndex[idx];
 			if (index != -1)
 			{
-				shaderR = this.m_fragmentConstRegister[index];
-				this.setCacheMatrix(this.m_fragmentConstCache, shaderR.index, shaderR.count, matrix3d, transpose);
+				sr = this.m_fragmentConstRegister[index];
+				this.setCacheMatrix(this.m_fragmentConstCache, sr.index, sr.count, mat, transpose);
 			}
 		}
+		
 		/**
-		 * 
-		 * @param constVec
-		 * @param shaderIndex
-		 * @param shaderCount
-		 * @param matrix3d
-		 * @param transpose
+		 * 设置矩阵缓存
+		 * @param caches							缓存列表（常量列表）
+		 * @param idx								索引
+		 * @param count							数量
+		 * @param mat								矩阵
+		 * @param transpose					是否反转
 		 */		
-		private function setCacheMatrix(constVec:Vector.<Number>, shaderIndex:int, shaderCount:int, matrix3d:Matrix3D, transpose:Boolean):void
+		private function setCacheMatrix(caches:Vector.<Number>, idx:int, count:int, mat:Matrix3D, transpose:Boolean):void
 		{
-			var tempShaderIndex:uint;
-			var tempShaderCount:uint;
-			var tempIndex:uint;
-			var tempSubIndex:uint;
-			if (shaderCount >= 4)
+			if (count >= 4)
 			{
-				matrix3d.copyRawDataTo(constVec, (shaderIndex << 2), transpose);
+				mat.copyRawDataTo(caches, (idx << 2), transpose);
 			} else
 			{
-				matrix3d.copyRawDataTo(m_tempMatrixVector, 0, transpose);
-				tempShaderIndex = (shaderIndex << 2);
-				tempShaderCount = (tempShaderIndex + (shaderCount << 2));
-				tempIndex = tempShaderIndex;
-				tempSubIndex = 0;
-				while (tempIndex < tempShaderCount)
+				mat.copyRawDataTo(m_tempMatrixVector, 0, transpose);
+				var index:uint = (idx << 2);
+				var total:uint = index + (count << 2);
+				var i:uint = index;
+				var j:uint = 0;
+				while (i < total)
 				{
-					constVec[tempIndex] = m_tempMatrixVector[tempSubIndex];
-					tempIndex++;
-					tempSubIndex++;
+					caches[i] = m_tempMatrixVector[j];
+					i++;
+					j++;
 				}
 			}
 		}
+		
 		/**
 		 * 
 		 * @param constVec
@@ -470,6 +532,7 @@
 				subIndex++;
 			}
 		}
+		
 		/**
 		 * 
 		 * @param constVec
@@ -479,7 +542,8 @@
 		 * @param value3
 		 * @param value4
 		 */		
-		private function setCacheValue(constVec:Vector.<Number>, index:int, value1:Number, value2:Number, value3:Number, value4:Number):void{
+		private function setCacheValue(constVec:Vector.<Number>, index:int, value1:Number, value2:Number, value3:Number, value4:Number):void
+		{
 			var tempIndex:uint = (index << 2);
 			constVec[tempIndex] = value1;
 			constVec[(tempIndex + 1)] = value2;
@@ -581,54 +645,69 @@
 				this.setCacheValue(this.m_fragmentConstCache, shaderR.index, r, g, b, a);
 			}
 		}
+		
 		/**
-		 * 
-		 * @param paramIndex
-		 * @param textureB
+		 * 设置采样纹理参数
+		 * @param idx
+		 * @param texture
 		 */		
-		public function setParamTexture(paramIndex:int, textureB:TextureBase):void
+		public function setParamTexture(idx:int, texture:TextureBase):void
 		{
-			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
+			if (idx < 0 || idx >= PARAM_COUNT)
+			{
 				return;
-			var index:int = this.m_fragmentSampleIndex[paramIndex];
+			}
+			
+			var index:int = this.m_fragmentSampleIndex[idx];
 			if (index != -1)
-				this.m_fragmentSampleCache[index] = textureB;
+			{
+				this.m_fragmentSampleCache[index] = texture;
+			}
 		}
+		
 		/**
-		 * 
+		 * 设置采样贴图
 		 * @param index
-		 * @param textureB
+		 * @param texture
 		 */		
-		public function setSampleTexture(index:int, textureB:TextureBase):void
+		public function setSampleTexture(index:int, texture:TextureBase):void
 		{
-			if ((((index < 0)) || ((index >= this.m_fragmentSampleRegister.length))))
+			if (index < 0 || index >= this.m_fragmentSampleRegister.length)
+			{
 				return;
-			this.m_fragmentSampleCache[index] = textureB;
+			}
+			this.m_fragmentSampleCache[index] = texture;
 		}
+		
 		/**
-		 * 
+		 * 设置场景雾
 		 * @param min
 		 * @param max
-		 * @param colorV
+		 * @param color
 		 */		
-		public function setFog(min:Number, max:Number, colorV:uint):void
+		public function setFog(min:Number, max:Number, color:uint):void
 		{
-			var rate:Number = (1 / Math.max((max - min), 1));
+			var rate:Number = 1 / Math.max((max - min), 1);
 			this.setParamValue(DeltaXProgram3D.FOGPARAM, (max * rate), -(rate), 0, 0);
-			this.setParamColor(DeltaXProgram3D.FOGCOLOR, colorV);
+			this.setParamColor(DeltaXProgram3D.FOGCOLOR, color);
 		}
+		
 		/**
-		 * 
-		 * @param context3d
+		 * 获取着色器程序
+		 * @param context
 		 * @return 
 		 */		
-		public function getProgram3D(context3d:Context3D):Program3D
+		public function getProgram3D(context:Context3D):Program3D
 		{
 			if (this.m_program3D)
-				return (this.m_program3D);
-			this.m_program3D = context3d.createProgram();
+			{
+				return this.m_program3D;
+			}
+				
+			this.m_program3D = context.createProgram();
 			this.m_program3D.upload(this.m_vertexByteCode, this.m_fragmentByteCode);
-			return (this.m_program3D);
+			
+			return this.m_program3D;
 		}
 		
 		/**
@@ -1252,38 +1331,64 @@
 				index++;
             }
         }
+		
         public function setVertexBuffer(context3D:Context3D, vertureBuff3D:VertexBuffer3D):void
 		{
             var index:uint;
             if (this.m_positionIndex >= 0)
+			{
 				context3D.setVertexBufferAt(this.m_positionIndex, vertureBuff3D, (this.m_positionOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
+			}
+				
             if (this.m_normalIndex >= 0)
+			{
 				context3D.setVertexBufferAt(this.m_normalIndex, vertureBuff3D, (this.m_normalOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
+			}
+				
             if (this.m_tangentIndex >= 0)
+			{
 				context3D.setVertexBufferAt(this.m_tangentIndex, vertureBuff3D, (this.m_tangentOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
+			}
+				
             if (this.m_binormalIndex >= 0)
+			{
 				context3D.setVertexBufferAt(this.m_binormalIndex, vertureBuff3D, (this.m_binormalOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
+			}
+				
+			
             var len:uint = this.m_colorIndex.length;
 			index = 0;
             while (index < len)
 			{
                 if (this.m_colorIndex[index] >= 0)
+				{
 					context3D.setVertexBufferAt(this.m_colorIndex[index], vertureBuff3D, (this.m_colorOffset[index] >> 2), Context3DVertexBufferFormat.BYTES_4);
+				}
 				index++;
             }
+			
 			len = this.m_UVIndex.length;
 			index = 0;
             while (index < len)
 			{
                 if (this.m_UVIndex[index] >= 0)
+				{
 					context3D.setVertexBufferAt(this.m_UVIndex[index], vertureBuff3D, (this.m_UVOffset[index] >> 2), Context3DVertexBufferFormat.FLOAT_2);
+				}
 				index++;
             }
+			
             if (this.m_weightIndex >= 0)
+			{
 				context3D.setVertexBufferAt(this.m_weightIndex, vertureBuff3D, (this.m_weightOffset >> 2), Context3DVertexBufferFormat.BYTES_4);
+			}
+				
             if (this.m_boneIndexIndex >= 0)
+			{
 				context3D.setVertexBufferAt(this.m_boneIndexIndex, vertureBuff3D, (this.m_boneIndexOffset >> 2), Context3DVertexBufferFormat.BYTES_4);
+			}
         }
+		
         public function get vertexStride():uint
 		{
             return ((this.m_totalInputSize >> 2));
@@ -1424,4 +1529,4 @@
 			return (true);
 		}
     }
-}//package deltax.graphic.shader 
+}

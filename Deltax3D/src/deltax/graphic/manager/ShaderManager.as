@@ -290,7 +290,7 @@
 				} else 
 				{
 					ByteArray(arr[0]).position = 0;
-					program3d.buildDeltaXProgram3D(arr[0],uint.MAX_VALUE);
+					program3d.buildDeltaXProgram3D(arr[0]);
 				}
 				
 				this.m_program3Ds[shaderID] = program3d;

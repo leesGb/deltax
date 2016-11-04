@@ -565,8 +565,6 @@
 			var context:Context3D = this._stage3DProxy.context3D;
 			var renderCount:uint = list.length;
 			var camera:Camera3D = collector.camera;
-			var _local11:Vector.<LightBase> = collector.lights;
-			
 			var i:uint;
 			var j:uint;
 			var k:uint;

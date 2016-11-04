@@ -199,12 +199,14 @@ package deltax.graphic.model
 				//
                 i++;
             }
-			/*
-			var arr:Array = [];
+			
+			/*var arr:Array = [];
 			var subGeoVoTemp:SubGeometryVo;
 			i = 0;
-			while(i<jointMuchVec.length){
-				if(jointMuchVec[i]){
+			while(i<jointMuchVec.length)
+			{
+				if(jointMuchVec[i])
+				{
 					//骨骼数超过，要自动分块
 					subGeoVo = meshParser.subGeometrys[i];
 					subGeoVoTemp = new SubGeometryVo();
@@ -213,9 +215,11 @@ package deltax.graphic.model
 					subGeoVoTemp.indices = subGeoVo.indices.slice(0,subGeoVoTemp.indiceCnt * 3);
 					subGeoVoTemp.vertices = new Vector.<Number>();
 					var vec:Vector = new Vector.<int>();
-					for(var j:int = 0;j<subGeoVoTemp.indiceCnt * 3;j++){
+					for(var j:int = 0;j<subGeoVoTemp.indiceCnt * 3;j++)
+					{
 						var ver:Number = subGeoVo.vertices[subGeoVo.indices[j]];
-						if(subGeoVoTemp.vertices.indexOf(ver) == -1){
+						if(subGeoVoTemp.vertices.indexOf(ver) == -1)
+						{
 							vec[subGeoVoTemp.indices[j]] = subGeoVoTemp.vertices.indexOf(ver);
 							subGeoVoTemp.vertices.push(ver);	
 							subGeoVoTemp.uvs[j] = subGeoVo.uvs[j];
@@ -230,9 +234,11 @@ package deltax.graphic.model
 					subGeoVoTemp.indices = subGeoVo.indices.slice(subGeoVoTemp.indiceCnt * 3);
 					subGeoVoTemp.vertices = new Vector.<Number>();
 					var vec:Vector = new Vector.<int>();
-					for(var j:int = 0;j<subGeoVoTemp.indiceCnt * 3;j++){
+					for(var j:int = 0;j<subGeoVoTemp.indiceCnt * 3;j++)
+					{
 						var ver:Number = subGeoVo.vertices[subGeoVo.indices[j]];
-						if(subGeoVoTemp.vertices.indexOf(ver) == -1){
+						if(subGeoVoTemp.vertices.indexOf(ver) == -1)
+						{
 							vec[subGeoVoTemp.indices[j]] = subGeoVoTemp.vertices.indexOf(ver);
 							subGeoVoTemp.vertices.push(ver);	
 							subGeoVoTemp.uvs[j] = subGeoVo.uvs[j];

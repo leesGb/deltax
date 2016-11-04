@@ -467,15 +467,13 @@
 			}
 			
 			var eSubGeometry:EnhanceSkinnedSubGeometry = EnhanceSkinnedSubGeometry(SubMesh(subMesh).subGeometry);
-			var sourceEntity:RenderObject = (SubMesh(subMesh).sourceEntity as RenderObject);
+			var sourceEntity:RenderObject = SubMesh(subMesh).sourceEntity as RenderObject;
 			this.m_curRenderingMesh = sourceEntity;
 			var program3d:DeltaXProgram3D = SkinnedMeshPass(material).program3D;
-			var vParamRsterStartIndex:int = (program3d.getVertexParamRegisterStartIndex(DeltaXProgram3D.WORLDVIEW) << 4);
-			var vParamRsterCount:int = program3d.getVertexParamRegisterCount(DeltaXProgram3D.WORLDVIEW);
 			var vParamCacheList:Vector.<Number> = program3d.getVertexParamCache();
 			var indexData:ByteArray = eSubGeometry.associatePiece.local2GlobalIndex;
 			var dataLength:uint = indexData.length;
-			var startIndex:uint = vParamRsterStartIndex;
+			var startIndex:uint = program3d.getVertexParamRegisterStartIndex(DeltaXProgram3D.WORLDVIEW) << 4;
 			var dataIndex:uint;
 			while (dataIndex < dataLength) 
 			{
@@ -484,7 +482,7 @@
 				{
 					skeletalIndex = MathUtl.max(0, (skeletalCount - 1));
 				}
-				skeletalIndex = (skeletalIndex << 4);
+				skeletalIndex = skeletalIndex << 4;
 				vertexIndex = 0;
 				while (vertexIndex < 12) 
 				{

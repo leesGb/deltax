@@ -1,15 +1,7 @@
 ﻿package deltax.graphic.render.pass 
 {
-    import flash.display3D.Context3D;
-    import flash.display3D.Context3DBlendFactor;
-    import flash.display3D.Context3DCompareMode;
-    import flash.display3D.Context3DTriangleFace;
-    import flash.display3D.IndexBuffer3D;
-    import flash.display3D.VertexBuffer3D;
-    import flash.geom.Matrix3D;
-    
-    import deltax.delta;
     import deltax.common.math.MathUtl;
+    import deltax.delta;
     import deltax.graphic.animation.EnhanceSkeletonAnimationState;
     import deltax.graphic.animation.EnhanceSkinnedSubGeometry;
     import deltax.graphic.camera.Camera3D;
@@ -26,6 +18,14 @@
     import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
     import deltax.graphic.shader.DeltaXProgram3D;
     import deltax.graphic.texture.DeltaXTexture;
+    
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DBlendFactor;
+    import flash.display3D.Context3DCompareMode;
+    import flash.display3D.Context3DTriangleFace;
+    import flash.display3D.IndexBuffer3D;
+    import flash.display3D.VertexBuffer3D;
+    import flash.geom.Matrix3D;
 	
 	/**
 	 * 蒙皮网格材质渲染程序类
@@ -270,7 +270,8 @@
 		
         override public function activate(context:Context3D, camera:Camera3D):void
 		{
-			context.setProgram(this.m_program3D.getProgram3D(context));
+			context.setProgram(this.m_program3D.getProgram3D(context));	
+			
             var tIdx:uint;
             var idx:uint;
             while (idx < this.m_program3D.getSampleRegisterCount()) 
@@ -292,7 +293,7 @@
             this.m_program3D.setParamNumberVector(DeltaXProgram3D.TEXTUREMATRIX, MathUtl.IDENTITY_TWO_LAYER_TEXTURE_MATRIX_DATA);
 			context.setBlendFactors(this.skinnedMeshMaterial.srcBlendFactor, this.skinnedMeshMaterial.desBlendFactor);
 			context.setCulling(this.skinnedMeshMaterial.cullMode);
-			context.setDepthTest(this.skinnedMeshMaterial.depthWrite, this.skinnedMeshMaterial.depthCompareMode);
+			context.setDepthTest(this.skinnedMeshMaterial.depthWrite, this.skinnedMeshMaterial.depthCompareMode);	
         }
 		
 		override public function render(renderable:IRenderable, context:Context3D, collector:DeltaXEntityCollector):void

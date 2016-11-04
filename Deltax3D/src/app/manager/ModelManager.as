@@ -12,7 +12,6 @@ package app.manager
 	import com.hmh.loaders.parsers.MD5MeshParser;
 	import com.hmh.loaders.parsers.Skeleton;
 	import com.hmh.loaders.parsers.SkeletonJoint;
-	import deltax.graphic.animation.skeleton.SkeletonPose;
 	import com.hmh.utils.ByteArrayUtil;
 	import com.hmh.utils.FileHelper;
 	
@@ -22,6 +21,7 @@ package app.manager
 	import deltax.common.resource.DependentRes;
 	import deltax.common.resource.Enviroment;
 	import deltax.graphic.animation.skeleton.JointPose;
+	import deltax.graphic.animation.skeleton.SkeletonPose;
 	import deltax.graphic.effect.render.Effect;
 	import deltax.graphic.map.MetaScene;
 	import deltax.graphic.model.AniSequenceHeaderInfo;
@@ -35,6 +35,7 @@ package app.manager
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.filesystem.File;
+	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
 	import flash.utils.ByteArray;
 	import flash.utils.Dictionary;
@@ -510,12 +511,19 @@ package app.manager
 			data.writeUnsignedInt(md5animParser._numJoints);
 			var skeletonPose:SkeletonPose;
 			var jointPose:JointPose;
+			var mat:Matrix3D;
 			for(var i:int = 0;i<md5animParser._numFrames;++i)
 			{
 				skeletonPose = md5animParser._clip[i];
 				for(var j:int = 0;j<skeletonPose.numJointPoses;++j)
 				{
 					jointPose = skeletonPose.jointPoses[j]
+					mat = jointPose.orientation.toMatrix3D();
+					mat.appendTranslation(jointPose.translation.x,jointPose.translation.y,jointPose.translation.z);
+//					for(var k:uint = 0;k<16;k++)
+//					{
+//						data.writeFloat(mat.rawData[k]);
+//					}
 					data.writeFloat(jointPose.translation.x);
 					data.writeFloat(jointPose.translation.y);
 					data.writeFloat(jointPose.translation.z);
