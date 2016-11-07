@@ -1,6 +1,5 @@
 ﻿package deltax.graphic.effect.data.unit 
 {
-    import flash.filesystem.File;
     import flash.geom.Vector3D;
     import flash.utils.ByteArray;
     import flash.utils.Dictionary;
@@ -444,7 +443,7 @@
 							throw new Error("textureName is not null!!!!!!!!!!!!!");
 						}else
 						{
-							var resFileName:String = tempTextureName.toLocaleLowerCase().replace(/\\/g,"/").replace(new File(Enviroment.ResourceRootPath).nativePath.toLocaleLowerCase().replace(/\\/g,"/") + "/","");
+							var resFileName:String = tempTextureName.toLocaleLowerCase().replace(/\\/g,"/");//.replace(new File(Enviroment.ResourceRootPath).nativePath.toLocaleLowerCase().replace(/\\/g,"/") + "/","");
 							var resFileIndex:int = dependentRes.m_resFileNames.indexOf(resFileName);
 							if(resFileIndex == -1)
 							{

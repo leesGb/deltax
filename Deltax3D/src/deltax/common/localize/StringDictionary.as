@@ -1,12 +1,15 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common.localize {
-    import deltax.common.*;
-    import __AS3__.vec.*;
-    import flash.utils.*;
-    import flash.net.*;
-    import deltax.common.respackage.loader.*;
-    import deltax.common.respackage.common.*;
-    import com.stimuli.string.*;
+﻿package deltax.common.localize 
+{
+    import com.utils.printf;
+    
+    import flash.net.URLLoaderDataFormat;
+    import flash.utils.ByteArray;
+    import flash.utils.Dictionary;
+    
+    import deltax.common.LittleEndianByteArray;
+    import deltax.common.TableFile;
+    import deltax.common.respackage.common.LoaderCommon;
+    import deltax.common.respackage.loader.LoaderManager;
 
     public class StringDictionary {
 
@@ -153,7 +156,7 @@ package deltax.common.localize {
     }
 }//package deltax.common.localize 
 
-import flash.utils.*;
+import flash.utils.Dictionary;
 
 class FileNameRowNumPair {
 

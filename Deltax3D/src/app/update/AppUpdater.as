@@ -22,7 +22,6 @@ package app.update
 	
 	import spark.components.WindowedApplication;
 	
-	import app.config.AppConfig;
 	import app.update.event.AppUpdateEvent;
 	
 	

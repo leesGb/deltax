@@ -1,7 +1,7 @@
 ﻿package deltax.graphic.model 
 {
-	import com.hmh.loaders.parsers.BJSkeletonGroupParser;
-	import com.hmh.loaders.parsers.SkeletonJoint;
+	import com.md5.BJSkeletonGroupParser;
+	import com.md5.SkeletonJoint;
 	
 	import deltax.common.Constants;
 	import deltax.common.Util;

@@ -1,6 +1,6 @@
 ﻿package deltax.graphic.model 
 {
-    import com.hmh.loaders.parsers.AbstMeshParser;
+    import com.md5.AbstMeshParser;
     
     import deltax.common.Util;
     import deltax.common.error.Exception;

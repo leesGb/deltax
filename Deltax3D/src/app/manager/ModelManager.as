@@ -1,5 +1,22 @@
 package app.manager 
 {
+	import com.md5.MD5AnimParser;
+	import com.md5.MD5MeshParser;
+	import com.md5.Skeleton;
+	import com.md5.SkeletonJoint;
+	import com.utils.ByteArrayUtil;
+	
+	import flash.events.Event;
+	import flash.events.EventDispatcher;
+	import flash.filesystem.File;
+	import flash.geom.Matrix3D;
+	import flash.geom.Vector3D;
+	import flash.utils.ByteArray;
+	import flash.utils.Dictionary;
+	import flash.utils.Endian;
+	
+	import mx.controls.Alert;
+	
 	import app.equipment.DressingRoom;
 	import app.equipment.EquipClassType;
 	import app.equipment.EquipItemParam;
@@ -7,13 +24,7 @@ package app.manager
 	import app.equipment.Equipment;
 	import app.equipment.EquipmentPart;
 	import app.equipment.EquipsInUse;
-	
-	import com.hmh.loaders.parsers.MD5AnimParser;
-	import com.hmh.loaders.parsers.MD5MeshParser;
-	import com.hmh.loaders.parsers.Skeleton;
-	import com.hmh.loaders.parsers.SkeletonJoint;
-	import com.hmh.utils.ByteArrayUtil;
-	import com.hmh.utils.FileHelper;
+	import app.utils.FileHelper;
 	
 	import deltax.appframe.BaseApplication;
 	import deltax.appframe.SceneGrid;
@@ -31,17 +42,6 @@ package app.manager
 	import deltax.graphic.scenegraph.object.ObjectContainer3D;
 	import deltax.graphic.scenegraph.object.RenderObject;
 	import deltax.graphic.scenegraph.object.RenderScene;
-	
-	import flash.events.Event;
-	import flash.events.EventDispatcher;
-	import flash.filesystem.File;
-	import flash.geom.Matrix3D;
-	import flash.geom.Vector3D;
-	import flash.utils.ByteArray;
-	import flash.utils.Dictionary;
-	import flash.utils.Endian;
-	
-	import mx.controls.Alert;
 
 	/**
 	 * 模型管理器

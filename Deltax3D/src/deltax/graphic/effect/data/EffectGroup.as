@@ -1,6 +1,5 @@
 ﻿package deltax.graphic.effect.data 
 {
-    import flash.filesystem.File;
     import flash.net.URLLoaderDataFormat;
     import flash.utils.ByteArray;
     
@@ -8,7 +7,6 @@
     import deltax.common.error.Exception;
     import deltax.common.resource.CommonFileHeader;
     import deltax.common.resource.DependentRes;
-    import deltax.common.resource.Enviroment;
     import deltax.graphic.effect.data.unit.EffectUnitData;
     import deltax.graphic.effect.render.Effect;
     import deltax.graphic.manager.IResource;
@@ -139,7 +137,7 @@
 						if(textureUrl)
 						{
 							var tempTextureName:String = textureUrl;
-							var resFileName:String = tempTextureName.toLocaleLowerCase().replace(/\\/g,"/").replace(new File(Enviroment.ResourceRootPath).nativePath.toLocaleLowerCase().replace(/\\/g,"/") + "/","");							
+							var resFileName:String = tempTextureName.toLocaleLowerCase().replace(/\\/g,"/");//.replace(new File(Enviroment.ResourceRootPath).nativePath.toLocaleLowerCase().replace(/\\/g,"/") + "/","");							
 							textureUrl = resFileName;
 							if(textureDependRes && textureDependRes.m_resFileNames.indexOf(textureUrl) == -1)
 							{

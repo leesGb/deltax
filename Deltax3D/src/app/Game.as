@@ -1,6 +1,6 @@
 ﻿package app
 {
-	import com.hmh.utils.FpsUtil;
+	import com.utils.FpsUtil;
 	
 	import flash.display.DisplayObjectContainer;
 	import flash.display.Sprite;

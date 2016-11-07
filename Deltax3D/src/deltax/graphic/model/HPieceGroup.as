@@ -1,9 +1,8 @@
 package deltax.graphic.model 
 {
-	import com.hmh.loaders.parsers.BJMeshParser;
-	import com.hmh.loaders.parsers.MD5MeshParser;
-	import com.hmh.loaders.parsers.OgreMeshParser;
-	import com.hmh.loaders.parsers.SubGeometryVo;
+	import com.md5.BJMeshParser;
+	import com.md5.MD5MeshParser;
+	import com.md5.SubGeometryVo;
 	
 	import flash.events.Event;
 	import flash.geom.Rectangle;
@@ -72,9 +71,9 @@ package deltax.graphic.model
 					ba.position = 0;					
 					if(name.indexOf("ogre") != -1)
 					{
-						meshParser = new OgreMeshParser();
-						meshParser.addEventListener(Event.COMPLETE, __parserCompleteHandler);
-						meshParser.parseAsync(ba);					
+//						meshParser = new OgreMeshParser();
+//						meshParser.addEventListener(Event.COMPLETE, __parserCompleteHandler);
+//						meshParser.parseAsync(ba);					
 					}else
 					{
 						var str:String = ba.readMultiByte(ba.length, "cn-gb");

@@ -1,6 +1,6 @@
 ﻿package deltax.common.localize
 {
-	import com.stimuli.string.printf;
+	import com.utils.printf;
 	
 	import deltax.delta;
 	

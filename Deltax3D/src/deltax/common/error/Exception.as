@@ -1,6 +1,6 @@
 ﻿package deltax.common.error 
 {
-    import com.stimuli.string.printf;
+    import com.utils.printf;
     
     import flash.net.URLRequest;
     import flash.net.URLRequestMethod;

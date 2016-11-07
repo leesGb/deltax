@@ -1,9 +1,9 @@
 package app.update.event
 {
-	import app.config.AppConfig;
-	
 	import flash.events.Event;
 	import flash.filesystem.File;
+	
+	import app.update.AppConfig;
 	
 	public class AppUpdateEvent extends Event
 	{
