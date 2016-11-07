@@ -13,8 +13,6 @@
         private static var m_emptyBitmapResource:BitmapDataResource2D;
 
         private var m_bitmapData:BitmapData;
-		[Embed(source = "../../../DefaultTexture.jpg" )]  
-		private static const DefaultTextureBmd:Class; 
 		
         public function BitmapDataResource2D(_arg1:BitmapData=null, _arg2:String=null)
 		{

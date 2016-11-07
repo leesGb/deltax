@@ -1,13 +1,10 @@
 package com.md5
 {
-	import deltax.common.math.Quaternion;
-	import deltax.graphic.animation.skeleton.JointPose;
-	
 	import flash.events.Event;
-	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
 	
-	import mx.utils.object_proxy;
+	import deltax.common.math.Quaternion;
+	import deltax.graphic.animation.skeleton.JointPose;
 	import deltax.graphic.animation.skeleton.SkeletonPose;
 	
 	// todo: create animation system, parse skeleton
@@ -599,7 +596,6 @@ package com.md5
 }
 
 import flash.geom.Vector3D;
-
 
 import deltax.common.math.Quaternion;
 

@@ -17,7 +17,6 @@
     import deltax.graphic.effect.EffectManager;
     import deltax.graphic.effect.EffectSystemListener;
     import deltax.graphic.event.Context3DEvent;
-    import deltax.graphic.light.LightBase;
     import deltax.graphic.manager.DeltaXSubGeometryManager;
     import deltax.graphic.manager.DeltaXTextureManager;
     import deltax.graphic.manager.OcclusionManager;

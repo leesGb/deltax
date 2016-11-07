@@ -2587,6 +2587,11 @@
 					return;
 				}
 				
+				if(res.type == ResourceType.SKELETON_GROUP)
+				{
+					return;
+				}
+				
 				var ans:AnimationGroup = res as AnimationGroup;
 				if (!this.m_aniGroup)
 				{

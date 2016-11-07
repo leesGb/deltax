@@ -20,8 +20,6 @@
         private var m_width:uint;
         private var m_height:uint;
         private var m_mergeRect:Rectangle;
-		[Embed(source = "../../../DefaultTexture.jpg" )]  
-		private static const DefaultTextureBmd:Class;  
 		
         public function BitmapDataResource3D(_arg1:String=null)
 		{
