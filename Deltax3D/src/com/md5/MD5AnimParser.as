@@ -42,7 +42,7 @@ package com.md5
 		public var _numJoints : int;
 		private var _numAnimatedComponents : int;
 		
-		private var _hierarchy : Vector.<HierarchyData>;
+		public var _hierarchy : Vector.<HierarchyData>;
 		private var _bounds : Vector.<BoundsData>;
 		private var _frameData : Vector.<FrameData>;
 		public var _baseFrameData : Vector.<BaseFrameData>;

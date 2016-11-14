@@ -10,6 +10,10 @@ package deltax.graphic.animation.skeleton
 		/**关节姿势列表*/
 		public var jointPoses : Vector.<JointPose>;
 		
+		public var frameMatList:Vector.<Number>;
+		
+		public var frameAndLocalMatList:Vector.<Number>;
+		
 		public function SkeletonPose()
 		{
 			jointPoses = new Vector.<JointPose>();

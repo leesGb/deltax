@@ -1,6 +1,6 @@
 ﻿package deltax.graphic.model 
 {
-	import deltax.graphic.animation.skeleton.SkeletonPose;
+	import com.md5.Skeleton;
 	
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
@@ -13,6 +13,7 @@
 	import deltax.common.math.Quaternion;
 	import deltax.common.resource.CommonFileHeader;
 	import deltax.graphic.animation.skeleton.JointPose;
+	import deltax.graphic.animation.skeleton.SkeletonPose;
 	import deltax.graphic.manager.IResource;
 	import deltax.graphic.manager.ResourceManager;
 	import deltax.graphic.manager.ResourceType;
@@ -113,17 +114,33 @@
 			var jointsNum:uint = data.readUnsignedInt();
 			this.mm_frames = new Vector.<SkeletonPose>();
 			var skeletonPose:SkeletonPose;
-			var jointPose:JointPose;			
+			var jointPose:JointPose;		
+			var matrixNumCount:uint =  jointsNum * 16;
+			var matrixList:Vector.<Number>;
 			for(var i:int = 0;i<frameNum;++i)
 			{
 				skeletonPose = new SkeletonPose();
-				for(var j:int = 0;j<jointsNum;++j)
+				matrixList = new Vector.<Number>(matrixNumCount);
+				for(var j:uint = 0;j<matrixNumCount;j++)
 				{
-					jointPose = new JointPose();
-					jointPose.translation = new Vector3D(data.readFloat(),data.readFloat(),data.readFloat());
-					jointPose.orientation = new Quaternion(data.readFloat(),data.readFloat(),data.readFloat(),data.readFloat());
-					skeletonPose.jointPoses.push(jointPose);
+					matrixList[j] = data.readFloat();
 				}
+				
+				skeletonPose.frameMatList = matrixList;
+//				for(var j:int = 0;j<jointsNum;++j)
+//				{
+//					jointPose = new JointPose();
+//					jointPose.poseMat = new Matrix3D();
+//					var rawData:Vector.<Number> = new Vector.<Number>();
+//					for(var m:uint = 0;m<16;m++)
+//					{
+//						rawData[m] = data.readFloat();
+//					}
+//					jointPose.poseMat.copyRawDataFrom(rawData);
+////					jointPose.translation = new Vector3D(data.readFloat(),data.readFloat(),data.readFloat());
+////					jointPose.orientation = new Quaternion(data.readFloat(),data.readFloat(),data.readFloat(),data.readFloat());
+//					skeletonPose.jointPoses.push(jointPose);
+//				}
 				this.mm_frames.push(skeletonPose);
 			}
 			
@@ -195,11 +212,34 @@
 			}
 			
 			var jointPose:JointPose = mm_frames[frame].jointPoses[skeletalID];
+			if(jointPose.poseMat)
+			{
+				mat.copyRawDataFrom(jointPose.poseMat.rawData);
+				return 1;
+			}
+			
 			var poseMat:Matrix3D = jointPose.orientation.toMatrix3D();
 			poseMat.appendTranslation(jointPose.translation.x,jointPose.translation.y,jointPose.translation.z);
+			jointPose.poseMat = poseMat;
 			mat.copyRawDataFrom(poseMat.rawData);
+			
 			return 1;	
         }
+		
+		public function fillSkeletonMatrix2(frame:uint, skeletalID:uint, mat:Matrix3D,mat2:Matrix3D):Number
+		{
+			if(mm_frames == null)
+			{
+				throw new Error("animation fillSkeletonPose error:"+"id::"+skeletalID,"name::"+this.name);
+				return 1;
+			}
+			
+			var rawData:Vector.<Number> = mm_frames[frame].frameMatList.slice(skeletalID*16,skeletalID*16+16);
+			mat.copyRawDataFrom(rawData);
+			mat.append(mat2);
+			
+			return 1;
+		}
 		
 		//=======================================================================================================================
 		//=======================================================================================================================
@@ -281,6 +321,11 @@
 		public function dispose():void
 		{
 			this.m_frameStrings = null;
+			
+			for each (var sk:Skeleton in mm_frames)
+			{
+				//
+			}
 		}
         
 		

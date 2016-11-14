@@ -160,6 +160,7 @@
 			if (this.m_curRenderingMesh)
 			{
 				this.calcSkeletalMatrices(mat);
+				this.m_curRenderingMesh.onSkeletonUpdated();
 			}
 			_stateInvalid = false;
 		}
@@ -246,14 +247,10 @@
 						node = m_ainimateStack[(curSkeletalIndex - 1)];
 					}
 					m_ainimateStack[curSkeletalIndex] = node;
-					this.calcCurrentSkeletal(node, skeletalID, m_curSkeletalMatrice[pSkeletalID]);
+//					this.calcCurrentSkeletal(node, skeletalID, m_curSkeletalMatrice[pSkeletalID]);
+					this.calcCurrentSkeletal(node, skeletalID, mat);
 				}
 				i++;
-			}
-			
-			if (this.m_curRenderingMesh)
-			{
-				this.m_curRenderingMesh.onSkeletonUpdated();
 			}
 			
 			count = m_ainimateStack.length;
@@ -299,20 +296,24 @@
 				if(animationNode)
 				{
 					frame = uint(animationNode.m_frameOrWeight);//第几帧
-					animationNode.m_animation.fillSkeletonMatrix(frame, skeletalID, curSkeletalMat);		
+					animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, curSkeletalMat,mat);		
 				}
 				
-				curSkeletalMat.append(mat);
+//				curSkeletalMat.append(mat);
 				curSkeletalMat.copyRawDataTo(this.m_skeletalRelativeToView, matDataIndex);
 				curSkeletalMat.copyRawDataTo(this.m_skeletalGlobalMatrices, matDataIndex, true);
 				return;
 			}
 			
 			curSkeletalMat = m_curSkeletalMatrice[skeletalID];//本骨骼的矩阵
+			if(animationNode.m_frameOrWeight<0)
+			{
+				animationNode.m_frameOrWeight = 0;
+			}
 			if (animationNode.m_frameOrWeight >= 0)
 			{
 				frame = uint(animationNode.m_frameOrWeight);//第几帧
-				scale = animationNode.m_animation.fillSkeletonMatrix(frame, skeletalID, curSkeletalMat);
+				scale = animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, curSkeletalMat,mat);
 			} else 
 			{
 				pSkeletalID = skeletalID * 8;
@@ -343,7 +344,7 @@
 				curSkeletalMat.appendTranslation(translation.x, translation.y, translation.z);
 			}
 			
-			var matTemp:Matrix3D = MathUtl.TEMP_MATRIX3D;
+			var matTemp:Matrix3D = new Matrix3D();//MathUtl.TEMP_MATRIX3D;
 			if (figureUnit)
 			{
 				translation = figureUnit.m_offset;
@@ -356,9 +357,9 @@
 				matTemp.prependScale(figureScale.x, figureScale.y, figureScale.z);
 			} else 
 			{
-				curSkeletalMat.append(mat);
+//				curSkeletalMat.append(mat);
 				matTemp.copyFrom(curSkeletalMat);
-				matTemp.prependScale(scale, scale, scale);
+//				matTemp.prependScale(scale, scale, scale);
 			}
 			matTemp.copyRawDataTo(this.m_skeletalRelativeToView, matDataIndex, false);
 			matTemp.prepend(this.m_animationGroup.m_gammaSkeletals[skeletalID].m_inverseBindPose);

@@ -171,7 +171,9 @@
         public function toString():String{
             return ((((((((("{x:" + this.x) + " y:") + this.y) + " z:") + this.z) + " w:") + this.w) + "}"));
         }
-        public function toMatrix3D(_arg1:Matrix3D=null):Matrix3D{
+		
+        public function toMatrix3D(_arg1:Matrix3D=null):Matrix3D
+		{
             var _local2:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
             var _local3:Number = (this.x + this.x);
             var _local4:Number = (this.y + this.y);
@@ -201,12 +203,14 @@
             _local2[13] = 0;
             _local2[14] = 0;
             _local2[15] = 1;
-            if (!_arg1){
+            if (!_arg1)
+			{
                 return (new Matrix3D(_local2));
-            };
+            }
             _arg1.copyRawDataFrom(_local2);
             return (_arg1);
         }
+		
         public function fromMatrix(_arg1:Matrix3D):void{
             var _local2:Vector3D = _arg1.decompose(Orientation3D.QUATERNION)[1];
             this.x = _local2.x;

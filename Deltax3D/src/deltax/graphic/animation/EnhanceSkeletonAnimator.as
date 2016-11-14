@@ -107,7 +107,7 @@
             var skeletonAnimationNode:EnhanceSkeletonAnimationNode = EnhanceSkeletonAnimationNode(skeletonList[skeletalId]);
             if (delayTime > 0 && skeletonAnimationNode.m_animation)
 			{
-				animationState.initBlendInfo(skeletalId, skeletonAnimationNode.m_animation, skeletonAnimationNode.curFrame);
+//				animationState.initBlendInfo(skeletalId, skeletonAnimationNode.m_animation, skeletonAnimationNode.curFrame);
             }
 			
 			skeletonAnimationNode.setAnimationInfo(animation, aniPlayType, initFrame, startFrame, endFrame, delayTime);
