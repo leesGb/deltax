@@ -203,26 +203,184 @@
             return this.m_boneIndexIndex;
         }
 		
+		public function get vertexStride():uint
+		{
+			return (this.m_totalInputSize >> 2);
+		}
+		
 		/**
-		 * 创建着色器
-		 * @param byte
-		 * @param uintMax
-		 * @param deltaxAssembler
+		 * 
+		 * @param pIdx
 		 * @return 
 		 */		
-        public function buildDeltaXProgram3D(byte:ByteArray,deltaxAssembler:DeltaXAssembler = null):Boolean
+		public function getVertexParamRegisterStartIndex(pIdx:int):int
 		{
-            var agalStr:String;
-            var position:uint = byte.position;
-            var sign:uint = byte.readUnsignedInt();
-            var assem:DeltaXAssembler = (deltaxAssembler||new DeltaXAssembler());
-            if (sign != 1685283328)
+			if (pIdx < 0 || pIdx >= PARAM_COUNT)
 			{
-            } else
+				return -1;
+			}
+			
+			var index:int = this.m_vertexParamIndex[pIdx];
+			if (index < 0)
 			{
-				assem.load(byte);
-			} 
-			//
+				return -1;
+			}
+			
+			return this.m_vertexConstRegister[index].index;
+		}
+		
+		/**
+		 * 
+		 * @param paramIndex
+		 * @return 
+		 */		
+		public function getFragmentParamRegisterStartIndex(paramIndex:int):int
+		{
+			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
+			{
+				return (-1);
+			}
+			var index:int = this.m_fragmentParamIndex[paramIndex];
+			if (index < 0)
+			{
+				return (-1);	
+			}
+			return (this.m_fragmentConstRegister[index].index);
+		}
+		
+		/**
+		 * 
+		 * @param paramIndex
+		 * @return 
+		 */		
+		public function getVertexParamRegisterCount(paramIndex:int):int
+		{
+			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
+			{
+				return (-1);
+			}
+			var index:int = this.m_vertexParamIndex[paramIndex];
+			if (index < 0)
+			{
+				return (-1);
+			}
+			return (this.m_vertexConstRegister[index].count);
+		}
+		
+		/**
+		 * 
+		 * @param paramIndex
+		 * @return 
+		 */		
+		public function getFragmentParamRegisterCount(paramIndex:int):int
+		{
+			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
+			{
+				return (-1);
+			}
+			var index:int = this.m_fragmentParamIndex[paramIndex];
+			if (index < 0)
+			{
+				return (-1);
+			}
+			return (this.m_fragmentConstRegister[index].count);
+		}
+		
+		/**
+		 * 
+		 * @param paramIndex
+		 * @return 
+		 */		
+		public function getParamRegisterCount(paramIndex:int):uint
+		{
+			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
+			{
+				return (0);
+			}
+			
+			if (this.m_vertexParamIndex[paramIndex] >= 0)
+			{
+				return (this.m_vertexConstRegister[this.m_vertexParamIndex[paramIndex]].count);
+			}
+			
+			return (0);
+		}
+		
+		/**
+		 * 
+		 * @return 
+		 */		
+		public function getVertexParamCache():Vector.<Number>
+		{
+			return this.m_vertexConstCache;
+		}
+		
+		/**
+		 * 
+		 * @return 
+		 */		
+		public function getFragmentParamCache():Vector.<Number>
+		{
+			return (this.m_fragmentConstCache);
+		}
+		
+		/**
+		 * 
+		 * @return 
+		 */		
+		public function getSampleRegisterCount():uint
+		{
+			return (this.m_fragmentSampleRegister.length);
+		}
+		
+		private function getVertexConstRegisterByName(name:String):DeltaXShaderRegister
+		{
+			var idx:uint;
+			var count:uint = this.m_vertexConstRegister.length;
+			while (idx < count)
+			{
+				if (this.m_vertexConstRegister[idx].name == name)
+				{
+					return this.m_vertexConstRegister[idx];
+				}
+				idx++;
+			}
+			
+			return null;
+		}
+		
+		private function getFragmentConstRegisterByName(name:String):DeltaXShaderRegister
+		{
+			var idx:uint;
+			var count:uint = this.m_fragmentConstRegister.length;
+			while (idx < count) 
+			{
+				if (this.m_fragmentConstRegister[idx].name == name)
+				{
+					return this.m_fragmentConstRegister[idx];
+				}
+				idx++;
+			}
+			
+			return null;
+		}
+		
+		/**
+		 * 创建着色器
+		 * @param byte				字节数据
+		 * @return 
+		 */		
+        public function buildDeltaXProgram3D(byte:ByteArray):Boolean
+		{
+            if (byte.readUnsignedInt() != 1685283328)
+			{
+				throw new Error("Program code parse error!!!");
+				return;
+            }
+			
+			var assem:DeltaXAssembler = new DeltaXAssembler();			
+			assem.load(byte);
+			
             if (this.m_program3D) 
 			{
 				this.dispose();	
@@ -236,13 +394,18 @@
             this.m_fragmentSampleRegister = new Vector.<DeltaXShaderRegister>();
 			
 			var idx:uint = 0;
-            while (idx < assem.getFragmentRegister(DeltaXAssembler.SAMPLE).length) 
+			var count:uint = assem.getFragmentRegister(DeltaXAssembler.SAMPLE).length;
+			var shaderReg:DeltaXShaderRegister;
+			var sgIdx:int;
+            while (idx < count) 
 			{
-                if (assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[idx].index >= this.m_fragmentSampleRegister.length)
+				shaderReg = assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[idx];
+				sgIdx = shaderReg.index;
+                if (sgIdx >= this.m_fragmentSampleRegister.length)
 				{
-                    this.m_fragmentSampleRegister.length = (assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[idx].index + 1);
+                    this.m_fragmentSampleRegister.length = sgIdx + 1;
                 }
-                this.m_fragmentSampleRegister[assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[idx].index] = assem.getFragmentRegister(DeltaXAssembler.SAMPLE)[idx];
+                this.m_fragmentSampleRegister[sgIdx] = shaderReg;
 				idx++;
             }
 			
@@ -460,7 +623,6 @@
 		 */		
 		public function setParamMatrix(idx:int, mat:Matrix3D, transpose:Boolean=false):void
 		{
-			
 			if (idx < 0 || idx >= PARAM_COUNT)
 			{
 				return;
@@ -952,132 +1114,7 @@
 				this.m_pointLightRegisterCount = -1;
 			};
 		}
-		/**
-		 * 
-		 * @param name
-		 * @return 
-		 */		
-		private function getVertexConstRegisterByName(name:String):DeltaXShaderRegister
-		{
-			var len:uint = this.m_vertexConstRegister.length;
-			var index:uint;
-			while (index < len)
-			{
-				if (this.m_vertexConstRegister[index].name == name)
-					return (this.m_vertexConstRegister[index]);
-				index++;
-			};
-			return (null);
-		}
-		/**
-		 * 
-		 * @param name
-		 * @return 
-		 */		
-		private function getFragmentConstRegisterByName(name:String):DeltaXShaderRegister
-		{
-			var len:uint = this.m_fragmentConstRegister.length;
-			var index:uint;
-			while (index < len) {
-				if (this.m_fragmentConstRegister[index].name == name)
-					return (this.m_fragmentConstRegister[index]);
-				index++;
-			};
-			return (null);
-		}
-		/**
-		 * 
-		 * @param paramIndex
-		 * @return 
-		 */		
-		public function getParamRegisterCount(paramIndex:int):uint
-		{
-			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
-				return (0);
-			if (this.m_vertexParamIndex[paramIndex] >= 0)
-				return (this.m_vertexConstRegister[this.m_vertexParamIndex[paramIndex]].count);
-			return (0);
-		}
-		/**
-		 * 
-		 * @return 
-		 */		
-		public function getSampleRegisterCount():uint
-		{
-			return (this.m_fragmentSampleRegister.length);
-		}
-		/**
-		 * 
-		 * @param paramIndex
-		 * @return 
-		 */		
-		public function getVertexParamRegisterStartIndex(paramIndex:int):int
-		{
-			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
-				return (-1);
-			var index:int = this.m_vertexParamIndex[paramIndex];
-			if (index < 0)
-				return (-1);
-			return (this.m_vertexConstRegister[index].index);
-		}
-		/**
-		 * 
-		 * @param paramIndex
-		 * @return 
-		 */		
-		public function getVertexParamRegisterCount(paramIndex:int):int
-		{
-			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
-				return (-1);
-			var index:int = this.m_vertexParamIndex[paramIndex];
-			if (index < 0)
-				return (-1);
-			return (this.m_vertexConstRegister[index].count);
-		}
-		/**
-		 * 
-		 * @return 
-		 */		
-		public function getVertexParamCache():Vector.<Number>
-		{
-			return (this.m_vertexConstCache);
-		}
-		/**
-		 * 
-		 * @return 
-		 */		
-		public function getFragmentParamCache():Vector.<Number>
-		{
-			return (this.m_fragmentConstCache);
-		}
-		/**
-		 * 
-		 * @param paramIndex
-		 * @return 
-		 */		
-		public function getFragmentParamRegisterStartIndex(paramIndex:int):int
-		{
-			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
-				return (-1);
-			var index:int = this.m_fragmentParamIndex[paramIndex];
-			if (index < 0)
-				return (-1);
-			return (this.m_fragmentConstRegister[index].index);
-		}
-		/**
-		 * 
-		 * @param paramIndex
-		 * @return 
-		 */		
-		public function getFragmentParamRegisterCount(paramIndex:int):int
-		{
-			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
-				return (-1);
-			var index:int = this.m_fragmentParamIndex[paramIndex];
-			if (index < 0)
-				return (-1);
-			return (this.m_fragmentConstRegister[index].count);
-		}
+		
 		/**
 		 * 
 		 * @param name
@@ -1088,8 +1125,11 @@
 		{
 			var shaderR:DeltaXShaderRegister = this.getVertexConstRegisterByName(name);
 			if (shaderR != null)
+			{
 				this.setCacheMatrix(this.m_vertexConstCache, shaderR.index, shaderR.count, matrix3D, isTranspose);
+			}
 		}
+		
 		/**
 		 * 
 		 * @param name
@@ -1099,8 +1139,11 @@
 		{
 			var shaderR:DeltaXShaderRegister = this.getVertexConstRegisterByName(name);
 			if (shaderR != null)
+			{
 				this.setCacheVector(this.m_vertexConstCache, shaderR.index, shaderR.count, value);
+			}
 		}
+		
 		/**
 		 * 
 		 * @param name
@@ -1111,8 +1154,11 @@
 		{
 			var shaderR:DeltaXShaderRegister = this.getFragmentConstRegisterByName(name);
 			if (shaderR != null)
+			{
 				this.setCacheMatrix(this.m_fragmentConstCache, shaderR.index, shaderR.count, matrix3D, isTranspose);
+			}
 		}
+		
 		/**
 		 * 
 		 * @param name
@@ -1122,8 +1168,11 @@
 		{
 			var shaderR:DeltaXShaderRegister = this.getFragmentConstRegisterByName(name);
 			if (shaderR != null)
+			{
 				this.setCacheVector(this.m_fragmentConstCache, shaderR.index, shaderR.count, value);
+			}
 		}
+		
 		/**
 		 * 
 		 * @param entity
@@ -1314,6 +1363,7 @@
 				index++;
             }
         }
+		
         public function deactivate(context3D:Context3D):void
 		{
             var len:uint = this.m_vertexInputRegister.length;
@@ -1389,10 +1439,6 @@
 			}
         }
 		
-        public function get vertexStride():uint
-		{
-            return ((this.m_totalInputSize >> 2));
-        }
         public function addVertexToByteArray(data:ByteArray, posX:Number, posY:Number, posZ:Number, colorV:uint, norX:Number, norY:Number, norZ:Number, uvX:Number, uvY:Number):void
 		{
             var position:int = data.position;
@@ -1423,6 +1469,7 @@
             }
             data.position = (position + this.m_totalInputSize);
         }
+		
         public function copyStateFromOther(program3D:DeltaXProgram3D, context3D:Context3D):void
 		{
             var curIndex:int;
@@ -1447,6 +1494,7 @@
                 index++;
             }
         }
+		
         private function _copyVectorParams(index:int, paramIndexVec1:Vector.<int>, paramIndexVec2:Vector.<int>, shaderRVec1:Vector.<DeltaXShaderRegister>, shaderRVec2:Vector.<DeltaXShaderRegister>, cachVec1:Vector.<Number>, cachVec2:Vector.<Number>):void
 		{
             var shadedR1:DeltaXShaderRegister;
@@ -1476,6 +1524,7 @@
                 }
             }
         }
+		
 		public function buildPBProgram3D(_arg1:String, _arg2:String, _arg3:String):Boolean
 		{
 			var _local8:uint;
@@ -1528,5 +1577,7 @@
 			this.buildStandarInfo();
 			return (true);
 		}
+		
+		
     }
 }

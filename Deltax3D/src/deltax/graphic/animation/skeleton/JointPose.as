@@ -1,9 +1,9 @@
 ﻿package deltax.graphic.animation.skeleton 
 {
-    import deltax.common.math.Quaternion;
-    
     import flash.geom.Matrix3D;
     import flash.geom.Vector3D;
+    
+    import deltax.common.math.Quaternion;
 
 	/**
 	 * 关节姿势信息

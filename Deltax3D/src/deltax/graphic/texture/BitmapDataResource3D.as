@@ -1,6 +1,5 @@
 ﻿package deltax.graphic.texture 
 {
-    import flash.display.Bitmap;
     import flash.display.BitmapData;
     import flash.geom.Rectangle;
     import flash.utils.ByteArray;
@@ -31,9 +30,9 @@
 		{
             if (!m_emptyBitmapResource)
 			{
-				var _local1:BitmapData;// = new BitmapData(32,32,false,0xfffffff);				
+				var _local1:BitmapData = new BitmapData(32,32,true,0xffdddddd);				
                 //_local1 = new BitmapData(32, 32, true, 0);
-                _local1 = (new DefaultTextureBmd() as Bitmap).bitmapData;
+//                _local1 = (new DefaultTextureBmd() as Bitmap).bitmapData;
 				m_emptyBitmapResource = new BitmapDataResource3D("default_bitmap_resource3D");
                 m_emptyBitmapResource.setBitmapData(_local1, _local1);
             }

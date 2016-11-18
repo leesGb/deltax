@@ -1,62 +1,62 @@
 ﻿package deltax.graphic.animation 
 {
-    import flash.display3D.Context3D;
-    import flash.geom.Matrix3D;
-    import flash.geom.Vector3D;
-    import flash.utils.ByteArray;
-    
-    import deltax.delta;
-    import deltax.common.math.MathUtl;
-    import deltax.common.math.Quaternion;
-    import deltax.common.pool.Matrix3DPool;
-    import deltax.graphic.animation.skeleton.SkeletonMask;
-    import deltax.graphic.model.Animation;
-    import deltax.graphic.model.AnimationGroup;
-    import deltax.graphic.model.FigureUnit;
-    import deltax.graphic.model.Skeletal;
-    import deltax.graphic.render.pass.MaterialPassBase;
-    import deltax.graphic.render.pass.SkinnedMeshPass;
-    import deltax.graphic.scenegraph.object.IRenderable;
-    import deltax.graphic.scenegraph.object.RenderObject;
-    import deltax.graphic.scenegraph.object.SubGeometry;
-    import deltax.graphic.scenegraph.object.SubMesh;
-    import deltax.graphic.shader.DeltaXProgram3D;
-
+	import flash.display3D.Context3D;
+	import flash.geom.Matrix3D;
+	import flash.geom.Vector3D;
+	import flash.utils.ByteArray;
+	
+	import deltax.delta;
+	import deltax.common.math.MathUtl;
+	import deltax.common.math.Quaternion;
+	import deltax.common.pool.Matrix3DPool;
+	import deltax.graphic.animation.skeleton.SkeletonMask;
+	import deltax.graphic.model.Animation;
+	import deltax.graphic.model.AnimationGroup;
+	import deltax.graphic.model.FigureUnit;
+	import deltax.graphic.model.Skeletal;
+	import deltax.graphic.render.pass.MaterialPassBase;
+	import deltax.graphic.render.pass.SkinnedMeshPass;
+	import deltax.graphic.scenegraph.object.IRenderable;
+	import deltax.graphic.scenegraph.object.RenderObject;
+	import deltax.graphic.scenegraph.object.SubGeometry;
+	import deltax.graphic.scenegraph.object.SubMesh;
+	import deltax.graphic.shader.DeltaXProgram3D;
+	
 	/**
 	 * 蒙皮动画状态
 	 * @author lees
 	 * @date 2015/09/12
 	 */	
 	
-    public class EnhanceSkeletonAnimationState extends AnimationStateBase 
+	public class EnhanceSkeletonAnimationState extends AnimationStateBase 
 	{
-        private static const MAX_VERTEX_CONSTANT_REGISTER:Number = 128;
-
-        private static var m_ainimateStack:Vector.<EnhanceSkeletonAnimationNode> = new Vector.<EnhanceSkeletonAnimationNode>();
-        
+		private static const MAX_VERTEX_CONSTANT_REGISTER:Number = 128;
+		
+		private static var m_ainimateStack:Vector.<EnhanceSkeletonAnimationNode> = new Vector.<EnhanceSkeletonAnimationNode>();
+		
 		/**动作组数据*/
 		private var m_animationGroup:AnimationGroup;
 		/**动画关联的骨骼列表*/
-        private var m_animationOnSkeleton:Array;
+		private var m_animationOnSkeleton:Array;
 		/**当前帧*/
-        private var m_curFrame:uint = 0;
+		private var m_curFrame:uint = 0;
 		/**当前骨骼的帧列表*/
-        private var m_curSkeletonFrame:Vector.<uint>;
+		private var m_curSkeletonFrame:Vector.<uint>;
 		/**当前骨骼帧姿势列表*/
-        private var m_curSkeletonPose:Vector.<Number>;
+		private var m_curSkeletonPose:Vector.<Number>;
 		/**骨骼全局矩阵数据*/
-        private var m_skeletalGlobalMatrices:Vector.<Number>;
+		private var m_skeletalGlobalMatrices:Vector.<Number>;
 		/**关联到视图的骨骼矩阵数据*/
-        private var m_skeletalRelativeToView:Vector.<Number>;
+		private var m_skeletalRelativeToView:Vector.<Number>;
 		/**当前渲染对象*/
-        private var m_curRenderingMesh:RenderObject;
+		private var m_curRenderingMesh:RenderObject;
 		/**骨骼标识*/
-        private var m_skeletonMask:SkeletonMask;
+		private var m_skeletonMask:SkeletonMask;
 		/**当前骨骼矩阵列表*/
 		private var m_curSkeletalMatrice:Vector.<Matrix3D> = new Vector.<Matrix3D>();
 		/**世界视图的逆矩阵*/
 		private var m_worldViewInvertArr:Vector.<Matrix3D> = new Vector.<Matrix3D>();
-
+		
 		public function EnhanceSkeletonAnimationState(ans:AnimationGroup):void
 		{
 			this.m_skeletonMask = new SkeletonMask();
@@ -70,10 +70,10 @@
 		 * 获取动画用到的骨骼列表
 		 * @return 
 		 */		
-        public function get animationOnSkeleton():Array
+		public function get animationOnSkeleton():Array
 		{
-            return this.m_animationOnSkeleton;
-        }
+			return this.m_animationOnSkeleton;
+		}
 		
 		/**
 		 * 获取世界相机的逆矩阵
@@ -98,10 +98,10 @@
 		 * @param skeletalID
 		 * @return 
 		 */		
-        public function getSkeletonAnimationNode(skeletalID:uint):EnhanceSkeletonAnimationNode
+		public function getSkeletonAnimationNode(skeletalID:uint):EnhanceSkeletonAnimationNode
 		{
-            return EnhanceSkeletonAnimationNode(this.m_animationOnSkeleton[skeletalID]);
-        }
+			return EnhanceSkeletonAnimationNode(this.m_animationOnSkeleton[skeletalID]);
+		}
 		
 		/**
 		 * 更新骨骼标识
@@ -223,8 +223,8 @@
 			
 			this.m_curFrame++; //
 			m_ainimateStack[0] = this.getSkeletonAnimationNode(0);
+			//			trace("mmmmmm=====",mat.rawData);
 			this.calcCurrentSkeletal(m_ainimateStack[0], 0, mat);
-			
 			var skeletonInfoforCalculate:Vector.<uint> = this.m_animationGroup.skeletonInfoforCalculate;
 			var count:uint = skeletonInfoforCalculate.length;
 			var calculateSkeletonID:uint;
@@ -247,8 +247,14 @@
 						node = m_ainimateStack[(curSkeletalIndex - 1)];
 					}
 					m_ainimateStack[curSkeletalIndex] = node;
-//					this.calcCurrentSkeletal(node, skeletalID, m_curSkeletalMatrice[pSkeletalID]);
-					this.calcCurrentSkeletal(node, skeletalID, mat);
+					//					this.calcCurrentSkeletal(node, skeletalID, m_curSkeletalMatrice[pSkeletalID]);
+					if(node != null)
+					{
+						this.calcCurrentSkeletal(node, skeletalID, mat);	
+					}else
+					{
+						this.calcCurrentSkeletal(node, skeletalID, m_curSkeletalMatrice[pSkeletalID]);
+					}
 				}
 				i++;
 			}
@@ -270,9 +276,10 @@
 		 */		
 		private function calcCurrentSkeletal(animationNode:EnhanceSkeletonAnimationNode, skeletalID:uint, mat:Matrix3D):void 
 		{
+			//			trace("skeletalID::",skeletalID,"   parentMat::",mat.rawData);
 			var frame:uint;
 			var translation:Vector3D;
-			var scale:Number;
+			var scale:Number=1;
 			var pSkeletalID:uint;
 			var lastQua:Quaternion;
 			var qua:Quaternion;
@@ -296,24 +303,37 @@
 				if(animationNode)
 				{
 					frame = uint(animationNode.m_frameOrWeight);//第几帧
-					animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, curSkeletalMat,mat);		
+					//					animationNode.m_animation.fillSkeletonMatrix(frame, skeletalID, curSkeletalMat);
+					animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.m_skeletalGlobalMatrices,mat);
+				}else
+				{
+					curSkeletalMat.append(mat);
+					curSkeletalMat.copyRawDataTo(this.m_skeletalGlobalMatrices, matDataIndex, true);
 				}
 				
-//				curSkeletalMat.append(mat);
-				curSkeletalMat.copyRawDataTo(this.m_skeletalRelativeToView, matDataIndex);
-				curSkeletalMat.copyRawDataTo(this.m_skeletalGlobalMatrices, matDataIndex, true);
+				//				trace("frame::",frame,"    frameMat::",curSkeletalMat.rawData);
+				
+				//				curSkeletalMat.append(mat);
+				
+				//				trace("frameAndParentMat::",curSkeletalMat.rawData);
+				
+				//				curSkeletalMat.copyRawDataTo(this.m_skeletalRelativeToView, matDataIndex);
+				//				curSkeletalMat.copyRawDataTo(this.m_skeletalGlobalMatrices, matDataIndex, true);
 				return;
 			}
 			
 			curSkeletalMat = m_curSkeletalMatrice[skeletalID];//本骨骼的矩阵
-			if(animationNode.m_frameOrWeight<0)
+			
+			if(animationNode.m_frameOrWeight < 0)
 			{
 				animationNode.m_frameOrWeight = 0;
 			}
+			
 			if (animationNode.m_frameOrWeight >= 0)
 			{
 				frame = uint(animationNode.m_frameOrWeight);//第几帧
-				scale = animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, curSkeletalMat,mat);
+				//				scale = animationNode.m_animation.fillSkeletonMatrix(frame, skeletalID, curSkeletalMat);
+				scale = animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.m_skeletalGlobalMatrices,mat);
 			} else 
 			{
 				pSkeletalID = skeletalID * 8;
@@ -344,26 +364,31 @@
 				curSkeletalMat.appendTranslation(translation.x, translation.y, translation.z);
 			}
 			
-			var matTemp:Matrix3D = new Matrix3D();//MathUtl.TEMP_MATRIX3D;
-			if (figureUnit)
-			{
-				translation = figureUnit.m_offset;
-				curSkeletalMat.appendTranslation(translation.x, translation.y, translation.z);
-				curSkeletalMat.append(mat);// append parent 
-				matTemp.copyFrom(curSkeletalMat);
-				figureScale = MathUtl.TEMP_VECTOR3D;
-				figureScale.copyFrom(figureUnit.m_scale);
-				figureScale.scaleBy(scale);
-				matTemp.prependScale(figureScale.x, figureScale.y, figureScale.z);
-			} else 
-			{
-//				curSkeletalMat.append(mat);
-				matTemp.copyFrom(curSkeletalMat);
-//				matTemp.prependScale(scale, scale, scale);
-			}
-			matTemp.copyRawDataTo(this.m_skeletalRelativeToView, matDataIndex, false);
-			matTemp.prepend(this.m_animationGroup.m_gammaSkeletals[skeletalID].m_inverseBindPose);
-			matTemp.copyRawDataTo(this.m_skeletalGlobalMatrices, matDataIndex, true);
+			//			trace("frame::",frame,"    frameMat::",curSkeletalMat.rawData);
+			
+			//			var matTemp:Matrix3D = new Matrix3D();//MathUtl.TEMP_MATRIX3D;
+			//			if (figureUnit)
+			//			{
+			//				translation = figureUnit.m_offset;
+			//				curSkeletalMat.appendTranslation(translation.x, translation.y, translation.z);
+			//				curSkeletalMat.append(mat);// append parent 
+			//				matTemp.copyFrom(curSkeletalMat);
+			//				figureScale = MathUtl.TEMP_VECTOR3D;
+			//				figureScale.copyFrom(figureUnit.m_scale);
+			//				figureScale.scaleBy(scale);
+			//				matTemp.prependScale(figureScale.x, figureScale.y, figureScale.z);
+			//			} else 
+			//			{
+			//				curSkeletalMat.append(mat);
+			//				matTemp.copyFrom(curSkeletalMat);
+			//				matTemp.prependScale(scale, scale, scale);
+			//			}
+			
+			//			trace("frameAndParentMat::",curSkeletalMat.rawData);
+			
+			//			matTemp.copyRawDataTo(this.m_skeletalRelativeToView, matDataIndex, false);
+			//			matTemp.prepend(this.m_animationGroup.m_gammaSkeletals[skeletalID].m_inverseBindPose);
+			//			curSkeletalMat.copyRawDataTo(this.m_skeletalGlobalMatrices, matDataIndex, true);
 		}
 		
 		/**
@@ -494,10 +519,10 @@
 			}
 		}
 		
-        override public function clone():AnimationStateBase
+		override public function clone():AnimationStateBase
 		{
-            return new EnhanceSkeletonAnimationState(this.m_animationGroup);
-        }
+			return new EnhanceSkeletonAnimationState(this.m_animationGroup);
+		}
 		
 		override public function destory():void
 		{
@@ -540,9 +565,9 @@
 			//
 		}
 		
-        
 		
-        
-
-    }
+		
+		
+		
+	}
 }

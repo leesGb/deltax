@@ -1,6 +1,5 @@
 ﻿package deltax.graphic.texture 
 {
-    import flash.display.Bitmap;
     import flash.display.BitmapData;
     import flash.display.BitmapDataChannel;
     
@@ -25,8 +24,8 @@
             var _local1:BitmapData;
             if (!m_emptyBitmapResource)
 			{
-                //_local1 = new BitmapData(32, 32, true, 0);
-				_local1 = (new DefaultTextureBmd() as Bitmap).bitmapData;
+                _local1 = new BitmapData(32, 32, true, 0xffcccccc);
+//				_local1 = (new DefaultTextureBmd() as Bitmap).bitmapData;
 				m_emptyBitmapResource = new BitmapDataResource2D(_local1, "default_bitmap_resource2D");
             }
             m_emptyBitmapResource.reference();
