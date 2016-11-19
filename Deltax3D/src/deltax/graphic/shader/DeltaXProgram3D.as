@@ -12,12 +12,12 @@
     import flash.display3D.Context3DVertexBufferFormat;
     import flash.display3D.Program3D;
     import flash.display3D.VertexBuffer3D;
-    import flash.display3D.textures.Texture;
     import flash.display3D.textures.TextureBase;
     import flash.geom.Matrix3D;
     import flash.geom.Vector3D;
     import flash.utils.ByteArray;
     
+    import deltax.common.math.MathConsts;
     import deltax.common.math.MathUtl;
     import deltax.graphic.camera.Camera3D;
     import deltax.graphic.light.DeltaXPointLight;
@@ -103,6 +103,8 @@
         private var m_pointLightColorStart:int;
         private var m_pointLightParamStart:int;
 		private var m_program3D:Program3D;
+		
+		private var m_vertexConstCach
 
 		/***/
 		public var m_vertexByteCode:ByteArray;
@@ -617,9 +619,9 @@
 		
 		/**
 		 * 设置矩阵常量参数
-		 * @param idx
-		 * @param mat
-		 * @param transpose
+		 * @param idx								常量参数索引
+		 * @param mat								写入的矩阵数据
+		 * @param transpose					是否反转矩阵数据
 		 */		
 		public function setParamMatrix(idx:int, mat:Matrix3D, transpose:Boolean=false):void
 		{
@@ -628,30 +630,22 @@
 				return;
 			}
 			
-			var sr:DeltaXShaderRegister;
+			var shaderReg:DeltaXShaderRegister;
 			var index:int = this.m_vertexParamIndex[idx];
 			if (index != -1)
 			{
-				sr = this.m_vertexConstRegister[index];
-				this.setCacheMatrix(this.m_vertexConstCache, sr.index, sr.count, mat, transpose);
+				shaderReg = this.m_vertexConstRegister[index];
+				this.setCacheMatrix(this.m_vertexConstCache, shaderReg.index, shaderReg.count, mat, transpose);
 			}
 			
 			index = this.m_fragmentParamIndex[idx];
 			if (index != -1)
 			{
-				sr = this.m_fragmentConstRegister[index];
-				this.setCacheMatrix(this.m_fragmentConstCache, sr.index, sr.count, mat, transpose);
+				shaderReg = this.m_fragmentConstRegister[index];
+				this.setCacheMatrix(this.m_fragmentConstCache, shaderReg.index, shaderReg.count, mat, transpose);
 			}
 		}
 		
-		/**
-		 * 设置矩阵缓存
-		 * @param caches							缓存列表（常量列表）
-		 * @param idx								索引
-		 * @param count							数量
-		 * @param mat								矩阵
-		 * @param transpose					是否反转
-		 */		
 		private function setCacheMatrix(caches:Vector.<Number>, idx:int, count:int, mat:Matrix3D, transpose:Boolean):void
 		{
 			if (count >= 4)
@@ -674,144 +668,155 @@
 		}
 		
 		/**
-		 * 
-		 * @param constVec
-		 * @param shaderIndex
-		 * @param shaderCount
-		 * @param value
+		 * 设置常量数组列表
+		 * @param idx						常量参数索引
+		 * @param values					写入的常量列表
 		 */		
-		private function setCacheVector(constVec:Vector.<Number>, shaderIndex:int, shaderCount:int, value:Vector.<Number>):void
+		public function setParamNumberVector(idx:int, values:Vector.<Number>):void
 		{
-			var tempShaderIndex:uint = (shaderIndex << 2);
-			var tempShaderCount:uint = (tempShaderIndex + (shaderCount << 2));
-			var len:uint = value.length;
-			var index:uint = tempShaderIndex;
-			var subIndex:uint;
-			while ((((index < tempShaderCount)) && ((subIndex < len))))
+			if (idx < 0 || idx >= PARAM_COUNT)
 			{
-				constVec[index] = value[subIndex];
-				index++;
-				subIndex++;
+				return;
+			} 
+			
+			var shaderReg:DeltaXShaderRegister;
+			var index:int = this.m_vertexParamIndex[idx];
+			if (index != -1)
+			{
+				shaderReg = this.m_vertexConstRegister[index];
+				this.setCacheVector(this.m_vertexConstCache, shaderReg.index, shaderReg.count, values);
+			}
+			
+			index = this.m_fragmentParamIndex[idx];
+			if (index != -1)
+			{
+				shaderReg = this.m_fragmentConstRegister[index];
+				this.setCacheVector(this.m_fragmentConstCache, shaderReg.index, shaderReg.count, values);
+			}
+		}
+		
+		private function setCacheVector(caches:Vector.<Number>, idx:int, count:int, values:Vector.<Number>):void
+		{
+			var index:uint = idx << 2;
+			var total:uint = index + (count << 2);
+			var vCount:uint = values.length;
+			var i:uint = index;
+			var j:uint;
+			while (i < total && j < vCount)
+			{
+				caches[i] = values[j];
+				i++;
+				j++;
 			}
 		}
 		
 		/**
-		 * 
-		 * @param constVec
-		 * @param index
-		 * @param value1
-		 * @param value2
-		 * @param value3
-		 * @param value4
+		 * 设置常量参数
+		 * @param idx					常量参数索引
+		 * @param v1					常量值1
+		 * @param v2					常量值2
+		 * @param v3					常量值3
+		 * @param v4					常量值4
 		 */		
-		private function setCacheValue(constVec:Vector.<Number>, index:int, value1:Number, value2:Number, value3:Number, value4:Number):void
+		public function setParamValue(idx:int, v1:Number, v2:Number, v3:Number, v4:Number):void
 		{
-			var tempIndex:uint = (index << 2);
-			constVec[tempIndex] = value1;
-			constVec[(tempIndex + 1)] = value2;
-			constVec[(tempIndex + 2)] = value3;
-			constVec[(tempIndex + 3)] = value4;
-		}
-		/**
-		 * 
-		 * @param paramIndex
-		 * @param value
-		 */		
-		public function setParamNumberVector(paramIndex:int, value:Vector.<Number>):void
-		{
-			var index:int;
-			var shaderR:DeltaXShaderRegister;
-			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT)))) return;
-			index = this.m_vertexParamIndex[paramIndex];
+			if (idx < 0 || idx >= PARAM_COUNT)
+			{
+				return;
+			} 
+			
+			var shaderReg:DeltaXShaderRegister;
+			var index:int = this.m_vertexParamIndex[idx];
 			if (index != -1)
 			{
-				shaderR = this.m_vertexConstRegister[index];
-				this.setCacheVector(this.m_vertexConstCache, shaderR.index, shaderR.count, value);
+				shaderReg = this.m_vertexConstRegister[index];
+				this.setCacheValue(this.m_vertexConstCache, shaderReg.index, v1, v2, v3, v4);
 			}
-			index = this.m_fragmentParamIndex[paramIndex];
+			
+			index = this.m_fragmentParamIndex[idx];
 			if (index != -1)
 			{
-				shaderR = this.m_fragmentConstRegister[index];
-				this.setCacheVector(this.m_fragmentConstCache, shaderR.index, shaderR.count, value);
-			}
-		}
-		/**
-		 * 
-		 * @param paramIndex
-		 * @param value2
-		 * @param value3
-		 * @param value4
-		 * @param value5
-		 */		
-		public function setParamValue(paramIndex:int, value2:Number, value3:Number, value4:Number, value5:Number):void
-		{
-			var index:int;
-			var shaderR:DeltaXShaderRegister;
-			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT)))) return;
-			index = this.m_vertexParamIndex[paramIndex];
-			if (index != -1)
-			{
-				shaderR = this.m_vertexConstRegister[index];
-				this.setCacheValue(this.m_vertexConstCache, shaderR.index, value2, value3, value4, value5);
-			}
-			index = this.m_fragmentParamIndex[paramIndex];
-			if (index != -1)
-			{
-				shaderR = this.m_fragmentConstRegister[index];
-				this.setCacheValue(this.m_fragmentConstCache, shaderR.index, value2, value3, value4, value5);
+				shaderReg = this.m_fragmentConstRegister[index];
+				this.setCacheValue(this.m_fragmentConstCache, shaderReg.index, v1, v2, v3, v4);
 			}
 		}
 		
 		/**
-		 * 
-		 * @param paramIndex
-		 * @param colorV
+		 * 设置颜色参数常量值
+		 * @param idx								常量参数索引
+		 * @param colorValue					颜色值
 		 */		
-		public function setParamColor(paramIndex:int, colorV:uint):void
+		public function setParamColor(idx:int, colorValue:uint):void
 		{
-			var index:int;
-			var shaderR:DeltaXShaderRegister;
+			if (idx < 0 || idx >= PARAM_COUNT)
+			{
+				return;
+			}
+				
 			var r:Number;
 			var g:Number;
 			var b:Number;
 			var a:Number;
 			var isCachVerture:Boolean;
-			if ((((paramIndex < 0)) || ((paramIndex >= PARAM_COUNT))))
-				return;
+			var shaderReg:DeltaXShaderRegister;
 			var color:Color = Color.TEMP_COLOR;
-			index = this.m_vertexParamIndex[paramIndex];
+			var index:int = this.m_vertexParamIndex[idx];
 			if (index != -1)
 			{
-				shaderR = this.m_vertexConstRegister[index];
-				color.value = colorV;
-				r = (color.R * ONE_DIV_255);
-				g = (color.G * ONE_DIV_255);
-				b = (color.B * ONE_DIV_255);
-				a = (color.A * ONE_DIV_255);
+				shaderReg = this.m_vertexConstRegister[index];
+				color.value = colorValue;
+				r = color.R * ONE_DIV_255;
+				g = color.G * ONE_DIV_255;
+				b = color.B * ONE_DIV_255;
+				a = color.A * ONE_DIV_255;
 				isCachVerture = true;
-				this.setCacheValue(this.m_vertexConstCache, shaderR.index, r, g, b, a);
+				
+				this.setCacheValue(this.m_vertexConstCache, shaderReg.index, r, g, b, a);
 			}
-			//
-			index = this.m_fragmentParamIndex[paramIndex];
+			
+			index = this.m_fragmentParamIndex[idx];
 			if (index != -1)
 			{
 				if (!isCachVerture)
 				{
-					color.value = colorV;
-					r = (color.R * ONE_DIV_255);
-					g = (color.G * ONE_DIV_255);
-					b = (color.B * ONE_DIV_255);
-					a = (color.A * ONE_DIV_255);
+					color.value = colorValue;
+					r = color.R * ONE_DIV_255;
+					g = color.G * ONE_DIV_255;
+					b = color.B * ONE_DIV_255;
+					a = color.A * ONE_DIV_255;
 				}
-				shaderR = this.m_fragmentConstRegister[index];
-				this.setCacheValue(this.m_fragmentConstCache, shaderR.index, r, g, b, a);
+				
+				shaderReg = this.m_fragmentConstRegister[index];
+				this.setCacheValue(this.m_fragmentConstCache, shaderReg.index, r, g, b, a);
 			}
+		}
+		
+		private function setCacheValue(caches:Vector.<Number>, idx:int, v1:Number, v2:Number, v3:Number, v4:Number):void
+		{
+			var index:uint = idx << 2;
+			caches[index] = v1;
+			caches[(index + 1)] = v2;
+			caches[(index + 2)] = v3;
+			caches[(index + 3)] = v4;
+		}
+		
+		/**
+		 * 设置场景雾
+		 * @param begin						雾深开始值
+		 * @param end							雾深结束值
+		 * @param color						雾深颜色值
+		 */		
+		public function setFog(begin:Number, end:Number, color:uint):void
+		{
+			var rate:Number = 1 / Math.max((end - begin), 1);
+			this.setParamValue(DeltaXProgram3D.FOGPARAM, (end * rate), -(rate), 0, 0);
+			this.setParamColor(DeltaXProgram3D.FOGCOLOR, color);
 		}
 		
 		/**
 		 * 设置采样纹理参数
-		 * @param idx
-		 * @param texture
+		 * @param idx						常量参数索引
+		 * @param texture				纹理数据
 		 */		
 		public function setParamTexture(idx:int, texture:TextureBase):void
 		{
@@ -829,34 +834,80 @@
 		
 		/**
 		 * 设置采样贴图
-		 * @param index
-		 * @param texture
+		 * @param index						常量参数索引
+		 * @param texture					纹理数据
 		 */		
-		public function setSampleTexture(index:int, texture:TextureBase):void
+		public function setSampleTexture(idx:int, texture:TextureBase):void
 		{
-			if (index < 0 || index >= this.m_fragmentSampleRegister.length)
+			if (idx < 0 || idx >= this.m_fragmentSampleRegister.length)
 			{
 				return;
 			}
-			this.m_fragmentSampleCache[index] = texture;
+			
+			this.m_fragmentSampleCache[idx] = texture;
 		}
 		
 		/**
-		 * 设置场景雾
-		 * @param min
-		 * @param max
-		 * @param color
+		 * 设置指定名字的顶点寄存器的矩阵常量数据
+		 * @param name												寄存器名
+		 * @param mat													矩阵数据
+		 * @param isTranspose										是否反转
 		 */		
-		public function setFog(min:Number, max:Number, color:uint):void
+		public function setVertexMatrixParameterByName(name:String, mat:Matrix3D, isTranspose:Boolean=false):void
 		{
-			var rate:Number = 1 / Math.max((max - min), 1);
-			this.setParamValue(DeltaXProgram3D.FOGPARAM, (max * rate), -(rate), 0, 0);
-			this.setParamColor(DeltaXProgram3D.FOGCOLOR, color);
+			var shaderReg:DeltaXShaderRegister = this.getVertexConstRegisterByName(name);
+			if (shaderReg != null)
+			{
+				this.setCacheMatrix(this.m_vertexConstCache, shaderReg.index, shaderReg.count, mat, isTranspose);
+			}
+		}
+		
+		/**
+		 * 设置指定名字的顶点寄存器的常量数组数据
+		 * @param name											寄存器名
+		 * @param values											常量数组
+		 */		
+		public function setVertexNumberParameterByName(name:String, values:Vector.<Number>):void
+		{
+			var shaderReg:DeltaXShaderRegister = this.getVertexConstRegisterByName(name);
+			if (shaderReg != null)
+			{
+				this.setCacheVector(this.m_vertexConstCache, shaderReg.index, shaderReg.count, values);
+			}
+		}
+		
+		/**
+		 * 设置指定名字的片段寄存器的矩阵常量数据
+		 * @param name												寄存器名
+		 * @param mat													矩阵数据
+		 * @param isTranspose										是否反转
+		 */		
+		public function setFragmentMatrixParameterByName(name:String, mat:Matrix3D, isTranspose:Boolean=false):void
+		{
+			var shaderReg:DeltaXShaderRegister = this.getFragmentConstRegisterByName(name);
+			if (shaderReg != null)
+			{
+				this.setCacheMatrix(this.m_fragmentConstCache, shaderReg.index, shaderReg.count, mat, isTranspose);
+			}
+		}
+		
+		/**
+		 * 设置指定名字的片段寄存器的常量数组数据
+		 * @param name											寄存器名
+		 * @param values											常量数组
+		 */			
+		public function setFragmentNumberParameterByName(name:String, values:Vector.<Number>):void
+		{
+			var shaderReg:DeltaXShaderRegister = this.getFragmentConstRegisterByName(name);
+			if (shaderReg != null)
+			{
+				this.setCacheVector(this.m_fragmentConstCache, shaderReg.index, shaderReg.count, values);
+			}
 		}
 		
 		/**
 		 * 获取着色器程序
-		 * @param context
+		 * @param context				渲染上下文
 		 * @return 
 		 */		
 		public function getProgram3D(context:Context3D):Program3D
@@ -873,67 +924,565 @@
 		}
 		
 		/**
-		 * 
-		 * @param context3d
-		 * @param renderS
-		 * @param entity
-		 * @param camera
+		 * 更新
+		 * @param context					渲染上下文
 		 */		
-		public function resetOnFrameStart(context3d:Context3D, renderS:RenderScene, entity:DeltaXEntityCollector, camera:Camera3D):void
+		public function update(context:Context3D):void
 		{
-			if ((((((this.m_vertexParamIndex[LIGHTPOS] < 0)) || ((this.m_vertexParamIndex[LIGHTCOLOR] < 0)))) || ((this.m_vertexParamIndex[LIGHTPARAM] < 0))))
+			context.setProgramConstantsFromVector(Context3DProgramType.VERTEX, 0, this.m_vertexConstCache);
+			context.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 0, this.m_fragmentConstCache);
+
+			var index:uint = 0;
+			var count:uint = this.m_fragmentSampleRegister.length;
+			while (index < count)
 			{
-				this.m_pointLightRegisterCount = -1;
-			} else
-			{
-				this.m_pointLightRegisterCount = this.m_vertexConstRegister[this.m_vertexParamIndex[LIGHTPOS]].count;
+				context.setTextureAt(index, this.m_fragmentSampleCache[index]);
+				index++;
 			}
-			this.m_preLightObjX = -10000000;
-			this.m_preLightObjY = -10000000;
-			this.m_preLightObjZ = -10000000;
-			var envir:SceneEnv = (renderS) ? renderS.curEnviroment : RenderScene.DEFAULT_ENVIROMENT;
-			var ambientColor:uint = envir.m_ambientColor;
-			var sunLightV:Number = (renderS) ? envir.baseBrightnessOfSunLight : 1;
-			var fogS:Number = envir.m_fogStart;
-			var fogE:Number = envir.m_fogEnd;
-			var fogColor:uint = envir.m_fogColor;
-			var texture:Texture;
-			var matrix3d:Matrix3D = MathUtl.IDENTITY_MATRIX3D;
-			if (renderS)
-			{
-				texture = renderS.getShadowMap(context3d);
-				matrix3d = renderS.curShadowProject;
-			}
-			this.setParamColor(DeltaXProgram3D.AMBIENTCOLOR, ambientColor);
-			this.setParamValue(DeltaXProgram3D.BASEBRIGHTNESS, sunLightV, sunLightV, sunLightV, 1);
-			this.setFog(fogS, fogE, fogColor);
-			this.setParamMatrix(DeltaXProgram3D.VIEW, camera.inverseSceneTransform, true);
-			this.setParamMatrix(DeltaXProgram3D.PROJECTION, camera.lens.matrix, true);
-			this.setParamMatrix(DeltaXProgram3D.SHADOWPROJECTION, matrix3d, true);
-			this.buildPointLightBuff(entity);
 		}
 		
 		/**
-		 * 
-		 * @param camera
+		 * 设置缓冲区失效
+		 * @param context			渲染上下文
+		 */		
+		public function deactivate(context:Context3D):void
+		{
+			var index:uint = 0;
+			var count:uint = this.m_vertexInputRegister.length;
+			while (index < count) 
+			{
+				context.setVertexBufferAt(index, null);
+				index++;
+			}
+			
+			index = 0;
+			count = this.m_fragmentSampleRegister.length;
+			while (index < count)
+			{
+				context.setTextureAt(index, null);
+				index++;
+			}
+		}
+		
+		/**
+		 * 设置顶点缓冲区
+		 * @param context						渲染上下文
+		 * @param vertureBuff3D				顶点缓冲区
+		 */		
+		public function setVertexBuffer(context:Context3D, vertureBuff3D:VertexBuffer3D):void
+		{
+			var index:uint;
+			if (this.m_positionIndex >= 0)
+			{
+				context.setVertexBufferAt(this.m_positionIndex, vertureBuff3D, (this.m_positionOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
+			}
+			
+			if (this.m_normalIndex >= 0)
+			{
+				context.setVertexBufferAt(this.m_normalIndex, vertureBuff3D, (this.m_normalOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
+			}
+			
+			if (this.m_tangentIndex >= 0)
+			{
+				context.setVertexBufferAt(this.m_tangentIndex, vertureBuff3D, (this.m_tangentOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
+			}
+			
+			if (this.m_binormalIndex >= 0)
+			{
+				context.setVertexBufferAt(this.m_binormalIndex, vertureBuff3D, (this.m_binormalOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
+			}
+			
+			
+			var len:uint = this.m_colorIndex.length;
+			index = 0;
+			while (index < len)
+			{
+				if (this.m_colorIndex[index] >= 0)
+				{
+					context.setVertexBufferAt(this.m_colorIndex[index], vertureBuff3D, (this.m_colorOffset[index] >> 2), Context3DVertexBufferFormat.BYTES_4);
+				}
+				index++;
+			}
+			
+			len = this.m_UVIndex.length;
+			index = 0;
+			while (index < len)
+			{
+				if (this.m_UVIndex[index] >= 0)
+				{
+					context.setVertexBufferAt(this.m_UVIndex[index], vertureBuff3D, (this.m_UVOffset[index] >> 2), Context3DVertexBufferFormat.FLOAT_2);
+				}
+				index++;
+			}
+			
+			if (this.m_weightIndex >= 0)
+			{
+				context.setVertexBufferAt(this.m_weightIndex, vertureBuff3D, (this.m_weightOffset >> 2), Context3DVertexBufferFormat.BYTES_4);
+			}
+			
+			if (this.m_boneIndexIndex >= 0)
+			{
+				context.setVertexBufferAt(this.m_boneIndexIndex, vertureBuff3D, (this.m_boneIndexOffset >> 2), Context3DVertexBufferFormat.BYTES_4);
+			}
+		}
+		
+		/**
+		 * 重置摄像机参数
+		 * @param camera				场景摄像机
 		 */		
 		public function resetCameraState(camera:Camera3D):void
 		{
 			this.setParamMatrix(DeltaXProgram3D.VIEW, camera.inverseSceneTransform, true);
 			this.setParamMatrix(DeltaXProgram3D.PROJECTION, camera.lens.matrix, true);
 		}
+		
+		/**
+		 * 帧渲染开始前状态重置
+		 * @param context						渲染上下文
+		 * @param renderScene				渲染场景
+		 * @param collector						场景实体收集器
+		 * @param camera						场景摄像机
+		 */		
+		public function resetOnFrameStart(context:Context3D, renderScene:RenderScene, collector:DeltaXEntityCollector, camera:Camera3D):void
+		{
+			if (this.m_vertexParamIndex[LIGHTPOS] < 0 || this.m_vertexParamIndex[LIGHTCOLOR] < 0 || this.m_vertexParamIndex[LIGHTPARAM] < 0)
+			{
+				this.m_pointLightRegisterCount = -1;
+			} else
+			{
+				this.m_pointLightRegisterCount = this.m_vertexConstRegister[this.m_vertexParamIndex[LIGHTPOS]].count;
+			}
+			
+			this.m_preLightObjX = -10000000;
+			this.m_preLightObjY = -10000000;
+			this.m_preLightObjZ = -10000000;
+			
+			var envir:SceneEnv = renderScene ? renderScene.curEnviroment : RenderScene.DEFAULT_ENVIROMENT;
+			var brightness:Number = renderScene ? envir.baseBrightnessOfSunLight : 1;
+			var fogS:Number = envir.m_fogStart;
+			var fogE:Number = envir.m_fogEnd;
+			var fogColor:uint = envir.m_fogColor;
+			var matrix3d:Matrix3D = MathUtl.IDENTITY_MATRIX3D;
+			if (renderScene)
+			{
+				renderScene.getShadowMap(context);
+				matrix3d = renderScene.curShadowProject;
+			}
+			
+			this.setParamColor(DeltaXProgram3D.AMBIENTCOLOR, envir.m_ambientColor);
+			this.setParamValue(DeltaXProgram3D.BASEBRIGHTNESS, brightness, brightness, brightness, 1);
+			this.setFog(envir.m_fogStart, envir.m_fogEnd, envir.m_fogColor);
+			this.setParamMatrix(DeltaXProgram3D.VIEW, camera.inverseSceneTransform, true);
+			this.setParamMatrix(DeltaXProgram3D.PROJECTION, camera.lens.matrix, true);
+			this.setParamMatrix(DeltaXProgram3D.SHADOWPROJECTION, matrix3d, true);
+			
+			this.buildPointLightBuff(collector);
+		}
+		
+		private function buildPointLightBuff(collector:DeltaXEntityCollector):void
+		{
+			if (this.m_pointLightRegisterCount < 0)
+			{
+				return;
+			}
+				
+			this.m_pointLightRegisterCount = this.m_vertexConstRegister[this.m_vertexParamIndex[LIGHTPOS]].count;
+			this.m_pointLightPosStart = this.m_vertexConstRegister[this.m_vertexParamIndex[LIGHTPOS]].index * 4;
+			this.m_pointLightColorStart = this.m_vertexConstRegister[this.m_vertexParamIndex[LIGHTCOLOR]].index * 4;
+			this.m_pointLightParamStart = this.m_vertexConstRegister[this.m_vertexParamIndex[LIGHTPARAM]].index * 4;
+			
+			var color:Color = Color.TEMP_COLOR;
+			if (collector.sunLight)
+			{
+				var dir:Vector3D = collector.sunLight.directionInView;
+				color.value = collector.sunLight.color;
+				
+				this.m_vertexConstCache[this.m_pointLightPosStart++] = (-(dir.x) * 1000000000);
+				this.m_vertexConstCache[this.m_pointLightPosStart++] = (-(dir.y) * 1000000000);
+				this.m_vertexConstCache[this.m_pointLightPosStart++] = (-(dir.z) * 1000000000);
+				this.m_vertexConstCache[this.m_pointLightPosStart++] = 1;
+				
+				this.m_vertexConstCache[this.m_pointLightColorStart++] = color.R * MathConsts.PER_255;
+				this.m_vertexConstCache[this.m_pointLightColorStart++] = color.G * MathConsts.PER_255;
+				this.m_vertexConstCache[this.m_pointLightColorStart++] = color.B * MathConsts.PER_255;
+				this.m_vertexConstCache[this.m_pointLightColorStart++] = color.A * MathConsts.PER_255;
+
+				this.m_vertexConstCache[this.m_pointLightParamStart++] = 1;
+				this.m_vertexConstCache[this.m_pointLightParamStart++] = 0;
+				this.m_vertexConstCache[this.m_pointLightParamStart++] = 0;
+				this.m_vertexConstCache[this.m_pointLightParamStart++] = 0;
+				
+				this.m_pointLightRegisterCount -= 1;
+			}
+			
+			var lightList:Vector.<LightBase> = collector.lights;
+			var lightCount:uint = lightList.length;
+			if (lightCount <= this.m_pointLightRegisterCount)
+			{
+				var idx:uint = 0;
+				while (idx < this.m_pointLightRegisterCount)
+				{
+					if (idx >= lightCount)
+					{
+						this.m_vertexConstCache[this.m_pointLightPosStart++] = 0;
+						this.m_vertexConstCache[this.m_pointLightPosStart++] = 1000000000;
+						this.m_vertexConstCache[this.m_pointLightPosStart++] = 0;
+						this.m_vertexConstCache[this.m_pointLightPosStart++] = 1;
+						
+						this.m_vertexConstCache[this.m_pointLightColorStart++] = 0;
+						this.m_vertexConstCache[this.m_pointLightColorStart++] = 0;
+						this.m_vertexConstCache[this.m_pointLightColorStart++] = 0;
+						this.m_vertexConstCache[this.m_pointLightColorStart++] = 0;
+						
+						this.m_vertexConstCache[this.m_pointLightParamStart++] = 1;
+						this.m_vertexConstCache[this.m_pointLightParamStart++] = 0;
+						this.m_vertexConstCache[this.m_pointLightParamStart++] = 0;
+						this.m_vertexConstCache[this.m_pointLightParamStart++] = 0;
+					} else 
+					{
+						var pLight:DeltaXPointLight = DeltaXPointLight(lightList[idx]);
+						color.value = pLight.color;
+						this.m_vertexConstCache[this.m_pointLightPosStart++] = pLight.positionInView.x;
+						this.m_vertexConstCache[this.m_pointLightPosStart++] = pLight.positionInView.y;
+						this.m_vertexConstCache[this.m_pointLightPosStart++] = pLight.positionInView.z;
+						this.m_vertexConstCache[this.m_pointLightPosStart++] = 1;
+						
+						this.m_vertexConstCache[this.m_pointLightColorStart++] = color.R * MathConsts.PER_255;
+						this.m_vertexConstCache[this.m_pointLightColorStart++] = color.G * MathConsts.PER_255;
+						this.m_vertexConstCache[this.m_pointLightColorStart++] = color.B * MathConsts.PER_255;
+						this.m_vertexConstCache[this.m_pointLightColorStart++] = 1;
+						
+						this.m_vertexConstCache[this.m_pointLightParamStart++] = pLight.getAttenuation(0);
+						this.m_vertexConstCache[this.m_pointLightParamStart++] = pLight.getAttenuation(1);
+						this.m_vertexConstCache[this.m_pointLightParamStart++] = pLight.getAttenuation(2);
+						this.m_vertexConstCache[this.m_pointLightParamStart++] = 5 / pLight.radius;
+					}
+					idx++;
+				}
+				
+				this.m_pointLightRegisterCount = -1;
+			}
+		}
+		
+		/**
+		 * 设置太阳光颜色缓冲区数据
+		 * @param colorValue							颜色值
+		 */		
+		public function setSunLightColorBufferData(colorValue:uint):void
+		{
+			if (this.m_pointLightRegisterCount < 0)
+			{
+				return;
+			}
+				
+			var index:uint = this.m_vertexConstRegister[this.m_vertexParamIndex[LIGHTCOLOR]].index * 4;
+			var color:Color = Color.TEMP_COLOR;
+			color.value = colorValue;
+			this.m_vertexConstCache[index++] = color.R * MathConsts.PER_255;
+			this.m_vertexConstCache[index++] = color.G * MathConsts.PER_255;
+			this.m_vertexConstCache[index++] = color.B * MathConsts.PER_255;
+			this.m_vertexConstCache[index++] = color.A * MathConsts.PER_255;
+		}
+		
+		/**
+		 * 设置场景对象的实时光照
+		 * @param collector					场景实体收集器
+		 * @param objPos						场景对象位置
+		 */		
+		public function setLightToViewSpace(collector:DeltaXEntityCollector, objPos:Vector3D):void
+		{
+			if (this.m_pointLightRegisterCount <= 0)
+			{
+				return;	
+			}
+			
+			if ((Math.abs(this.m_preLightObjX - objPos.x) < 128) && (Math.abs(this.m_preLightObjY - objPos.y) < 128) && (Math.abs(this.m_preLightObjZ - objPos.z) < 128))
+			{
+				return;	
+			}
+			
+			this.m_preLightObjX = objPos.x;
+			this.m_preLightObjY = objPos.y;
+			this.m_preLightObjZ = objPos.z;
+			
+			var startPos:int = this.m_pointLightPosStart;
+			var startColor:int = this.m_pointLightColorStart;
+			var startParam:int = this.m_pointLightParamStart;
+			
+			var pointLightBufferList:Vector.<Vector.<Number>> = collector.pointLightBuffer;
+			var lightList:Vector.<LightBase> = collector.lights;
+			var lightCount:int = lightList.length;
+			var maxDist:Number = 1000000000;
+			
+			var pointX:Number;
+			var pointY:Number;
+			var pointZ:Number;
+			var tDist:Number;
+			var pLight:DeltaXPointLight;
+			var tempLightBuffDatas:Vector.<Number>;
+			
+			var index:uint = 0;
+			while (index < lightCount) 
+			{
+				pLight = DeltaXPointLight(lightList[index]);
+				pointX = pLight.x - objPos.x;
+				pointX *= pointX;
+				pointY = pLight.y - objPos.y;
+				pointY *= pointY;
+				pointZ = pLight.z - objPos.z;
+				pointZ *= pointZ;
+				tDist = pointX + pointY + pointZ;
+				if (tDist < maxDist)
+				{
+					maxDist = tDist;
+					tempLightBuffDatas = pointLightBufferList[index];
+				}
+				index++;
+			}
+			
+			if (tempLightBuffDatas)
+			{
+				index = 0;
+				var tempIndex:uint = 0;
+				while (index < this.m_pointLightRegisterCount) 
+				{
+					this.m_vertexConstCache[startPos++] = tempLightBuffDatas[tempIndex++];
+					this.m_vertexConstCache[startPos++] = tempLightBuffDatas[tempIndex++];
+					this.m_vertexConstCache[startPos++] = tempLightBuffDatas[tempIndex++];
+					this.m_vertexConstCache[startPos++] = 1;
+					
+					this.m_vertexConstCache[startColor++] = tempLightBuffDatas[tempIndex++];
+					this.m_vertexConstCache[startColor++] = tempLightBuffDatas[tempIndex++];
+					this.m_vertexConstCache[startColor++] = tempLightBuffDatas[tempIndex++];
+					this.m_vertexConstCache[startColor++] = 1;
+					
+					this.m_vertexConstCache[startParam++] = tempLightBuffDatas[tempIndex++];
+					this.m_vertexConstCache[startParam++] = tempLightBuffDatas[tempIndex++];
+					this.m_vertexConstCache[startParam++] = tempLightBuffDatas[tempIndex++];
+					this.m_vertexConstCache[startParam++] = tempLightBuffDatas[tempIndex++];
+					index++;
+				}
+			} else 
+			{
+				index = 0;
+				while (index < this.m_pointLightRegisterCount)
+				{
+					this.m_vertexConstCache[startPos++] = 0;
+					this.m_vertexConstCache[startPos++] = 0;
+					this.m_vertexConstCache[startPos++] = 0;
+					this.m_vertexConstCache[startPos++] = 1;
+					
+					this.m_vertexConstCache[startColor++] = 0;
+					this.m_vertexConstCache[startColor++] = 0;
+					this.m_vertexConstCache[startColor++] = 0;
+					this.m_vertexConstCache[startColor++] = 1;
+					
+					this.m_vertexConstCache[startParam++] = 1;
+					this.m_vertexConstCache[startParam++] = 0;
+					this.m_vertexConstCache[startParam++] = 0;
+					this.m_vertexConstCache[startParam++] = 1;
+					index++;
+				}
+			}
+		}
+		
+		/**
+		 * 添加顶点数据到指定的数据里
+		 * @param data							指定的数据
+		 * @param posX							顶点x坐标
+		 * @param posY							顶点y坐标
+		 * @param posZ							顶点z坐标
+		 * @param color							顶点颜色
+		 * @param norX							顶点法线x坐标
+		 * @param norY							顶点法线y坐标
+		 * @param norZ							顶点法线z坐标
+		 * @param uvX								顶点uvx坐标
+		 * @param uvY								顶点uvy坐标
+		 */		
+		public function addVertexToByteArray(data:ByteArray, posX:Number, posY:Number, posZ:Number, color:uint, norX:Number, norY:Number, norZ:Number, uvX:Number, uvY:Number):void
+		{
+			var position:int = data.position;
+			if (this.m_positionOffset >= 0)
+			{
+				data.position = position + this.m_positionOffset;
+				data.writeFloat(posX);
+				data.writeFloat(posY);
+				data.writeFloat(posZ);
+			}
+			
+			if (this.m_normalOffset >= 0)
+			{
+				data.position = position + this.m_normalOffset;
+				data.writeFloat(norX);
+				data.writeFloat(norY);
+				data.writeFloat(norZ);
+			}
+			
+			if (this.m_colorOffset[0] >= 0)
+			{
+				data.position = position + this.m_colorOffset[0];
+				data.writeUnsignedInt(Color.ToABGR(color));
+			}
+			
+			if (this.m_UVOffset[0] >= 0)
+			{
+				data.position = position + this.m_UVOffset[0];
+				data.writeFloat(uvX);
+				data.writeFloat(uvY);
+			}
+			
+			data.position = position + this.m_totalInputSize;
+		}
+		
+		/**
+		 * 从指定的着色器程序复制状态数据
+		 * @param program3D						指定的着色器程序
+		 * @param context							渲染上下文
+		 */		
+		public function copyStateFromOther(program3D:DeltaXProgram3D, context:Context3D):void
+		{
+			if (program3D == this)
+			{
+				return;	
+			}
+			
+			var index:uint;
+			var curIndex:int;
+			var tempIndex:int;
+			while (index < PARAM_COUNT)
+			{
+				this.copyVectorParams(index, this.m_vertexParamIndex, program3D.m_vertexParamIndex, this.m_vertexConstRegister, program3D.m_vertexConstRegister, this.m_vertexConstCache, program3D.m_vertexConstCache);
+				this.copyVectorParams(index, this.m_fragmentParamIndex, program3D.m_fragmentParamIndex, this.m_fragmentConstRegister, program3D.m_fragmentConstRegister, this.m_fragmentConstCache, program3D.m_fragmentConstCache);
+				curIndex = this.m_fragmentSampleIndex[index];
+				tempIndex = program3D.m_fragmentSampleIndex[index];
+				if (curIndex != -1 && tempIndex != -1)
+				{
+					this.m_fragmentSampleCache[curIndex] = program3D.m_fragmentSampleCache[tempIndex];
+				}
+				index++;
+			}
+			
+			var count:int = Math.min(this.m_fragmentSampleCache.length, program3D.m_fragmentSampleCache.length);
+			index = 0;
+			while (index < count) 
+			{
+				this.m_fragmentSampleCache[index] = program3D.m_fragmentSampleCache[index];
+				index++;
+			}
+		}
+		
+		private function copyVectorParams(index:int, pIndexs1:Vector.<int>, pIndexs2:Vector.<int>, shaderRegList1:Vector.<DeltaXShaderRegister>, shaderRegList2:Vector.<DeltaXShaderRegister>, cachList1:Vector.<Number>, cachList2:Vector.<Number>):void
+		{
+			var tempIndex1:int = pIndexs1[index];
+			var tempIndex2:int = pIndexs2[index];
+			if (tempIndex1 != -1 && tempIndex2 != -1)
+			{
+				var shadedReg1:DeltaXShaderRegister = shaderRegList2[tempIndex2];
+				var shadedReg2:DeltaXShaderRegister = shaderRegList1[tempIndex1];
+				var count:int = Math.min(shadedReg1.count, shadedReg2.count);
+				var shaderIndex1:int = shadedReg1.index << 2;
+				var total:int = shaderIndex1 + (count << 2);
+				var shaderIndex2:int = shadedReg2.index;
+				var tempShaderIndex:int = shaderIndex1;
+				var t:int;
+				while (tempShaderIndex < total) 
+				{
+					t = shaderIndex2;
+					shaderIndex2 = (shaderIndex2 + 1);
+					this.setCacheValue(cachList1, t, cachList2[tempShaderIndex], cachList2[(tempShaderIndex + 1)], cachList2[(tempShaderIndex + 2)], cachList2[(tempShaderIndex + 3)]);
+					tempShaderIndex += 4;
+				}
+			}
+		}
+		
+		/**
+		 * 构建混合着色器程序
+		 * @param str1
+		 * @param str2
+		 * @param str3
+		 * @return 
+		 */		
+		public function buildPBProgram3D(str1:String, str2:String, str3:String):Boolean
+		{
+			if (this.m_program3D)
+			{
+				this.dispose();
+			}
+			
+			this.m_vertexConstRegister = new Vector.<DeltaXShaderRegister>();
+			this.m_vertexInputRegister = new Vector.<DeltaXShaderRegister>();
+			this.m_fragmentConstRegister = new Vector.<DeltaXShaderRegister>();
+			this.m_fragmentSampleRegister = new Vector.<DeltaXShaderRegister>();
+			
+			var pPair:AGALProgramPair = PBASMCompiler.compile(new PBASMProgram(str1), new PBASMProgram(str2), new PBASMProgram(str3));
+			
+			var idx:uint = 0;
+			var count:uint;
+			var pRegInfo:ParameterRegisterInfo;
+			var regElement:Vector.<RegisterElement>;
+			while (idx < pPair.vertexProgram.registers.parameterRegisters.length) 
+			{
+				pRegInfo = pPair.vertexProgram.registers.parameterRegisters[idx];
+				regElement = pRegInfo.elementGroup.elements;
+				count = (pRegInfo.elementGroup.elements[(regElement.length - 1)].registerIndex - regElement[0].registerIndex + 1) * 4;
+				this.m_vertexConstRegister.push(new DeltaXShaderRegister(regElement[0].registerIndex, pRegInfo.name, (pRegInfo.semantics) ? pRegInfo.semantics.id : "", pRegInfo.format, new Vector.<Number>(count)));
+				idx++;
+			}
+			
+			idx = 0;
+			var regInfo:RegisterInfo;
+			while (idx < pPair.vertexProgram.registers.inputVertexRegisters.length) 
+			{
+				regInfo = pPair.vertexProgram.registers.inputVertexRegisters[idx];
+				this.m_vertexInputRegister.push(new DeltaXShaderRegister(idx, regInfo.name, (regInfo.semantics) ? regInfo.semantics.id : "", regInfo.format, new Vector.<Number>(4)));
+				idx++;
+			}
+			
+			idx = 0;
+			while (idx < pPair.fragmentProgram.registers.parameterRegisters.length) 
+			{
+				pRegInfo = pPair.fragmentProgram.registers.parameterRegisters[idx];
+				regElement = pRegInfo.elementGroup.elements;
+				count = (pRegInfo.elementGroup.elements[(regElement.length - 1)].registerIndex - regElement[0].registerIndex + 1) * 4;
+				this.m_fragmentConstRegister.push(new DeltaXShaderRegister(pRegInfo.elementGroup.elements[0].registerIndex, pRegInfo.name, (pRegInfo.semantics) ? pRegInfo.semantics.id : "", pRegInfo.format, new Vector.<Number>(count)));
+				idx++;
+			}
+			
+			idx = 0;
+			while (idx < pPair.fragmentProgram.registers.textureRegisters.length) 
+			{
+				regInfo = pPair.fragmentProgram.registers.textureRegisters[idx];
+				this.m_fragmentSampleRegister.push(new DeltaXShaderRegister(idx, regInfo.name, (regInfo.semantics) ? regInfo.semantics.id : "", regInfo.format, null));
+				idx++;
+			}
+			
+			this.m_vertexConstRegister.push(new DeltaXShaderRegister(pPair.vertexProgram.registers.numericalConstants.startRegister, "constvalue", "", "float4", pPair.vertexProgram.registers.numericalConstants.values));
+			this.m_fragmentConstRegister.push(new DeltaXShaderRegister(pPair.fragmentProgram.registers.numericalConstants.startRegister, "constvalue", "", "float4", pPair.fragmentProgram.registers.numericalConstants.values));
+			this.m_vertexByteCode = pPair.vertexProgram.byteCode;
+			this.m_fragmentByteCode = pPair.fragmentProgram.byteCode;
+			
+			this.buildStandarInfo();
+			
+			return true;
+		}
+		
+		
+		
 		/**
 		 * 设备丢失
 		 */		
 		public function onLostDevice():void
 		{
 			if (!this.m_program3D)
-				return;
+			{
+				return;	
+			}
 			this.m_program3D.dispose();
 			this.m_program3D = null;
 		}
+		
 		/**
-		 * 销毁
+		 * 数据销毁
 		 */		
 		public function dispose():void
 		{
@@ -964,618 +1513,6 @@
 			this.m_fragmentParamIndex = new Vector.<int>(PARAM_COUNT);
 			this.m_fragmentSampleIndex = new Vector.<int>(PARAM_COUNT);
 			this.onLostDevice();
-		}
-		
-		/**
-		 * 
-		 * @param colorV
-		 */		
-		public function setSunLightColorBufferData(colorV:uint):void
-		{
-			if (this.m_pointLightRegisterCount < 0)
-				return;
-			var paramIndex:int = this.m_vertexParamIndex[LIGHTCOLOR];
-			var index:uint = (this.m_vertexConstRegister[paramIndex].index * 4);
-			var color:Color = Color.TEMP_COLOR;
-			color.value = colorV;
-			var _temp1:uint = index;
-			index = (index + 1);
-			var _local5:uint = _temp1;
-			this.m_vertexConstCache[_local5] = (color.R / 0xFF);
-			var _temp2:uint = index;
-			index = (index + 1);
-			var _local6:uint = _temp2;
-			this.m_vertexConstCache[_local6] = (color.G / 0xFF);
-			var _temp3:uint = index;
-			index = (index + 1);
-			var _local7:uint = _temp3;
-			this.m_vertexConstCache[_local7] = (color.B / 0xFF);
-			var _temp4:uint = index;
-			index = (index + 1);
-			var _local8:uint = _temp4;
-			this.m_vertexConstCache[_local8] = (color.A / 0xFF);
-		}
-		
-		/**
-		 * 
-		 * @param entity
-		 */		
-		private function buildPointLightBuff(entity:DeltaXEntityCollector):void
-		{
-			var count:uint;
-			var pointL:DeltaXPointLight;
-			var posV:Vector3D;
-			var directV:Vector3D;
-			if (this.m_pointLightRegisterCount < 0)
-				return;
-			var lightVec:Vector.<LightBase> = entity.lights;
-			var posIndex:int = this.m_vertexParamIndex[LIGHTPOS];
-			var colorIndex:int = this.m_vertexParamIndex[LIGHTCOLOR];
-			var paramIndex:int = this.m_vertexParamIndex[LIGHTPARAM];
-			this.m_pointLightRegisterCount = this.m_vertexConstRegister[posIndex].count;
-			this.m_pointLightPosStart = (this.m_vertexConstRegister[posIndex].index * 4);
-			this.m_pointLightColorStart = (this.m_vertexConstRegister[colorIndex].index * 4);
-			this.m_pointLightParamStart = (this.m_vertexConstRegister[paramIndex].index * 4);
-			var color:Color = Color.TEMP_COLOR;
-			if (entity.sunLight)
-			{
-				directV = entity.sunLight.directionInView;
-				color.value = entity.sunLight.color;
-				var _local12:uint = this.m_pointLightPosStart++;
-				this.m_vertexConstCache[_local12] = (-(directV.x) * 1000000000);
-				var _local13:uint = this.m_pointLightPosStart++;
-				this.m_vertexConstCache[_local13] = (-(directV.y) * 1000000000);
-				var _local14:uint = this.m_pointLightPosStart++;
-				this.m_vertexConstCache[_local14] = (-(directV.z) * 1000000000);
-				var _local15:uint = this.m_pointLightPosStart++;
-				this.m_vertexConstCache[_local15] = 1;
-				var _local16:uint = this.m_pointLightColorStart++;
-				this.m_vertexConstCache[_local16] = (color.R / 0xFF);
-				var _local17:uint = this.m_pointLightColorStart++;
-				this.m_vertexConstCache[_local17] = (color.G / 0xFF);
-				var _local18:uint = this.m_pointLightColorStart++;
-				this.m_vertexConstCache[_local18] = (color.B / 0xFF);
-				var _local19:uint = this.m_pointLightColorStart++;
-				this.m_vertexConstCache[_local19] = (color.A / 0xFF);
-				var _local20:uint = this.m_pointLightParamStart++;
-				this.m_vertexConstCache[_local20] = 1;
-				var _local21:uint = this.m_pointLightParamStart++;
-				this.m_vertexConstCache[_local21] = 0;
-				var _local22:uint = this.m_pointLightParamStart++;
-				this.m_vertexConstCache[_local22] = 0;
-				var _local23:uint = this.m_pointLightParamStart++;
-				this.m_vertexConstCache[_local23] = 0;
-				this.m_pointLightRegisterCount = (this.m_pointLightRegisterCount - 1);
-			};
-			var _local8:uint = lightVec.length;
-			if (_local8 <= this.m_pointLightRegisterCount)
-			{
-				count = 0;
-				while (count < this.m_pointLightRegisterCount)
-				{
-					if (count >= _local8)
-					{
-						_local12 = this.m_pointLightPosStart++;
-						this.m_vertexConstCache[_local12] = 0;
-						_local13 = this.m_pointLightPosStart++;
-						this.m_vertexConstCache[_local13] = 1000000000;
-						_local14 = this.m_pointLightPosStart++;
-						this.m_vertexConstCache[_local14] = 0;
-						_local15 = this.m_pointLightPosStart++;
-						this.m_vertexConstCache[_local15] = 1;
-						_local16 = this.m_pointLightColorStart++;
-						this.m_vertexConstCache[_local16] = 0;
-						_local17 = this.m_pointLightColorStart++;
-						this.m_vertexConstCache[_local17] = 0;
-						_local18 = this.m_pointLightColorStart++;
-						this.m_vertexConstCache[_local18] = 0;
-						_local19 = this.m_pointLightColorStart++;
-						this.m_vertexConstCache[_local19] = 0;
-						_local20 = this.m_pointLightParamStart++;
-						this.m_vertexConstCache[_local20] = 1;
-						_local21 = this.m_pointLightParamStart++;
-						this.m_vertexConstCache[_local21] = 0;
-						_local22 = this.m_pointLightParamStart++;
-						this.m_vertexConstCache[_local22] = 0;
-						_local23 = this.m_pointLightParamStart++;
-						this.m_vertexConstCache[_local23] = 0;
-					} else 
-					{
-						pointL = DeltaXPointLight(lightVec[count]);
-						posV = pointL.positionInView;
-						color.value = pointL.color;
-						_local12 = this.m_pointLightPosStart++;
-						this.m_vertexConstCache[_local12] = posV.x;
-						_local13 = this.m_pointLightPosStart++;
-						this.m_vertexConstCache[_local13] = posV.y;
-						_local14 = this.m_pointLightPosStart++;
-						this.m_vertexConstCache[_local14] = posV.z;
-						_local15 = this.m_pointLightPosStart++;
-						this.m_vertexConstCache[_local15] = 1;
-						_local16 = this.m_pointLightColorStart++;
-						this.m_vertexConstCache[_local16] = (color.R / 0xFF);
-						_local17 = this.m_pointLightColorStart++;
-						this.m_vertexConstCache[_local17] = (color.G / 0xFF);
-						_local18 = this.m_pointLightColorStart++;
-						this.m_vertexConstCache[_local18] = (color.B / 0xFF);
-						_local19 = this.m_pointLightColorStart++;
-						this.m_vertexConstCache[_local19] = 1;
-						_local20 = this.m_pointLightParamStart++;
-						this.m_vertexConstCache[_local20] = pointL.getAttenuation(0);
-						_local21 = this.m_pointLightParamStart++;
-						this.m_vertexConstCache[_local21] = pointL.getAttenuation(1);
-						_local22 = this.m_pointLightParamStart++;
-						this.m_vertexConstCache[_local22] = pointL.getAttenuation(2);
-						_local23 = this.m_pointLightParamStart++;
-						this.m_vertexConstCache[_local23] = (5 / pointL.radius);
-					};
-					count++;
-				};
-				this.m_pointLightRegisterCount = -1;
-			};
-		}
-		
-		/**
-		 * 
-		 * @param name
-		 * @param matrix3D
-		 * @param isTranspose
-		 */		
-		public function setVertexMatrixParameterByName(name:String, matrix3D:Matrix3D, isTranspose:Boolean=false):void
-		{
-			var shaderR:DeltaXShaderRegister = this.getVertexConstRegisterByName(name);
-			if (shaderR != null)
-			{
-				this.setCacheMatrix(this.m_vertexConstCache, shaderR.index, shaderR.count, matrix3D, isTranspose);
-			}
-		}
-		
-		/**
-		 * 
-		 * @param name
-		 * @param value
-		 */		
-		public function setVertexNumberParameterByName(name:String, value:Vector.<Number>):void
-		{
-			var shaderR:DeltaXShaderRegister = this.getVertexConstRegisterByName(name);
-			if (shaderR != null)
-			{
-				this.setCacheVector(this.m_vertexConstCache, shaderR.index, shaderR.count, value);
-			}
-		}
-		
-		/**
-		 * 
-		 * @param name
-		 * @param matrix3D
-		 * @param isTranspose
-		 */		
-		public function setFragmentMatrixParameterByName(name:String, matrix3D:Matrix3D, isTranspose:Boolean=false):void
-		{
-			var shaderR:DeltaXShaderRegister = this.getFragmentConstRegisterByName(name);
-			if (shaderR != null)
-			{
-				this.setCacheMatrix(this.m_fragmentConstCache, shaderR.index, shaderR.count, matrix3D, isTranspose);
-			}
-		}
-		
-		/**
-		 * 
-		 * @param name
-		 * @param value
-		 */		
-		public function setFragmentNumberParameterByName(name:String, value:Vector.<Number>):void
-		{
-			var shaderR:DeltaXShaderRegister = this.getFragmentConstRegisterByName(name);
-			if (shaderR != null)
-			{
-				this.setCacheVector(this.m_fragmentConstCache, shaderR.index, shaderR.count, value);
-			}
-		}
-		
-		/**
-		 * 
-		 * @param entity
-		 * @param lightVec
-		 */		
-		public function setLightToViewSpace(entity:DeltaXEntityCollector, lightVec:Vector3D):void
-		{
-			var pointX:Number;
-			var pointY:Number;
-			var pointZ:Number;
-			var tempPos:Number;
-			var index:uint;
-			var tempIndex:uint;
-			var pointL:DeltaXPointLight;
-			var pointLightLenVec:Vector.<Number>;
-			if (this.m_pointLightRegisterCount <= 0)return;
-			if ((((((Math.abs((this.m_preLightObjX - lightVec.x)) < 128)) && ((Math.abs((this.m_preLightObjY - lightVec.y)) < 128))))
-				&& ((Math.abs((this.m_preLightObjZ - lightVec.z)) < 128))))return;
-			this.m_preLightObjX = lightVec.x;
-			this.m_preLightObjY = lightVec.y;
-			this.m_preLightObjZ = lightVec.z;
-			var pointLightVec:Vector.<Vector.<Number>> = entity.pointLightBuffer;
-			var lightsVec:Vector.<LightBase> = entity.lights;
-			var len:int = lightsVec.length;
-			var startPos:int = this.m_pointLightPosStart;
-			var startColor:int = this.m_pointLightColorStart;
-			var startParam:int = this.m_pointLightParamStart;
-			var posLen:Number = 1000000000;
-			index = 0;
-			while (index < len) 
-			{
-				pointL = DeltaXPointLight(lightsVec[index]);
-				pointX = (pointL.x - lightVec.x);
-				pointX = ((pointL.x - lightVec.x) * pointX);
-				pointY = (pointL.y - lightVec.y);
-				pointY = ((pointL.y - lightVec.y) * pointY);
-				pointZ = (pointL.z - lightVec.z);
-				pointZ = ((pointL.z - lightVec.z) * pointZ);
-				tempPos = (pointX + pointY);
-				tempPos = (tempPos + pointZ);
-				if (tempPos < posLen)
-				{
-					posLen = tempPos;
-					pointLightLenVec = pointLightVec[index];
-				};
-				index++;
-			};
-			var _local18:int;
-			var _local19:int;
-			var _local20:int;
-			var _local21:int;
-			var _local22:int;
-			var _local23:int;
-			var _local24:int;
-			var _local25:int;
-			var _local26:int;
-			var _local27:int;
-			var _local28:int;
-			var _local29:int;
-			if (pointLightLenVec)
-			{
-				index = 0;
-				tempIndex = 0;
-				while (index < this.m_pointLightRegisterCount) 
-				{
-					var _temp1:int = startPos;
-					startPos = (startPos + 1);
-					_local18= _temp1;
-					this.m_vertexConstCache[_local18] = pointLightLenVec[tempIndex++];
-					var _temp3:int = startPos;
-					startPos = (startPos + 1);
-					_local19 = _temp3;
-					this.m_vertexConstCache[_local19] = pointLightLenVec[tempIndex++];
-					var _temp5:int = startPos;
-					startPos = (startPos + 1);
-					_local20= _temp5;
-					this.m_vertexConstCache[_local20] = pointLightLenVec[tempIndex++];
-					var _temp7:int = startPos;
-					startPos = (startPos + 1);
-					_local21= _temp7;
-					this.m_vertexConstCache[_local21] = 1;
-					var _temp8:int = startColor;
-					startColor = (startColor + 1);
-					_local22= _temp8;
-					this.m_vertexConstCache[_local22] = pointLightLenVec[tempIndex++];
-					var _temp10:int = startColor;
-					startColor = (startColor + 1);
-					_local23= _temp10;
-					this.m_vertexConstCache[_local23] = pointLightLenVec[tempIndex++];
-					var _temp12:int = startColor;
-					startColor = (startColor + 1);
-					_local24= _temp12;
-					this.m_vertexConstCache[_local24] = pointLightLenVec[tempIndex++];
-					var _temp14:int = startColor;
-					startColor = (startColor + 1);
-					_local25= _temp14;
-					this.m_vertexConstCache[_local25] = 1;
-					var _temp15:int = startParam;
-					startParam = (startParam + 1);
-					_local26= _temp15;
-					this.m_vertexConstCache[_local26] = pointLightLenVec[tempIndex++];
-					var _temp17:int = startParam;
-					startParam = (startParam + 1);
-					_local27= _temp17;
-					this.m_vertexConstCache[_local27] = pointLightLenVec[tempIndex++];
-					var _temp19:int = startParam;
-					startParam = (startParam + 1);
-					_local28= _temp19;
-					var _temp20:int = tempIndex;
-					tempIndex = (tempIndex + 1);
-					this.m_vertexConstCache[_local28] = pointLightLenVec[_temp20];
-					var _temp21:int = startParam;
-					startParam = (startParam + 1);
-					_local29= _temp21;
-					var _temp22:int = tempIndex;
-					tempIndex = (tempIndex + 1);
-					this.m_vertexConstCache[_local29] = pointLightLenVec[_temp22];
-					index++;
-				};
-			} else 
-			{
-				index = 0;
-				tempIndex = 0;
-				while (index < this.m_pointLightRegisterCount)
-				{
-					var _temp23:int = startPos;
-					startPos = (startPos + 1);
-					_local18 = _temp23;
-					this.m_vertexConstCache[_local18] = 0;
-					var _temp24:int = startPos;
-					startPos = (startPos + 1);
-					_local19 = _temp24;
-					this.m_vertexConstCache[_local19] = 0;
-					var _temp25:int = startPos;
-					startPos = (startPos + 1);
-					_local20 = _temp25;
-					this.m_vertexConstCache[_local20] = 0;
-					var _temp26:int = startPos;
-					startPos = (startPos + 1);
-					_local21 = _temp26;
-					this.m_vertexConstCache[_local21] = 1;
-					var _temp27:int = startColor;
-					startColor = (startColor + 1);
-					_local22 = _temp27;
-					this.m_vertexConstCache[_local22] = 0;
-					var _temp28:int = startColor;
-					startColor = (startColor + 1);
-					_local23 = _temp28;
-					this.m_vertexConstCache[_local23] = 0;
-					var _temp29:int = startColor;
-					startColor = (startColor + 1);
-					_local24 = _temp29;
-					this.m_vertexConstCache[_local24] = 0;
-					var _temp30:int = startColor;
-					startColor = (startColor + 1);
-					_local25 = _temp30;
-					this.m_vertexConstCache[_local25] = 1;
-					var _temp31:int = startParam;
-					startParam = (startParam + 1);
-					_local26 = _temp31;
-					this.m_vertexConstCache[_local26] = 1;
-					var _temp32:int = startParam;
-					startParam = (startParam + 1);
-					_local27 = _temp32;
-					this.m_vertexConstCache[_local27] = 0;
-					var _temp33:int = startParam;
-					startParam = (startParam + 1);
-					_local28 = _temp33;
-					this.m_vertexConstCache[_local28] = 0;
-					var _temp34:int = startParam;
-					startParam = (startParam + 1);
-					_local29 = _temp34;
-					this.m_vertexConstCache[_local29] = 1;
-					index++;
-				};
-			};
-		}
-		
-        public function update(context3D:Context3D):void
-		{
-            var index:uint = 0;
-			context3D.setProgramConstantsFromVector(Context3DProgramType.VERTEX, 0, this.m_vertexConstCache);
-			context3D.setProgramConstantsFromVector(Context3DProgramType.FRAGMENT, 0, this.m_fragmentConstCache);
-            var len:uint = this.m_fragmentSampleRegister.length;
-            while (index < len)
-			{
-				context3D.setTextureAt(index, this.m_fragmentSampleCache[index]);
-				index++;
-            }
-        }
-		
-        public function deactivate(context3D:Context3D):void
-		{
-            var len:uint = this.m_vertexInputRegister.length;
-            var index:uint;
-            while (index < len) 
-			{
-				context3D.setVertexBufferAt(index, null);
-				index++;
-            }
-			len = this.m_fragmentSampleRegister.length;
-			index = 0;
-            while (index < len)
-			{
-				context3D.setTextureAt(index, null);
-				index++;
-            }
-        }
-		
-        public function setVertexBuffer(context3D:Context3D, vertureBuff3D:VertexBuffer3D):void
-		{
-            var index:uint;
-            if (this.m_positionIndex >= 0)
-			{
-				context3D.setVertexBufferAt(this.m_positionIndex, vertureBuff3D, (this.m_positionOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
-			}
-				
-            if (this.m_normalIndex >= 0)
-			{
-				context3D.setVertexBufferAt(this.m_normalIndex, vertureBuff3D, (this.m_normalOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
-			}
-				
-            if (this.m_tangentIndex >= 0)
-			{
-				context3D.setVertexBufferAt(this.m_tangentIndex, vertureBuff3D, (this.m_tangentOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
-			}
-				
-            if (this.m_binormalIndex >= 0)
-			{
-				context3D.setVertexBufferAt(this.m_binormalIndex, vertureBuff3D, (this.m_binormalOffset >> 2), Context3DVertexBufferFormat.FLOAT_3);
-			}
-				
-			
-            var len:uint = this.m_colorIndex.length;
-			index = 0;
-            while (index < len)
-			{
-                if (this.m_colorIndex[index] >= 0)
-				{
-					context3D.setVertexBufferAt(this.m_colorIndex[index], vertureBuff3D, (this.m_colorOffset[index] >> 2), Context3DVertexBufferFormat.BYTES_4);
-				}
-				index++;
-            }
-			
-			len = this.m_UVIndex.length;
-			index = 0;
-            while (index < len)
-			{
-                if (this.m_UVIndex[index] >= 0)
-				{
-					context3D.setVertexBufferAt(this.m_UVIndex[index], vertureBuff3D, (this.m_UVOffset[index] >> 2), Context3DVertexBufferFormat.FLOAT_2);
-				}
-				index++;
-            }
-			
-            if (this.m_weightIndex >= 0)
-			{
-				context3D.setVertexBufferAt(this.m_weightIndex, vertureBuff3D, (this.m_weightOffset >> 2), Context3DVertexBufferFormat.BYTES_4);
-			}
-				
-            if (this.m_boneIndexIndex >= 0)
-			{
-				context3D.setVertexBufferAt(this.m_boneIndexIndex, vertureBuff3D, (this.m_boneIndexOffset >> 2), Context3DVertexBufferFormat.BYTES_4);
-			}
-        }
-		
-        public function addVertexToByteArray(data:ByteArray, posX:Number, posY:Number, posZ:Number, colorV:uint, norX:Number, norY:Number, norZ:Number, uvX:Number, uvY:Number):void
-		{
-            var position:int = data.position;
-            if (this.m_positionOffset >= 0)
-			{
-                data.position = (position + this.m_positionOffset);
-                data.writeFloat(posX);
-                data.writeFloat(posY);
-                data.writeFloat(posZ);
-            }
-            if (this.m_normalOffset >= 0)
-			{
-                data.position = (position + this.m_normalOffset);
-                data.writeFloat(norX);
-                data.writeFloat(norY);
-                data.writeFloat(norZ);
-            }
-            if (this.m_colorOffset[0] >= 0)
-			{
-                data.position = (position + this.m_colorOffset[0]);
-                data.writeUnsignedInt(Color.ToABGR(colorV));
-            }
-            if (this.m_UVOffset[0] >= 0)
-			{
-                data.position = (position + this.m_UVOffset[0]);
-                data.writeFloat(uvX);
-                data.writeFloat(uvY);
-            }
-            data.position = (position + this.m_totalInputSize);
-        }
-		
-        public function copyStateFromOther(program3D:DeltaXProgram3D, context3D:Context3D):void
-		{
-            var curIndex:int;
-            var tempIndex:int;
-            if (program3D == this)return;
-            var index:uint;
-            while (index < PARAM_COUNT)
-			{
-                this._copyVectorParams(index, this.m_vertexParamIndex, program3D.m_vertexParamIndex, this.m_vertexConstRegister, program3D.m_vertexConstRegister, this.m_vertexConstCache, program3D.m_vertexConstCache);
-                this._copyVectorParams(index, this.m_fragmentParamIndex, program3D.m_fragmentParamIndex, this.m_fragmentConstRegister, program3D.m_fragmentConstRegister, this.m_fragmentConstCache, program3D.m_fragmentConstCache);
-				curIndex = this.m_fragmentSampleIndex[index];
-				tempIndex = program3D.m_fragmentSampleIndex[index];
-                if (((!((curIndex == -1))) && (!((tempIndex == -1)))))
-                    this.m_fragmentSampleCache[curIndex] = program3D.m_fragmentSampleCache[tempIndex];
-                index++;
-            }
-            var len:int = Math.min(this.m_fragmentSampleCache.length, program3D.m_fragmentSampleCache.length);
-            index = 0;
-            while (index < len) 
-			{
-                this.m_fragmentSampleCache[index] = program3D.m_fragmentSampleCache[index];
-                index++;
-            }
-        }
-		
-        private function _copyVectorParams(index:int, paramIndexVec1:Vector.<int>, paramIndexVec2:Vector.<int>, shaderRVec1:Vector.<DeltaXShaderRegister>, shaderRVec2:Vector.<DeltaXShaderRegister>, cachVec1:Vector.<Number>, cachVec2:Vector.<Number>):void
-		{
-            var shadedR1:DeltaXShaderRegister;
-            var shadedR2:DeltaXShaderRegister;
-            var count:int;
-            var shaderIndex1:int;
-            var len:int;
-            var shaderIndex2:int;
-            var tempShaderIndex:int;
-            var tempIndex1:int = paramIndexVec1[index];
-            var tempIndex2:int = paramIndexVec2[index];
-            if (((!((tempIndex1 == -1))) && (!((tempIndex2 == -1)))))
-			{
-				shadedR1 = shaderRVec2[tempIndex2];
-				shadedR2 = shaderRVec1[tempIndex1];
-				count = Math.min(shadedR1.count, shadedR2.count);
-				shaderIndex1 = (shadedR1.index << 2);
-				len = (shaderIndex1 + (count << 2));
-				shaderIndex2 = shadedR2.index;
-				tempShaderIndex = shaderIndex1;
-                while (tempShaderIndex < len) 
-				{
-                    var _temp1:int = shaderIndex2;
-					shaderIndex2 = (shaderIndex2 + 1);
-                    this.setCacheValue(cachVec1, _temp1, cachVec2[tempShaderIndex], cachVec2[(tempShaderIndex + 1)], cachVec2[(tempShaderIndex + 2)], cachVec2[(tempShaderIndex + 3)]);
-					tempShaderIndex = (tempShaderIndex + 4);
-                }
-            }
-        }
-		
-		public function buildPBProgram3D(_arg1:String, _arg2:String, _arg3:String):Boolean
-		{
-			var _local8:uint;
-			var _local9:uint;
-			var _local10:ParameterRegisterInfo;
-			var _local11:RegisterInfo;
-			var _local12:Vector.<RegisterElement>;
-			if (this.m_program3D)
-				this.dispose();
-			var _local4:PBASMProgram = new PBASMProgram(_arg1);
-			var _local5:PBASMProgram = new PBASMProgram(_arg2);
-			var _local6:PBASMProgram = new PBASMProgram(_arg3);
-			var _local7:AGALProgramPair = PBASMCompiler.compile(_local4, _local5, _local6);
-			this.m_vertexConstRegister = new Vector.<DeltaXShaderRegister>();
-			this.m_vertexInputRegister = new Vector.<DeltaXShaderRegister>();
-			this.m_fragmentConstRegister = new Vector.<DeltaXShaderRegister>();
-			this.m_fragmentSampleRegister = new Vector.<DeltaXShaderRegister>();
-			_local8 = 0;
-			while (_local8 < _local7.vertexProgram.registers.parameterRegisters.length) {
-				_local10 = _local7.vertexProgram.registers.parameterRegisters[_local8];
-				_local12 = _local10.elementGroup.elements;
-				_local9 = (((_local10.elementGroup.elements[(_local12.length - 1)].registerIndex - _local12[0].registerIndex) + 1) * 4);
-				this.m_vertexConstRegister.push(new DeltaXShaderRegister(_local12[0].registerIndex, _local10.name, (_local10.semantics) ? _local10.semantics.id : "", _local10.format, new Vector.<Number>(_local9)));
-				_local8++;
-			};
-			_local8 = 0;
-			while (_local8 < _local7.vertexProgram.registers.inputVertexRegisters.length) {
-				_local11 = _local7.vertexProgram.registers.inputVertexRegisters[_local8];
-				this.m_vertexInputRegister.push(new DeltaXShaderRegister(_local8, _local11.name, (_local11.semantics) ? _local11.semantics.id : "", _local11.format, new Vector.<Number>(4)));
-				_local8++;
-			};
-			_local8 = 0;
-			while (_local8 < _local7.fragmentProgram.registers.parameterRegisters.length) {
-				_local10 = _local7.fragmentProgram.registers.parameterRegisters[_local8];
-				_local12 = _local10.elementGroup.elements;
-				_local9 = (((_local10.elementGroup.elements[(_local12.length - 1)].registerIndex - _local12[0].registerIndex) + 1) * 4);
-				this.m_fragmentConstRegister.push(new DeltaXShaderRegister(_local10.elementGroup.elements[0].registerIndex, _local10.name, (_local10.semantics) ? _local10.semantics.id : "", _local10.format, new Vector.<Number>(_local9)));
-				_local8++;
-			};
-			_local8 = 0;
-			while (_local8 < _local7.fragmentProgram.registers.textureRegisters.length) {
-				_local11 = _local7.fragmentProgram.registers.textureRegisters[_local8];
-				this.m_fragmentSampleRegister.push(new DeltaXShaderRegister(_local8, _local11.name, (_local11.semantics) ? _local11.semantics.id : "", _local11.format, null));
-				_local8++;
-			};
-			this.m_vertexConstRegister.push(new DeltaXShaderRegister(_local7.vertexProgram.registers.numericalConstants.startRegister, "constvalue", "", "float4", _local7.vertexProgram.registers.numericalConstants.values));
-			this.m_fragmentConstRegister.push(new DeltaXShaderRegister(_local7.fragmentProgram.registers.numericalConstants.startRegister, "constvalue", "", "float4", _local7.fragmentProgram.registers.numericalConstants.values));
-			this.m_vertexByteCode = _local7.vertexProgram.byteCode;
-			this.m_fragmentByteCode = _local7.fragmentProgram.byteCode;
-			this.buildStandarInfo();
-			return (true);
 		}
 		
 		

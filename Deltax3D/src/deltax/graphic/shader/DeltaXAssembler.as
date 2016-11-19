@@ -4,7 +4,7 @@
     import flash.utils.Endian;
 	
 	/**
-	 * 着色器装配器
+	 * 着色器汇编
 	 * @author lees
 	 * @date 2015/06/09
 	 */	
