@@ -33,7 +33,7 @@
         private var m_addColor:Boolean;
         private var m_defaultRectShader:DeltaXProgram3D;
         private var m_rectShader:DeltaXProgram3D;
-        private var m_rectInfoArray:Vector.<Number>;
+        private var m_rectInfoArray:ByteArray;
         private var m_rectStartIndex:uint;
         private var m_rectMaxCount:uint;
         private var m_rectCurCount:uint;
@@ -181,46 +181,58 @@
                 this.flushAll(_arg1);
                 this.m_texture = _arg6;
             }
+			
             var _local15:uint = ((this.m_rectCurCount * 12) + this.m_rectStartIndex);
-            this.m_rectInfoArray[_local15++] = (_arg4.x + _arg2);
-            this.m_rectInfoArray[_local15++] = (_arg4.y + _arg3);
-            this.m_rectInfoArray[_local15++] = _arg4.width;
-            this.m_rectInfoArray[_local15++] = _arg4.height;
+			this.m_rectInfoArray.position = _local15 << 2;
+			this.m_rectInfoArray.writeFloat((_arg4.x + _arg2));
+			this.m_rectInfoArray.writeFloat((_arg4.y + _arg3));
+			this.m_rectInfoArray.writeFloat(_arg4.width);
+			this.m_rectInfoArray.writeFloat(_arg4.height);
+			_local15+=4;
             if (_arg9 == null)
 			{
-                this.m_rectInfoArray[_local15++] = this.m_viewPort.left;
-                this.m_rectInfoArray[_local15++] = this.m_viewPort.top;
-                this.m_rectInfoArray[_local15++] = this.m_viewPort.right;
-                this.m_rectInfoArray[_local15++] = this.m_viewPort.bottom;
+				this.m_rectInfoArray.position = _local15 << 2;
+				this.m_rectInfoArray.writeFloat(this.m_viewPort.left);
+				this.m_rectInfoArray.writeFloat(this.m_viewPort.top);
+				this.m_rectInfoArray.writeFloat(this.m_viewPort.right);
+				this.m_rectInfoArray.writeFloat(this.m_viewPort.bottom);
+				_local15+=4;
             } else 
 			{
                 if (_arg10)
 				{
-                    this.m_rectInfoArray[_local15++] = (_arg9.left + _arg2);
-                    this.m_rectInfoArray[_local15++] = (_arg9.top + _arg3);
-                    this.m_rectInfoArray[_local15++] = (_arg9.right + _arg2);
-                    this.m_rectInfoArray[_local15++] = (_arg9.bottom + _arg3);
+					this.m_rectInfoArray.position = _local15 << 2;
+					this.m_rectInfoArray.writeFloat((_arg9.left + _arg2));
+					this.m_rectInfoArray.writeFloat((_arg9.top + _arg3));
+					this.m_rectInfoArray.writeFloat((_arg9.right + _arg2));
+					this.m_rectInfoArray.writeFloat((_arg9.bottom + _arg3));
+					_local15+=4;
                 } else 
 				{
-                    this.m_rectInfoArray[_local15++] = _arg9.left;
-                    this.m_rectInfoArray[_local15++] = _arg9.top;
-                    this.m_rectInfoArray[_local15++] = _arg9.right;
-                    this.m_rectInfoArray[_local15++] = _arg9.bottom;
+					this.m_rectInfoArray.position = _local15 << 2;
+					this.m_rectInfoArray.writeFloat(_arg9.left);
+					this.m_rectInfoArray.writeFloat(_arg9.top);
+					this.m_rectInfoArray.writeFloat(_arg9.right);
+					this.m_rectInfoArray.writeFloat(_arg9.bottom);
+					_local15+=4;
                 }
             }
 			
             if (_arg7)
 			{
-                this.m_rectInfoArray[_local15++] = _arg7.x;
-                this.m_rectInfoArray[_local15++] = _arg7.y;
-                this.m_rectInfoArray[_local15++] = _arg7.width;
-                this.m_rectInfoArray[_local15] = _arg7.height;
+				this.m_rectInfoArray.position = _local15 << 2;
+				this.m_rectInfoArray.writeFloat(_arg7.x);
+				this.m_rectInfoArray.writeFloat(_arg7.y);
+				this.m_rectInfoArray.writeFloat(_arg7.width);
+				this.m_rectInfoArray.writeFloat(_arg7.height);
+				_local15+=4;
             } else 
 			{
-                this.m_rectInfoArray[_local15++] = 0;
-                this.m_rectInfoArray[_local15++] = 0;
-                this.m_rectInfoArray[_local15++] = this.m_texture.width;
-                this.m_rectInfoArray[_local15] = this.m_texture.height;
+				this.m_rectInfoArray.position = _local15 << 2;
+				this.m_rectInfoArray.writeFloat(0);
+				this.m_rectInfoArray.writeFloat(0);
+				this.m_rectInfoArray.writeFloat(this.m_texture.width);
+				this.m_rectInfoArray.writeFloat(this.m_texture.height);
             }
             this.m_rectCurCount++;
         }
@@ -392,7 +404,7 @@
 			{
                 _local13.prepend(_arg9);
             }
-            var _local16:Vector.<Number> = _arg10.getVertexParamCache();
+            var _local16:ByteArray = _arg10.getVertexParamCache();
             this.setRectToParamCache(_local16, 0, _arg2);
             this.setRectToParamCache(_local16, 16, _arg7);
             this.setRectToParamCache(_local16, 32, _arg8);
@@ -412,20 +424,24 @@
             _arg10.deactivate(_arg1);
         }
 		
-        private function setRectToParamCache(_arg1:Vector.<Number>, _arg2:uint, _arg3:Rectangle):void
+        private function setRectToParamCache(_arg1:ByteArray, _arg2:uint, _arg3:Rectangle):void
 		{
-            _arg1[_arg2++] = _arg3.left;
-            _arg1[_arg2++] = _arg3.top;
-            _arg2 += 2;
-            _arg1[_arg2++] = _arg3.left;
-            _arg1[_arg2++] = _arg3.bottom;
-			_arg2 += 2;
-            _arg1[_arg2++] = _arg3.right;
-            _arg1[_arg2++] = _arg3.bottom;
-			_arg2 += 2;
-            _arg1[_arg2++] = _arg3.right;
-            _arg1[_arg2++] = _arg3.top;
-			_arg2 += 2;
+			_arg1.position = _arg2 * 4;
+			_arg1.writeFloat(_arg3.left);
+			_arg1.writeFloat(_arg3.top);
+			_arg2 +=4;
+			_arg1.position = _arg2 * 4;
+			_arg1.writeFloat(_arg3.left);
+			_arg1.writeFloat(_arg3.bottom);
+			_arg2 +=4;
+			_arg1.position = _arg2 * 4;
+			_arg1.writeFloat(_arg3.right);
+			_arg1.writeFloat(_arg3.bottom);
+			_arg2 +=4;
+			_arg1.position = _arg2 * 4;
+			_arg1.writeFloat(_arg3.right);
+			_arg1.writeFloat(_arg3.top);
+			_arg2 +=4;
         }
 		
         public function getSingleRectProgram():DeltaXProgram3D

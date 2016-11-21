@@ -4,6 +4,7 @@
     import flash.display3D.textures.Texture;
     import flash.geom.Matrix3D;
     import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     
     import deltax.common.math.MathUtl;
     import deltax.common.math.VectorUtil;
@@ -172,7 +173,7 @@
             var textureCount:uint = ptData.textureCircle * type;
             var textureRatio:Number = 1 / textureCount;
             var bufferList:Vector.<Number> = ptData.getScaleBuffer(50);
-            var vertexParams:Vector.<Number> = m_shaderProgram.getVertexParamCache();
+            var vertexParams:ByteArray = m_shaderProgram.getVertexParamCache();
             var vertexIndex:uint = m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.AMBIENTCOLOR) * 4;
             var vertexCount:uint = m_shaderProgram.getVertexParamRegisterCount(DeltaXProgram3D.AMBIENTCOLOR) * 4;
             var maxIndex:uint = vertexIndex + vertexCount;
@@ -184,7 +185,8 @@
 			var vIdx:uint = 7;
             while (bIdx < 50) 
 			{
-				vertexParams[vIdx] = bufferList[bIdx];
+				vertexParams.position = vIdx * 4;
+				vertexParams.writeFloat(bufferList[bIdx]);
 				bIdx++;
 				vIdx += 8;
             }
@@ -227,35 +229,38 @@
 			var count:uint = DeltaXSubGeometryManager.Instance.rectCountInVertexBuffer - textureCount;
 			var tIdx:uint;
 			var tCount:uint;
-			vertexParams[idx++] = node_h.position1_x;
-			vertexParams[idx++] = node_h.position1_y;
-			vertexParams[idx++] = node_h.position1_z;
-			vertexParams[idx++] = node_h.startTime;
-			vertexParams[idx++] = node_h.position2_x;
-			vertexParams[idx++] = node_h.position2_y;
-			vertexParams[idx] = node_h.position2_z;
-			idx += 2;
+			vertexParams.position = idx * 4;
+			vertexParams.writeFloat(node_h.position1_x);
+			vertexParams.writeFloat(node_h.position1_y);
+			vertexParams.writeFloat(node_h.position1_z);
+			vertexParams.writeFloat(node_h.startTime);
+			vertexParams.writeFloat(node_h.position2_x);
+			vertexParams.writeFloat(node_h.position2_y);
+			vertexParams.writeFloat(node_h.position2_z);
+			idx += 8;
             while (node_h) 
 			{
-				vertexParams[idx++] = node_h.position1_x;
-				vertexParams[idx++] = node_h.position1_y;
-				vertexParams[idx++] = node_h.position1_z;
-				vertexParams[idx++] = node_h.startTime;
-				vertexParams[idx++] = node_h.position2_x;
-				vertexParams[idx++] = node_h.position2_y;
-				vertexParams[idx] = node_h.position2_z;
-				idx += 2;
+				vertexParams.position = idx * 4;
+				vertexParams.writeFloat(node_h.position1_x);
+				vertexParams.writeFloat(node_h.position1_y);
+				vertexParams.writeFloat(node_h.position1_z);
+				vertexParams.writeFloat(node_h.startTime);
+				vertexParams.writeFloat(node_h.position2_x);
+				vertexParams.writeFloat(node_h.position2_y);
+				vertexParams.writeFloat(node_h.position2_z);
+				idx += 8;
                 if ((idx >= (maxIndex - 8)) || (tIdx > count))
 				{
 					nextNode = node_h.nextNode ? node_h.nextNode : node_h;
-					vertexParams[idx++] = nextNode.position1_x;
-					vertexParams[idx++] = nextNode.position1_y;
-					vertexParams[idx++] = nextNode.position1_z;
-					vertexParams[idx++] = nextNode.startTime;
-					vertexParams[idx++] = nextNode.position2_x;
-					vertexParams[idx++] = nextNode.position2_y;
-					vertexParams[idx] = nextNode.position2_z;
-					idx += 2;
+					vertexParams.position = idx * 4;
+					vertexParams.writeFloat(nextNode.position1_x);
+					vertexParams.writeFloat(nextNode.position1_y);
+					vertexParams.writeFloat(nextNode.position1_z);
+					vertexParams.writeFloat(nextNode.startTime);
+					vertexParams.writeFloat(nextNode.position2_x);
+					vertexParams.writeFloat(nextNode.position2_y);
+					vertexParams.writeFloat(nextNode.position2_z);
+					idx += 8;
 					
 					tCount += tIdx;
                     m_shaderProgram.update(context);
@@ -266,14 +271,15 @@
 					{
                         m_shaderProgram.setParamValue(DeltaXProgram3D.SPECULARMATERIAL, typeRatio * tCount, typeRatio, ratio, isCurve);
                     }
-					vertexParams[idx++] = tNode.position1_x;
-					vertexParams[idx++] = tNode.position1_y;
-					vertexParams[idx++] = tNode.position1_z;
-					vertexParams[idx++] = tNode.startTime;
-					vertexParams[idx++] = tNode.position2_x;
-					vertexParams[idx++] = tNode.position2_y;
-					vertexParams[idx] = tNode.position2_z;
-					idx += 2;
+					vertexParams.position = idx * 4;
+					vertexParams.writeFloat(tNode.position1_x);
+					vertexParams.writeFloat(tNode.position1_y);
+					vertexParams.writeFloat(tNode.position1_z);
+					vertexParams.writeFloat(tNode.startTime);
+					vertexParams.writeFloat(tNode.position2_x);
+					vertexParams.writeFloat(tNode.position2_y);
+					vertexParams.writeFloat(tNode.position2_z);
+					idx += 8;
                 } else 
 				{
 					tNode = node_h;
@@ -281,14 +287,15 @@
 					tIdx += textureCount;
                 }
             }
-			vertexParams[idx++] = tNode.position1_x;
-			vertexParams[idx++] = tNode.position1_y;
-			vertexParams[idx++] = tNode.position1_z;
-			vertexParams[idx++] = tNode.startTime;
-			vertexParams[idx++] = tNode.position2_x;
-			vertexParams[idx++] = tNode.position2_y;
-			vertexParams[idx] = tNode.position2_z;
-			idx += 2;
+			vertexParams.position = idx * 4;
+			vertexParams.writeFloat(tNode.position1_x);
+			vertexParams.writeFloat(tNode.position1_y);
+			vertexParams.writeFloat(tNode.position1_z);
+			vertexParams.writeFloat(tNode.startTime);
+			vertexParams.writeFloat(tNode.position2_x);
+			vertexParams.writeFloat(tNode.position2_y);
+			vertexParams.writeFloat(tNode.position2_z);
+			idx += 8;
 			
 			tIdx -= textureCount;
 			tCount += tIdx;

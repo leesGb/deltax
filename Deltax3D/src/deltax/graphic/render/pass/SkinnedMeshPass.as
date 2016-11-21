@@ -1,7 +1,16 @@
 ﻿package deltax.graphic.render.pass 
 {
-    import deltax.common.math.MathUtl;
+    import flash.display3D.Context3D;
+    import flash.display3D.Context3DBlendFactor;
+    import flash.display3D.Context3DCompareMode;
+    import flash.display3D.Context3DTriangleFace;
+    import flash.display3D.IndexBuffer3D;
+    import flash.display3D.VertexBuffer3D;
+    import flash.geom.Matrix3D;
+    import flash.utils.ByteArray;
+    
     import deltax.delta;
+    import deltax.common.math.MathUtl;
     import deltax.graphic.animation.EnhanceSkeletonAnimationState;
     import deltax.graphic.animation.EnhanceSkinnedSubGeometry;
     import deltax.graphic.camera.Camera3D;
@@ -18,14 +27,6 @@
     import deltax.graphic.scenegraph.traverse.DeltaXEntityCollector;
     import deltax.graphic.shader.DeltaXProgram3D;
     import deltax.graphic.texture.DeltaXTexture;
-    
-    import flash.display3D.Context3D;
-    import flash.display3D.Context3DBlendFactor;
-    import flash.display3D.Context3DCompareMode;
-    import flash.display3D.Context3DTriangleFace;
-    import flash.display3D.IndexBuffer3D;
-    import flash.display3D.VertexBuffer3D;
-    import flash.geom.Matrix3D;
 	
 	/**
 	 * 蒙皮网格材质渲染程序类
@@ -120,15 +121,15 @@
 				tMat.copyFrom(renderable.sceneTransform);
 				tMat.append(camera.inverseSceneTransform);
 				var sSubGeometry:EnhanceSkinnedSubGeometry = EnhanceSkinnedSubGeometry(subMesh.subGeometry);
-				var vParamResterCount:int = this.m_program3D.getVertexParamRegisterCount(DeltaXProgram3D.WORLDVIEW);
-				var vParamResterStarIndex:int = this.m_program3D.getVertexParamRegisterStartIndex(DeltaXProgram3D.WORLDVIEW) << 2;
-				var vParamCachList:Vector.<Number> = this.m_program3D.getVertexParamCache();
+				var vParamResterStarIndex:int = this.m_program3D.getVertexParamRegisterStartIndex(DeltaXProgram3D.WORLDVIEW) << 4;
+				var vParamCachList:ByteArray = this.m_program3D.getVertexParamCache();
+				vParamCachList.position = vParamResterStarIndex;
 				var skeletalDataCount:uint = sSubGeometry.associatePiece.local2GlobalIndex.length * 12;
 				tMat.copyRawDataTo(m_tempMatrixVector, 0, true);
 				var dataIndex:uint = 0;
                 while (dataIndex < skeletalDataCount) 
 				{
-					vParamCachList[vParamResterStarIndex] = m_tempMatrixVector[(dataIndex % 12)];
+					vParamCachList.writeFloat(m_tempMatrixVector[(dataIndex % 12)]);
 					dataIndex++;
 					vParamResterStarIndex++;
                 }

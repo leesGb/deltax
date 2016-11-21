@@ -5,6 +5,7 @@
     import flash.display3D.Context3DCompareMode;
     import flash.display3D.Context3DTriangleFace;
     import flash.geom.Rectangle;
+    import flash.utils.ByteArray;
     import flash.utils.Dictionary;
     
     import deltax.graphic.manager.DeltaXSubGeometryManager;
@@ -40,7 +41,7 @@
 		/***/
         private var m_fontStartIndex:uint;
 		/***/
-        private var m_fontInfoArray:Vector.<Number>;
+        private var m_fontInfoArray:ByteArray;
 		/***/
         private var m_vertexRectCount:uint;
 
@@ -142,14 +143,15 @@
             }
 			
             var idx:uint = (this.m_fontCount << 3) + this.m_fontStartIndex;
-            this.m_fontInfoArray[idx++] = _arg2;
-            this.m_fontInfoArray[idx++] = _arg3;
-            this.m_fontInfoArray[idx++] = _arg4;
-            this.m_fontInfoArray[idx++] = _arg5;
-            this.m_fontInfoArray[idx++] = _arg6;
-            this.m_fontInfoArray[idx++] = _arg7;
-            this.m_fontInfoArray[idx++] = _arg8;
-            this.m_fontInfoArray[idx] = _arg9;
+			this.m_fontInfoArray.position = idx << 2;
+			this.m_fontInfoArray.writeFloat(_arg2);
+			this.m_fontInfoArray.writeFloat(_arg3);
+			this.m_fontInfoArray.writeFloat(_arg4);
+			this.m_fontInfoArray.writeFloat(_arg5);
+			this.m_fontInfoArray.writeFloat(_arg6);
+			this.m_fontInfoArray.writeFloat(_arg7);
+			this.m_fontInfoArray.writeFloat(_arg8);
+			this.m_fontInfoArray.writeFloat(_arg9);
             this.m_fontCount++;
         }
 		

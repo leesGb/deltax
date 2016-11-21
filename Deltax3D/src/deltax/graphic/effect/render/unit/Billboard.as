@@ -5,6 +5,7 @@
     import flash.geom.Matrix3D;
     import flash.geom.Orientation3D;
     import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     
     import deltax.common.math.MathConsts;
     import deltax.common.math.MathUtl;
@@ -417,8 +418,9 @@
                     }
                 }
 				fun = (fun || this.defaultGetHeightFun);
-				var vertexParams:Vector.<Number> = m_shaderProgram.getVertexParamCache();
-				var pIndex:uint = m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.TEXTUREMATRIX) * 4;
+				var pIndex:uint = m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.TEXTUREMATRIX) * 16;
+				var vertexParams:ByteArray = m_shaderProgram.getVertexParamCache();
+				vertexParams.position = pIndex;
 				var s:uint = max + 1;
 				var length:int = s * s;
 				var indexPoses:Vector.<uint> = DeltaXSubGeometryManager.Instance.index2Pos;
@@ -426,13 +428,14 @@
 				var idx:uint = 0;
 				var gx:int;
 				var gz:int;
+				var r:Number;
                 while (idx < length) 
 				{
 					gx = (indexPoses[idx] & 0xFF) + minX;
 					gz = (indexPoses[idx] >> 8) + maxZ;
-					vertexParams[pIndex] = fun(gx, gz);
+					r = fun(gx, gz);
+					vertexParams.writeFloat(r);
 					idx++;
-					pIndex++;
                 }
                 activatePass(context, camera);
                 setDisturbState(context);

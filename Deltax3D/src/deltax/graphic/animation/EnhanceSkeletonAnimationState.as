@@ -496,10 +496,11 @@
 			var sourceEntity:RenderObject = SubMesh(subMesh).sourceEntity as RenderObject;
 			this.m_curRenderingMesh = sourceEntity;
 			var program3d:DeltaXProgram3D = SkinnedMeshPass(material).program3D;
-			var vParamCacheList:Vector.<Number> = program3d.getVertexParamCache();
+			var vParamCacheList:ByteArray = program3d.getVertexParamCache();
 			var indexData:ByteArray = eSubGeometry.associatePiece.local2GlobalIndex;
 			var dataLength:uint = indexData.length;
-			var startIndex:uint = program3d.getVertexParamRegisterStartIndex(DeltaXProgram3D.WORLDVIEW) << 4;
+			var startIndex:uint = program3d.getVertexParamRegisterStartIndex(DeltaXProgram3D.WORLDVIEW) << 6;
+			vParamCacheList.position = startIndex;
 			var dataIndex:uint;
 			while (dataIndex < dataLength) 
 			{
@@ -512,7 +513,7 @@
 				vertexIndex = 0;
 				while (vertexIndex < 12) 
 				{
-					vParamCacheList[startIndex++] = this.m_skeletalGlobalMatrices[(skeletalIndex + vertexIndex)];
+					vParamCacheList.writeFloat(this.m_skeletalGlobalMatrices[(skeletalIndex + vertexIndex)]);
 					vertexIndex++;
 				}
 				dataIndex++;

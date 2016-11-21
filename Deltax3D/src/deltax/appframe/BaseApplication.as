@@ -819,6 +819,8 @@
 			var interval:uint = curTime - this.m_lastUpdateTime;
 			this.m_lastUpdateTime = curTime;
 			
+//			trace("MAIN_THREAD_FRAME_INTERVAL::::::::::",interval);
+			
 			if (!this.m_started)
 			{
 				return;

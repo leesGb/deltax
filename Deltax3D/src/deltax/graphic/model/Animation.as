@@ -4,6 +4,7 @@
 	import flash.geom.Vector3D;
 	import flash.net.URLLoaderDataFormat;
 	import flash.utils.ByteArray;
+	import flash.utils.Endian;
 	
 	import deltax.delta;
 	import deltax.common.Util;
@@ -55,6 +56,8 @@
 		/**帧率*/
 		public var m_frameRate:uint = 0;
 		
+		public var m_workerData:ByteArray;
+		
 		public function Animation()
 		{
 			//
@@ -104,6 +107,11 @@
 		private function loadAni(data:ByteArray):void
 		{
 			data.uncompress();
+			
+//			this.m_workerData = new ByteArray();
+//			this.m_workerData.endian = Endian.LITTLE_ENDIAN;
+//			this.m_workerData.shareable = true;
+			
 			var verstion:uint = data.readUnsignedInt();
 			var animationName:String = Util.readUcs2StringWithCount(data);
 			var frameNum:uint = data.readUnsignedInt();
@@ -123,17 +131,7 @@
 				{
 					matNumberList[j] = data.readFloat();
 				}
-				
-				//				trace("frame=====================");
-				//				
 				skeletonPose.frameMatNumberList = matNumberList;
-				//				for(var j:int = 0;j<jointsNum;++j)
-				//				{
-				//					jointPose = new JointPose();
-				//					jointPose.translation = new Vector3D(data.readFloat(),data.readFloat(),data.readFloat());
-				//					jointPose.orientation = new Quaternion(data.readFloat(),data.readFloat(),data.readFloat(),data.readFloat());
-				//					skeletonPose.jointPoses.push(jointPose);
-				//				}
 				this.mm_frames.push(skeletonPose);
 			}
 			

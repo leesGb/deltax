@@ -4,6 +4,7 @@
     import flash.display3D.textures.Texture;
     import flash.geom.Matrix3D;
     import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     import flash.utils.Dictionary;
     
     import deltax.common.math.MathUtl;
@@ -301,7 +302,7 @@
             var wPos:Vector3D = m_matWorld.position;
             var scInfo:Vector.<Number> = pcData.m_sinCosInfo;
             var sBuffers:Vector.<Number> = pcData.getScaleBuffer(50);
-            var vertexParams:Vector.<Number> = m_shaderProgram.getVertexParamCache();
+            var vertexParams:ByteArray = m_shaderProgram.getVertexParamCache();
             var tVertexIndex:uint = m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.TEXTUREMATRIX) * 4;
             var aVertexIndex:uint = m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.AMBIENTCOLOR) * 4;
             var wVertexIndex:uint = m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.WORLD) * 4;
@@ -326,17 +327,20 @@
 			var idx:uint = 0;
             while (idx < bPosLength) 
 			{
-				vertexParams[aVertexIndex++] = this.m_bindDestPoses[idx++];
-				vertexParams[aVertexIndex++] = this.m_bindDestPoses[idx++];
-				vertexParams[aVertexIndex++] = this.m_bindDestPoses[idx++];
-				vertexParams[aVertexIndex++] = this.m_bindDestPoses[idx++];
+				vertexParams.position = aVertexIndex * 4;
+				vertexParams.writeFloat(this.m_bindDestPoses[idx++]);
+				vertexParams.writeFloat(this.m_bindDestPoses[idx++]);
+				vertexParams.writeFloat(this.m_bindDestPoses[idx++]);
+				vertexParams.writeFloat(this.m_bindDestPoses[idx++]);
+				aVertexIndex += 4;
             }
 			
 			idx = 0;
 			var wIndx:uint = wVertexIndex + 3;
             while (idx < rnCount) 
 			{
-				vertexParams[wIndx] = m_randNumber[idx++];
+				vertexParams.position = wIndx * 4;
+				vertexParams.writeFloat(m_randNumber[idx++]);
 				wIndx += 4;
             }
 			
@@ -344,34 +348,53 @@
 			wIndx = wVertexIndex;
             while (idx < scInfoCount) 
 			{
-				vertexParams[wIndx++] = scInfo[idx++];
-				vertexParams[wIndx] = scInfo[idx++];
-				wIndx += 3;
+				vertexParams.position = wIndx * 4;
+				vertexParams.writeFloat(scInfo[idx++]);
+				vertexParams.writeFloat(scInfo[idx++]);
+				wIndx += 4;
             }
 			
 			idx = 0;
 			wIndx = wVertexIndex + 2;
             while (idx < 50) 
 			{
-				vertexParams[wIndx] = sBuffers[idx++];
+				vertexParams.position = wIndx * 4;
+				vertexParams.writeFloat(sBuffers[idx++]);
 				wIndx += 4;
             }
 			
+			var r:Number;
             if (pcData.m_widthAsTexU)
 			{
-				vertexParams[tVertexIndex] = (pcData.m_invertTexU) ? -1 : 1;
+				r = (pcData.m_invertTexU) ? -1 : 1;
+				vertexParams.position = tVertexIndex * 4;
+				vertexParams.writeFloat(r);
 				tVertexIndex += 5;
-				vertexParams[tVertexIndex] = (pcData.m_invertTexV) ? -1 : 1;
+				
+				vertexParams.position = tVertexIndex * 4;
+				r = (pcData.m_invertTexV) ? -1 : 1;
+				vertexParams.writeFloat(r);
 				tVertexIndex += 1;
-				vertexParams[tVertexIndex] = (pcData.m_invertTexV) ? -(this.m_curTextureAdd) : this.m_curTextureAdd;
+				
+				vertexParams.position = tVertexIndex * 4;
+				r = (pcData.m_invertTexV) ? -(this.m_curTextureAdd) : this.m_curTextureAdd;
+				vertexParams.writeFloat(r);
             } else 
 			{
 				tVertexIndex++;
-				vertexParams[tVertexIndex] = (pcData.m_invertTexU) ? -1 : 1;
+				vertexParams.position = tVertexIndex * 4;
+				r = (pcData.m_invertTexU) ? -1 : 1;
+				vertexParams.writeFloat(r);
+				
 				tVertexIndex += 3;
-				vertexParams[tVertexIndex] = (pcData.m_invertTexV) ? -1 : 1;
+				vertexParams.position = tVertexIndex * 4;
+				r = (pcData.m_invertTexV) ? -1 : 1;
+				vertexParams.writeFloat(r);
+				
 				tVertexIndex -= 2;
-				vertexParams[tVertexIndex] = (pcData.m_invertTexU) ? -(this.m_curTextureAdd) : this.m_curTextureAdd;
+				vertexParams.position = tVertexIndex * 4;
+				r = (pcData.m_invertTexU) ? -(this.m_curTextureAdd) : this.m_curTextureAdd;
+				vertexParams.writeFloat(r);
             }
 			
             activatePass(context, camera);

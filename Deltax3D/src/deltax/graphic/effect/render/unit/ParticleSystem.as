@@ -4,6 +4,7 @@
     import flash.display3D.textures.Texture;
     import flash.geom.Matrix3D;
     import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     import flash.utils.Dictionary;
     
     import deltax.common.DictionaryUtil;
@@ -381,7 +382,7 @@
             m_shaderProgram.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, psData.m_widthRatio, psData.m_moveType, 0, m_curAlpha);
             m_shaderProgram.setParamValue(DeltaXProgram3D.EMISSIVEMATERIAL, psData.m_emissionPlan.x, psData.m_emissionPlan.y, psData.m_emissionPlan.z, 0);
             m_shaderProgram.setSampleTexture(1, colorTexture);
-            var vertexParams:Vector.<Number> = m_shaderProgram.getVertexParamCache();
+            var vertexParams:ByteArray = m_shaderProgram.getVertexParamCache();
             var vertexIndex:uint = m_shaderProgram.getVertexParamRegisterStartIndex(DeltaXProgram3D.AMBIENTCOLOR) * 4;
             var vertexCount:uint = m_shaderProgram.getVertexParamRegisterCount(DeltaXProgram3D.AMBIENTCOLOR) * 4;
             var maxIndex:uint = vertexIndex + vertexCount;
@@ -411,20 +412,24 @@
 								DeltaXSubGeometryManager.Instance.drawPackRect(context, (idx - vertexIndex) / vs);
 								idx = vertexIndex;
 							}
-							vertexParams[idx++] = p.position.x;
-							vertexParams[idx++] = p.position.y;
-							vertexParams[idx++] = p.position.z;
-							vertexParams[idx++] = p.curScale;
-							vertexParams[idx++] = p.percent;
-							vertexParams[idx++] = p.angle;
-							vertexParams[idx++] = p.addColor;
-							vertexParams[idx++] = p.mulColor;
+							vertexParams.position = idx * 4;
+							vertexParams.writeFloat(p.position.x);
+							vertexParams.writeFloat(p.position.y);
+							vertexParams.writeFloat(p.position.z);
+							vertexParams.writeFloat(p.curScale);
+							vertexParams.writeFloat(p.percent);
+							vertexParams.writeFloat(p.angle);
+							vertexParams.writeFloat(p.addColor);
+							vertexParams.writeFloat(p.mulColor);
+							idx += 8;
 							if (faceCameraOrEmisplan)
 							{
-								vertexParams[idx++] = p.velocity.x;
-								vertexParams[idx++] = p.velocity.y;
-								vertexParams[idx++] = p.velocity.z;
-								vertexParams[idx++] = 0;
+								vertexParams.position = idx * 4;
+								vertexParams.writeFloat(p.velocity.x);
+								vertexParams.writeFloat(p.velocity.y);
+								vertexParams.writeFloat(p.velocity.z);
+								vertexParams.writeFloat(0);
+								idx+=4;
 							}
 							p = p.nextParticle;
 						}

@@ -4,6 +4,7 @@
     import flash.display3D.Context3DBlendFactor;
     import flash.geom.Matrix3D;
     import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     
     import deltax.common.math.MathUtl;
     import deltax.graphic.animation.EnhanceSkinnedSubGeometry;
@@ -131,7 +132,7 @@
 								fragCount = MathUtl.min(fragCount, uvTexCount);
 								var idx:uint = 0;
 								var fStartIndex:int;
-								var fParams:Vector.<Number>;
+								var fParams:ByteArray;
 								while (idx < fragCount) 
 								{
 									fStartIndex = programe.getFragmentParamRegisterStartIndex(DeltaXProgram3D.TEXTUREMATRIX) * 4;
@@ -147,16 +148,22 @@
 											mData.getOffsetByPos(this.m_curPercent, pos);
 											boo = true;
 										}
-										fParams[fStartIndex] = scale;
-										fParams[(fStartIndex + 2)] = pos.x;
-										fParams[(fStartIndex + 5)] = scale;
-										fParams[(fStartIndex + 6)] = pos.y;
+										fParams.position = fStartIndex * 4;
+										fParams.writeFloat(scale);
+										fParams.position = (fStartIndex+2) * 4;
+										fParams.writeFloat(pos.x);
+										fParams.position = (fStartIndex+5) * 4;
+										fParams.writeFloat(scale);
+										fParams.writeFloat(pos.y);
 									} else 
 									{
-										fParams[fStartIndex] = 1;
-										fParams[(fStartIndex + 2)] = 0;
-										fParams[(fStartIndex + 5)] = 1;
-										fParams[(fStartIndex + 6)] = 0;
+										fParams.position = fStartIndex * 4;
+										fParams.writeFloat(1);
+										fParams.position = (fStartIndex+2) * 4;
+										fParams.writeFloat(0);
+										fParams.position = (fStartIndex+5) * 4;
+										fParams.writeFloat(1);
+										fParams.writeFloat(0);
 									}
 									idx++;
 								}
