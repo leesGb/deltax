@@ -7,11 +7,11 @@
 	 */
     public final class FaceType 
 	{
-		/***/
+		/**本地法线*/
         public static const LOCAL_NORMAL:uint = 0;
-		/***/
+		/**世界法线*/
         public static const WORLD_NORMAL:uint = 1;
-		/***/
+		/**摄像机法线*/
         public static const CAMERA_NORMAL:uint = 2;
 		/***/
         public static const SIZE_BY_CAMERA_NORMAL:uint = 3;

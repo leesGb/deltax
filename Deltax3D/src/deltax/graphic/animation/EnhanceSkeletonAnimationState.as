@@ -4,6 +4,7 @@
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
 	import flash.utils.ByteArray;
+	import flash.utils.Endian;
 	
 	import deltax.delta;
 	import deltax.common.math.MathUtl;
@@ -45,7 +46,7 @@
 		/**当前骨骼帧姿势列表*/
 		private var m_curSkeletonPose:Vector.<Number>;
 		/**骨骼全局矩阵数据*/
-		private var m_skeletalGlobalMatrices:Vector.<Number>;
+//		private var m_skeletalGlobalMatrices:Vector.<Number>;
 		/**关联到视图的骨骼矩阵数据*/
 		private var m_skeletalRelativeToView:Vector.<Number>;
 		/**当前渲染对象*/
@@ -56,6 +57,8 @@
 		private var m_curSkeletalMatrice:Vector.<Matrix3D> = new Vector.<Matrix3D>();
 		/**世界视图的逆矩阵*/
 		private var m_worldViewInvertArr:Vector.<Matrix3D> = new Vector.<Matrix3D>();
+		
+		private var m_skeletalGlobalMatrices1:ByteArray;
 		
 		public function EnhanceSkeletonAnimationState(ans:AnimationGroup):void
 		{
@@ -127,16 +130,19 @@
 			var skeletalCount:uint = this.m_animationGroup.skeletalCount;
 			if (skeletalCount>0)
 			{
-				this.m_skeletalGlobalMatrices = new Vector.<Number>((skeletalCount * 16), true);
-				var i:int = 0;
-				while (i < skeletalCount) 
-				{
-					m_curSkeletalMatrice[i] = Matrix3DPool.pop();
-					MathUtl.IDENTITY_MATRIX3D.copyRawDataTo(this.m_skeletalGlobalMatrices, (i * 16));
-					i++;
-				}
+//				this.m_skeletalGlobalMatrices = new Vector.<Number>((skeletalCount * 16), true);
+				this.m_skeletalGlobalMatrices1 = new ByteArray();
+				this.m_skeletalGlobalMatrices1.endian = Endian.LITTLE_ENDIAN;
+				this.m_skeletalGlobalMatrices1.length = skeletalCount * 64;
+//				var i:int = 0;
+//				while (i < skeletalCount) 
+//				{
+//					m_curSkeletalMatrice[i] = Matrix3DPool.pop();
+//					MathUtl.IDENTITY_MATRIX3D.copyRawDataTo(this.m_skeletalGlobalMatrices, (i * 16));
+//					i++;
+//				}
 				//
-				this.m_skeletalRelativeToView = this.m_skeletalGlobalMatrices.concat();
+//				this.m_skeletalRelativeToView = this.m_skeletalGlobalMatrices.concat();
 				
 				this.m_curSkeletonPose = new Vector.<Number>((skeletalCount * 8), true);//4旋转，3位移,1缩放
 				this.m_curSkeletonFrame = new Vector.<uint>(skeletalCount, true);
@@ -292,23 +298,23 @@
 			//对全局的矩阵变化进行计算
 			if (skeletalID == 0 || animationNode == null) //根骨骼
 			{
-				curSkeletalMat = m_curSkeletalMatrice[skeletalID];
-				curSkeletalMat.identity();
-				if (figureUnit)
-				{
-					figureScale = figureUnit.m_scale;
-					curSkeletalMat.appendScale(figureScale.x, figureScale.y, figureScale.z);
-				}
+//				curSkeletalMat = m_curSkeletalMatrice[skeletalID];
+//				curSkeletalMat.identity();
+//				if (figureUnit)
+//				{
+//					figureScale = figureUnit.m_scale;
+//					curSkeletalMat.appendScale(figureScale.x, figureScale.y, figureScale.z);
+//				}
 				
 				if(animationNode)
 				{
 					frame = uint(animationNode.m_frameOrWeight);//第几帧
 					//					animationNode.m_animation.fillSkeletonMatrix(frame, skeletalID, curSkeletalMat);
-					animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.m_skeletalGlobalMatrices,mat);
+					animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.m_skeletalGlobalMatrices1,mat);
 				}else
 				{
-					curSkeletalMat.append(mat);
-					curSkeletalMat.copyRawDataTo(this.m_skeletalGlobalMatrices, matDataIndex, true);
+//					curSkeletalMat.append(mat);
+//					curSkeletalMat.copyRawDataTo(this.m_skeletalGlobalMatrices, matDataIndex, true);
 				}
 				
 				//				trace("frame::",frame,"    frameMat::",curSkeletalMat.rawData);
@@ -322,7 +328,7 @@
 				return;
 			}
 			
-			curSkeletalMat = m_curSkeletalMatrice[skeletalID];//本骨骼的矩阵
+//			curSkeletalMat = m_curSkeletalMatrice[skeletalID];//本骨骼的矩阵
 			
 			if(animationNode.m_frameOrWeight < 0)
 			{
@@ -333,7 +339,7 @@
 			{
 				frame = uint(animationNode.m_frameOrWeight);//第几帧
 				//				scale = animationNode.m_animation.fillSkeletonMatrix(frame, skeletalID, curSkeletalMat);
-				scale = animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.m_skeletalGlobalMatrices,mat);
+				scale = animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.m_skeletalGlobalMatrices1,mat);
 			} else 
 			{
 				pSkeletalID = skeletalID * 8;
@@ -481,7 +487,7 @@
 			var skeletalIndex:uint;
 			var vertexIndex:uint;
 			var skeletalCount:uint = this.m_animationGroup.skeletalCount;
-			if (this.m_skeletalGlobalMatrices.length == 0)
+			if (this.m_skeletalGlobalMatrices1.length == 0)
 			{
 				if (skeletalCount > 0)
 				{
@@ -509,13 +515,14 @@
 				{
 					skeletalIndex = MathUtl.max(0, (skeletalCount - 1));
 				}
-				skeletalIndex = skeletalIndex << 4;
-				vertexIndex = 0;
-				while (vertexIndex < 12) 
-				{
-					vParamCacheList.writeFloat(this.m_skeletalGlobalMatrices[(skeletalIndex + vertexIndex)]);
-					vertexIndex++;
-				}
+				skeletalIndex = skeletalIndex << 6;
+				vParamCacheList.writeBytes(this.m_skeletalGlobalMatrices1,skeletalIndex,48);
+//				vertexIndex = 0;
+//				while (vertexIndex < 12) 
+//				{
+//					vParamCacheList.writeFloat(this.m_skeletalGlobalMatrices[(skeletalIndex + vertexIndex)]);
+//					vertexIndex++;
+//				}
 				dataIndex++;
 			}
 		}
@@ -552,8 +559,8 @@
 			this.m_curSkeletonFrame = null;
 			this.m_curSkeletonPose.length = 0;
 			this.m_curSkeletonPose = null;
-			this.m_skeletalGlobalMatrices.length = 0;
-			this.m_skeletalGlobalMatrices = null;
+//			this.m_skeletalGlobalMatrices.length = 0;
+//			this.m_skeletalGlobalMatrices = null;
 			this.m_skeletalRelativeToView.length = 0;
 			this.m_skeletalRelativeToView = null;
 			this.m_curRenderingMesh = null;

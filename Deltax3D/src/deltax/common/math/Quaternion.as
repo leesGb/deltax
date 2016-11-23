@@ -3,6 +3,12 @@
     import flash.geom.Matrix3D;
     import flash.geom.Orientation3D;
     import flash.geom.Vector3D;
+	
+	/**
+	 * 四元数计算类
+	 * @author lees
+	 * @date 2014/10/21
+	 */	
     
     public final class Quaternion 
 	{
@@ -11,33 +17,37 @@
         public var z:Number = 0;
         public var w:Number = 1;
 
-        public function Quaternion(_arg1:Number=0, _arg2:Number=0, _arg3:Number=0, _arg4:Number=1)
+        public function Quaternion($x:Number=0, $y:Number=0, $z:Number=0, $w:Number=1)
 		{
-            this.x = _arg1;
-            this.y = _arg2;
-            this.z = _arg3;
-            this.w = _arg4;
+            this.x = $x;
+            this.y = $y;
+            this.z = $z;
+            this.w = $w;
         }
 		
+		/**
+		 * 四元数模
+		 * @return 
+		 */		
         public function get magnitude():Number
 		{
-            return (Math.sqrt(((((this.w * this.w) + (this.x * this.x)) + (this.y * this.y)) + (this.z * this.z))));
+            return Math.sqrt(this.w * this.w + this.x * this.x + this.y * this.y + this.z * this.z);
         }
 		
-        public function multiply(_arg1:Quaternion, _arg2:Quaternion):void
+        public function multiply(q1:Quaternion, q2:Quaternion):void
 		{
-            var _local3:Number = _arg1.w;
-            var _local4:Number = _arg1.x;
-            var _local5:Number = _arg1.y;
-            var _local6:Number = _arg1.z;
-            var _local7:Number = _arg2.w;
-            var _local8:Number = _arg2.x;
-            var _local9:Number = _arg2.y;
-            var _local10:Number = _arg2.z;
-            this.w = ((((_local3 * _local7) - (_local4 * _local8)) - (_local5 * _local9)) - (_local6 * _local10));
-            this.x = ((((_local3 * _local8) + (_local4 * _local7)) + (_local5 * _local10)) - (_local6 * _local9));
-            this.y = ((((_local3 * _local9) - (_local4 * _local10)) + (_local5 * _local7)) + (_local6 * _local8));
-            this.z = ((((_local3 * _local10) + (_local4 * _local9)) - (_local5 * _local8)) + (_local6 * _local7));
+            var w1:Number = q1.w;
+            var x1:Number = q1.x;
+            var y1:Number = q1.y;
+            var z1:Number = q1.z;
+            var w2:Number = q2.w;
+            var x2:Number = q2.x;
+            var y2:Number = q2.y;
+            var z2:Number = q2.z;
+            this.w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2;
+            this.x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2;
+            this.y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2;
+            this.z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2;
         }
 		
         public function multiplyVector(_arg1:Vector3D, _arg2:Quaternion=null):Quaternion
@@ -80,14 +90,17 @@
             var _local10:Number = _arg2.y;
             var _local11:Number = _arg2.z;
             var _local12:Number = ((((_local4 * _local8) + (_local5 * _local9)) + (_local6 * _local10)) + (_local7 * _local11));
-            if (_local12 < 0){
+            if (_local12 < 0)
+			{
                 _local12 = -(_local12);
                 _local8 = -(_local8);
                 _local9 = -(_local9);
                 _local10 = -(_local10);
                 _local11 = -(_local11);
-            };
-            if (_local12 < 0.99999){
+            }
+			
+            if (_local12 < 0.99999)
+			{
                 _local13 = Math.acos(_local12);
                 _local14 = (1 / Math.sin(_local13));
                 _local15 = (Math.sin((_local13 * (1 - _arg3))) * _local14);
@@ -96,7 +109,8 @@
                 this.x = ((_local5 * _local15) + (_local9 * _local16));
                 this.y = ((_local6 * _local15) + (_local10 * _local16));
                 this.z = ((_local7 * _local15) + (_local11 * _local16));
-            } else {
+            } else 
+			{
                 this.w = (_local4 + (_arg3 * (_local8 - _local4)));
                 this.x = (_local5 + (_arg3 * (_local9 - _local5)));
                 this.y = (_local6 + (_arg3 * (_local10 - _local6)));
@@ -106,10 +120,11 @@
                 this.x = (this.x * _local17);
                 this.y = (this.y * _local17);
                 this.z = (this.z * _local17);
-            };
+            }
         }
 		
-        public function lerp(_arg1:Quaternion, _arg2:Quaternion, _arg3:Number):void{
+        public function lerp(_arg1:Quaternion, _arg2:Quaternion, _arg3:Number):void
+		{
             var _local12:Number;
             var _local4:Number = _arg1.w;
             var _local5:Number = _arg1.x;
@@ -119,12 +134,13 @@
             var _local9:Number = _arg2.x;
             var _local10:Number = _arg2.y;
             var _local11:Number = _arg2.z;
-            if (((((_local4 * _local8) + (_local5 * _local9)) + (_local6 * _local10)) + (_local7 * _local11)) < 0){
+            if (((((_local4 * _local8) + (_local5 * _local9)) + (_local6 * _local10)) + (_local7 * _local11)) < 0)
+			{
                 _local8 = -(_local8);
                 _local9 = -(_local9);
                 _local10 = -(_local10);
                 _local11 = -(_local11);
-            };
+            }
             this.w = (_local4 + (_arg3 * (_local8 - _local4)));
             this.x = (_local5 + (_arg3 * (_local9 - _local5)));
             this.y = (_local6 + (_arg3 * (_local10 - _local6)));
@@ -136,7 +152,8 @@
             this.z = (this.z * _local12);
         }
 		
-        public function fromEulerAngles(_arg1:Number, _arg2:Number, _arg3:Number):void{
+        public function fromEulerAngles(_arg1:Number, _arg2:Number, _arg3:Number):void
+		{
             var _local4:Number = (_arg1 * 0.5);
             var _local5:Number = (_arg2 * 0.5);
             var _local6:Number = (_arg3 * 0.5);
@@ -161,15 +178,13 @@
             return (_arg1);
         }
 		
-        public function normalize(_arg1:Number=1):void{
+        public function normalize(_arg1:Number=1):void
+		{
             var _local2:Number = (_arg1 / Math.sqrt(((((this.x * this.x) + (this.y * this.y)) + (this.z * this.z)) + (this.w * this.w))));
             this.x = (this.x * _local2);
             this.y = (this.y * _local2);
             this.z = (this.z * _local2);
             this.w = (this.w * _local2);
-        }
-        public function toString():String{
-            return ((((((((("{x:" + this.x) + " y:") + this.y) + " z:") + this.z) + " w:") + this.w) + "}"));
         }
 		
         public function toMatrix3D(_arg1:Matrix3D=null):Matrix3D
@@ -211,14 +226,17 @@
             return (_arg1);
         }
 		
-        public function fromMatrix(_arg1:Matrix3D):void{
+        public function fromMatrix(_arg1:Matrix3D):void
+		{
             var _local2:Vector3D = _arg1.decompose(Orientation3D.QUATERNION)[1];
             this.x = _local2.x;
             this.y = _local2.y;
             this.z = _local2.z;
             this.w = _local2.w;
         }
-        public function toRawData(_arg1:Vector.<Number>, _arg2:Boolean=false):void{
+		
+        public function toRawData(_arg1:Vector.<Number>, _arg2:Boolean=false):void
+		{
             var _local3:Number = ((2 * this.x) * this.y);
             var _local4:Number = ((2 * this.x) * this.z);
             var _local5:Number = ((2 * this.x) * this.w);
@@ -239,15 +257,15 @@
             _arg1[9] = (_local6 + _local5);
             _arg1[10] = (((-(_local9) - _local10) + _local11) + _local12);
             _arg1[3] = (_arg1[7] = (_arg1[11] = 0));
-            if (!_arg2){
+            if (!_arg2)
+			{
                 _arg1[12] = (_arg1[13] = (_arg1[14] = 0));
                 _arg1[15] = 1;
-            };
+            }
         }
-        public function clone():Quaternion{
-            return (new Quaternion(this.x, this.y, this.z, this.w));
-        }
-        public function rotatePoint(_arg1:Vector3D, _arg2:Vector3D=null):Vector3D{
+		
+        public function rotatePoint(_arg1:Vector3D, _arg2:Vector3D=null):Vector3D
+		{
             var _local3:Number;
             var _local4:Number;
             var _local5:Number;
@@ -265,12 +283,24 @@
             _arg2.z = ((((-(_local6) * this.z) - (_local3 * this.y)) + (_local4 * this.x)) + (_local5 * this.w));
             return (_arg2);
         }
-        public function copyFrom(_arg1:Quaternion):void{
-            this.x = _arg1.x;
-            this.y = _arg1.y;
-            this.z = _arg1.z;
-            this.w = _arg1.w;
+		
+        public function copyFrom(q:Quaternion):void
+		{
+            this.x = q.x;
+            this.y = q.y;
+            this.z = q.z;
+            this.w = q.w;
         }
+		
+		public function clone():Quaternion
+		{
+			return new Quaternion(this.x, this.y, this.z, this.w);
+		}
+		
+		public function toString():String
+		{
+			return "{x:" + this.x + " y:" + this.y + " z:" + this.z + " w:" + this.w + "}";
+		}
 
     }
 } 

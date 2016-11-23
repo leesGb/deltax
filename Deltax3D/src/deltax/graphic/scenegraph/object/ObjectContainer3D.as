@@ -23,84 +23,46 @@
 	{
 		/**场景实体对象数量*/	
 		public static var objectCount:uint = 0;
-		/**四元数  */	
+		
 		private static var _quaternion:Quaternion = new Quaternion();
 		
-		/**变换矩阵*/		
 		protected var _transform:Matrix3D;
-		/**X轴旋转*/	
-		private var _rotationX:Number = 0;
-		/**Y轴旋转*/	
-		private var _rotationY:Number = 0;
-		/**Z轴旋转*/	
-		private var _rotationZ:Number = 0;
-		/**X轴缩放*/		
 		protected var _scaleX:Number = 1;
-		/**Y轴缩放*/	
 		protected var _scaleY:Number = 1;
-		/**Z轴缩放*/	
 		protected var _scaleZ:Number = 1;
-		/**x坐标 */	
 		protected var _x:Number = 0;
-		/**y坐标 */	
 		protected var _y:Number = 0;
-		/**z坐标 */	
 		protected var _z:Number = 0;
-		/**需要变换标识*/	
 		protected var _transformDirty:Boolean = true;
-		/**需要旋转标识*/	
-		private var _rotationValuesDirty:Boolean;
-		/**需要缩放标识*/	
-		private var _scaleValuesDirty:Boolean;
-		/**中心点（轴）*/		
 		protected var _pivotPoint:Vector3D;
-		/**是否以零点为中心点*/
 		protected var _pivotZero:Boolean = true;
-		/**名字 */	
-		private var _name:String;
-		/**位置 */		
 		protected var _pos:Vector3D;
-		/**引用个数 */	
 		protected var _refCount:int = 1;
-		
-		
-		/**子对象列表*/	
-		private var _children:Vector.<ObjectContainer3D>;
-		/**3d场景*/	
 		protected var _scene:Scene3D;
-		/**旧3d场景*/	
-		private var _oldScene:Scene3D;
-		/**父对象*/	
 		protected var _parent:ObjectContainer3D;
-		/**场景变换矩阵*/	
 		protected var _sceneTransform:Matrix3D;
-		/**场景需要变换标识*/	
 		protected var _sceneTransformDirty:Boolean = true;
-		/**场景变换矩阵的逆矩阵*/	
-		private var _inverseSceneTransform:Matrix3D;
-		/**逆矩阵需要变换标识 */	
-		private var _inverseSceneTransformDirty:Boolean = true;
-		/**场景位置*/	
-		private var _scenePosition:Vector3D;
-		/**场景位置需要变换标识*/	
-		private var _scenePositionDirty:Boolean = true;
-		/**显性划分区域*/	
 		protected var _explicitPartition:Partition3D;
-		/**隐形划分区域*/	
 		protected var _implicitPartition:Partition3D;
-		/**上次父类场景缩放矢量 */
+		
+		private var _rotationX:Number = 0;
+		private var _rotationY:Number = 0;
+		private var _rotationZ:Number = 0;
+		private var _rotationValuesDirty:Boolean;
+		private var _scaleValuesDirty:Boolean;
+		private var _name:String;
+		private var _children:Vector.<ObjectContainer3D>;
+		private var _oldScene:Scene3D;
+		private var _inverseSceneTransform:Matrix3D;
+		private var _inverseSceneTransformDirty:Boolean = true;
+		private var _scenePosition:Vector3D;
+		private var _scenePositionDirty:Boolean = true;
 		private var m_preParentSceneScale:Vector3D;
-		/**自身缩放变换矩阵*/	
 		private var m_scaledSelfTransform:Matrix3D;
-		/**光效是否可见*/	
 		private var m_effectVisible:Boolean = true;
-		/**是否能渲染*/	
 		private var m_enableRender:Boolean = true;
-		/**是否可见*/	
 		private var m_visible:Boolean = true;
-		/**是否跟随父类缩放*/
 		private var m_applyParentScale:Boolean = true;
-		/**对象名称*/
 		private var m_objectName:String;
 		
 		public function ObjectContainer3D()
@@ -311,7 +273,8 @@
 		 */		
 		public function moveForward(value:Number):void
 		{
-			this.translateLocal(Vector3D.Z_AXIS, value);
+//			this.translateLocal(Vector3D.Z_AXIS, value);
+			this.translate(Vector3D.Z_AXIS, value);
 		}
 		
 		/**
@@ -320,7 +283,8 @@
 		 */		
 		public function moveBackward(value:Number):void
 		{
-			this.translateLocal(Vector3D.Z_AXIS, -(value));
+//			this.translateLocal(Vector3D.Z_AXIS, -(value));
+			this.translate(Vector3D.Z_AXIS, -value);
 		}
 		
 		/**
@@ -497,8 +461,8 @@
 				this._transform.identity();
 				this._transform.appendTranslation(-(this._pivotPoint.x), -(this._pivotPoint.y), -(this._pivotPoint.z));//移动到原点
 				this._transform.append(Matrix3DUtils.quaternion2matrix(_quaternion));//移动到原点再执行旋转操作
-				this._transform.appendTranslation((this._x + this._pivotPoint.x), (this._y + this._pivotPoint.y), (this._z + this._pivotPoint.z));//平移
 				this._transform.prependScale(this._scaleX, this._scaleY, this._scaleZ);
+				this._transform.appendTranslation((this._x + this._pivotPoint.x), (this._y + this._pivotPoint.y), (this._z + this._pivotPoint.z));//平移
 			}
 			this._transformDirty = false;
 		}
@@ -568,18 +532,18 @@
 		
 		/**
 		 * 平移
-		 * @param direction
-		 * @param value
+		 * @param direction				移动方向
+		 * @param value					移动距离
 		 */		
 		public function translate(direction:Vector3D, value:Number):void
 		{
 			var dx:Number = direction.x;
 			var dy:Number = direction.y;
 			var dz:Number = direction.z;
-			var normalization:Number = value / Math.sqrt(dx * dx + dy * dy + dz * dz);
-			this._x += dx * normalization;
-			this._y += dy * normalization;
-			this._z += dz * normalization;
+			var length:Number = value / Math.sqrt(dx * dx + dy * dy + dz * dz);
+			this._x += dx * length;
+			this._y += dy * length;
+			this._z += dz * length;
 			
 			this._transformDirty = true;
 		}
@@ -594,8 +558,8 @@
 			var dx:Number = direction.x;
 			var dy:Number = direction.y;
 			var dz:Number = direction.z;
-			var normalization:Number = value / Math.sqrt(dx * dx + dy * dy + dz * dz);
-			this.transform.prependTranslation(dx * normalization, dy * normalization, dz * normalization);
+			var length:Number = value / Math.sqrt(dx * dx + dy * dy + dz * dz);
+			this.transform.prependTranslation(dx * length, dy * length, dz * length);
 			this._transform.copyColumnTo(3, this._pos);
 			this._x = this._pos.x;
 			this._y = this._pos.y;
@@ -845,7 +809,8 @@
 				this.sceneTransform.copyColumnTo(3, this._scenePosition);
 				this._scenePositionDirty = false;
 			}
-			return (this._scenePosition);
+			
+			return this._scenePosition;
 		}
 		
 		/**

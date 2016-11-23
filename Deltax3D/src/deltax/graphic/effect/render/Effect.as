@@ -791,13 +791,13 @@
 									{
 										calcMat.copyColumnTo(3, translatePos);
 										calcMat.identity();
-										if (uPos < EffectUnitUpdatePosType.FIXED_IGNORE_SCALE)
-										{
-											calcMat.copyColumnTo(0, right);
-											calcMat.copyColumnTo(1, up);
-											calcMat.copyColumnTo(2, dir);
-											calcMat.appendScale(right.length, up.length, dir.length);
-										}
+//										if (uPos < EffectUnitUpdatePosType.FIXED_IGNORE_SCALE)
+//										{
+//											calcMat.copyColumnTo(0, right);
+//											calcMat.copyColumnTo(1, up);
+//											calcMat.copyColumnTo(2, dir);
+//											calcMat.appendScale(right.length, up.length, dir.length);
+//										}
 										
 										if (tPos == EffectUnitUpdatePosType.SOCKET_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE 
 											|| tPos == EffectUnitUpdatePosType.SKELETAL_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE)

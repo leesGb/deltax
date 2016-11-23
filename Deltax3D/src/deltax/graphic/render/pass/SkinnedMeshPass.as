@@ -131,7 +131,6 @@
 				{
 					vParamCachList.writeFloat(m_tempMatrixVector[(dataIndex % 12)]);
 					dataIndex++;
-					vParamResterStarIndex++;
                 }
             } else 
 			{

@@ -1,9 +1,11 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.common.math {
-    import flash.geom.*;
-    import __AS3__.vec.*;
+﻿package deltax.common.math 
+{
+    import flash.geom.Matrix3D;
+    import flash.geom.Vector3D;
+    
 
-    public class Vector3DUtils {
+    public class Vector3DUtils 
+	{
 
         private static const MathPI:Number = 3.14159265358979;
 
@@ -115,5 +117,7 @@ package deltax.common.math {
             return ((((((((Math.abs((_arg1.x - _arg2.x)) < _arg4)) && ((Math.abs((_arg1.y - _arg2.y)) < _arg4)))) && ((Math.abs((_arg1.z - _arg2.z)) < _arg4)))) && ((_arg3) ? (Math.abs((_arg1.w - _arg2.w)) < _arg4) : true)));
         }
 
+		
+		
     }
-}//package deltax.common.math 
+} 
