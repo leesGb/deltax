@@ -124,6 +124,55 @@
             return rScene;
         }
 		
+		private function getMetaScene(_arg1:uint, _arg2:SceneGrid, _arg3:Function=null):MetaScene
+		{
+			var _local6:MetaScene;
+			var _local4:SceneInfo = this.m_sceneInfoMap[_arg1];
+			if (!_local4)
+			{
+				throw (new Error((("scene id " + _arg1) + " config not exists!")));
+			}
+			var _local5:String = (Enviroment.ResourceRootPath + _local4.m_fileFullPath + _local4.m_mapFileName +".map");
+			trace(((("try load scene id " + _arg1) + " path: ") + _local5));
+			_local6 = (ResourceManager.instance.getResource(_local5, ResourceType.MAP, _arg3) as MetaScene);
+			if (_local6 == null)
+			{
+				throw (new Error((("metaScene(" + _arg1) + ") create failed!")));
+			}
+			
+			if (!_local6.loaded)
+			{
+				_local6.initPos = _arg2;
+				_local6.sceneID = _arg1;
+				_local6.loadingHandler = BaseApplication.instance;
+			} else 
+			{
+				_arg3(_local6, true);
+			}
+			return (_local6);
+		}
+		
+		public function createRenderSceneByName(path:String,callBack:Function=null):RenderScene
+		{
+			var metaScene:MetaScene = ResourceManager.instance.getResource(path, ResourceType.MAP, callBack) as MetaScene;
+			if (metaScene == null)
+			{
+				throw new Error("metaScene(" + path + ") create failed!");
+			}
+			
+			if (!metaScene.loaded)
+			{
+				metaScene.loadingHandler = BaseApplication.instance;
+			} else 
+			{
+				callBack(metaScene, true);
+			}
+			
+			var rScene:RenderScene = metaScene.createRenderScene();
+			metaScene.release();
+			return rScene;
+		}
+		
         public function createLogicScene(_arg1:uint, _arg2:uint, _arg3:SceneGrid, _arg4:ByteArray, _arg5:Function=null):LogicScene
 		{
             if (((((this.m_curLogicScene) && (this.m_curLogicScene.metaScene))) && 
@@ -145,33 +194,7 @@
             return (this.m_curLogicScene);
         }
 		
-        private function getMetaScene(_arg1:uint, _arg2:SceneGrid, _arg3:Function=null):MetaScene
-		{
-            var _local6:MetaScene;
-            var _local4:SceneInfo = this.m_sceneInfoMap[_arg1];
-            if (!_local4)
-			{
-                throw (new Error((("scene id " + _arg1) + " config not exists!")));
-            }
-            var _local5:String = (Enviroment.ResourceRootPath + _local4.m_fileFullPath + _local4.m_mapFileName +".map");
-            trace(((("try load scene id " + _arg1) + " path: ") + _local5));
-            _local6 = (ResourceManager.instance.getResource(_local5, ResourceType.MAP, _arg3) as MetaScene);
-            if (_local6 == null)
-			{
-                throw (new Error((("metaScene(" + _arg1) + ") create failed!")));
-            }
-			
-            if (!_local6.loaded)
-			{
-                _local6.initPos = _arg2;
-                _local6.sceneID = _arg1;
-                _local6.loadingHandler = BaseApplication.instance;
-            } else 
-			{
-                _arg3(_local6, true);
-            }
-            return (_local6);
-        }
+        
 		
         delta function get sceneInfoMap():Dictionary
 		{

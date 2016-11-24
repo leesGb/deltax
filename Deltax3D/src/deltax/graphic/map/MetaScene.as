@@ -829,8 +829,8 @@
                 return 0;
             }
 			
-			gx--;
-			gz--;
+//			gx--;
+//			gz--;
 			
             var rgnID:uint = (gz >>> 4) * this.m_sceneInfo.m_regionWidth + (gx >>> 4);
             if (rgnID >= this.m_regions.length)
