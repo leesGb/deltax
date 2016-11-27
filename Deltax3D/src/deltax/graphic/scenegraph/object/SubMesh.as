@@ -17,14 +17,13 @@
 
     public class SubMesh implements IRenderable 
 	{
-		/**网格材质*/
-        delta var _material:MaterialBase;
-		/**父类网格*/
         private var _parentMesh:Mesh;
-		/**几何体数据*/
         private var _subGeometry:SubGeometry;
+		
 		/**索引*/
         delta var _index:uint;
+		/**网格材质*/
+		delta var _material:MaterialBase;
 
         public function SubMesh($subGeometry:SubGeometry, $mesh:Mesh, $material:MaterialBase=null)
 		{

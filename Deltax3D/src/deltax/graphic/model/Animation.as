@@ -4,11 +4,13 @@
 	import flash.geom.Vector3D;
 	import flash.net.URLLoaderDataFormat;
 	import flash.utils.ByteArray;
-	import flash.utils.Endian;
+	import flash.utils.CompressionAlgorithm;
 	
 	import deltax.delta;
 	import deltax.common.Util;
 	import deltax.common.error.Exception;
+	import deltax.common.math.MathUtl;
+	import deltax.common.math.Matrix3DUtils;
 	import deltax.common.math.Quaternion;
 	import deltax.common.resource.CommonFileHeader;
 	import deltax.graphic.animation.skeleton.JointPose;
@@ -106,7 +108,7 @@
 		 */		
 		private function loadAni(data:ByteArray):void
 		{
-			data.uncompress();
+			data.uncompress(CompressionAlgorithm.LZMA);
 			
 //			this.m_workerData = new ByteArray();
 //			this.m_workerData.endian = Endian.LITTLE_ENDIAN;
@@ -120,18 +122,77 @@
 			var jointsNum:uint = data.readUnsignedInt();
 			this.mm_frames = new Vector.<SkeletonPose>();
 			var skeletonPose:SkeletonPose;
-			var jointPose:JointPose;
-			var matNumbers:uint = jointsNum * 16;
-			var matNumberList:Vector.<Number>;
+			var qx:Number;
+			var qy:Number;
+			var qz:Number;
+			var qw:Number;
+			var tx:Number;
+			var ty:Number;
+			var tz:Number;
+			var tData:ByteArray;
+			var tData2:ByteArray;
 			for(var i:int = 0;i<frameNum;i++)
 			{
 				skeletonPose = new SkeletonPose();
-				matNumberList = new Vector.<Number>(matNumbers);
-				for(var j:uint = 0;j<matNumbers;j++)
+				tData = skeletonPose.frameMatNumberList;
+				tData2 = skeletonPose.frameAndLocalMatNumberList;
+				for(var j:uint = 0;j<jointsNum;j++)
 				{
-					matNumberList[j] = data.readFloat();
+					qx = data.readFloat();
+					qy = data.readFloat();
+					qz = data.readFloat();
+					qw = data.readFloat();
+					tx = data.readFloat();
+					ty = data.readFloat();
+					tz = data.readFloat();
+					tData.writeFloat((1-(qy * qy+qz * qz) * 2));
+					tData.writeFloat(((qx * qy +qw * qz) * 2));
+					tData.writeFloat(((qx * qz - qw * qy)*2));
+					tData.writeFloat(0);
+					
+					tData.writeFloat(((qx*qy-qw*qz)*2));
+					tData.writeFloat((1-((qx*qx+qz*qz)*2)));
+					tData.writeFloat((qy*qz+qw*qx)*2);
+					tData.writeFloat(0);
+					
+					tData.writeFloat(((qx*qz+qw*qy)*2));
+					tData.writeFloat((qy*qz-qw*qx)*2);
+					tData.writeFloat((1-((qx*qx+qy*qy)*2)));
+					tData.writeFloat(0);
+					
+					tData.writeFloat(tx);
+					tData.writeFloat(ty);
+					tData.writeFloat(tz);
+					tData.writeFloat(1);
+					
+					qx = data.readFloat();
+					qy = data.readFloat();
+					qz = data.readFloat();
+					qw = data.readFloat();
+					tx = data.readFloat();
+					ty = data.readFloat();
+					tz = data.readFloat();
+					tData2.writeFloat((1-(qy * qy+qz * qz) * 2));
+					tData2.writeFloat(((qx * qy +qw * qz) * 2));
+					tData2.writeFloat(((qx * qz - qw * qy)*2));
+					tData2.writeFloat(0);
+					
+					tData2.writeFloat(((qx*qy-qw*qz)*2));
+					tData2.writeFloat((1-((qx*qx+qz*qz)*2)));
+					tData2.writeFloat((qy*qz+qw*qx)*2);
+					tData2.writeFloat(0);
+					
+					tData2.writeFloat(((qx*qz+qw*qy)*2));
+					tData2.writeFloat((qy*qz-qw*qx)*2);
+					tData2.writeFloat((1-((qx*qx+qy*qy)*2)));
+					tData2.writeFloat(0);
+					
+					tData2.writeFloat(tx);
+					tData2.writeFloat(ty);
+					tData2.writeFloat(tz);
+					tData2.writeFloat(1);
 				}
-				skeletonPose.frameMatNumberList = matNumberList;
+				
 				this.mm_frames.push(skeletonPose);
 			}
 			
@@ -209,7 +270,7 @@
 			return 1;	
 		}
 		
-		public function fillSkeletonMatrix2(frame:uint, skeletalID:uint, list:ByteArray,pMat:Matrix3D):Number 
+		public function caleSkeletonLocalMatrix(frame:uint, skeletalID:uint, list:ByteArray,plist:ByteArray):Number
 		{
 			if(mm_frames == null)
 			{
@@ -217,9 +278,10 @@
 				return 1;
 			}
 			
-			var rawDatas:Vector.<Number> = mm_frames[frame].frameMatNumberList.slice(skeletalID * 16,(skeletalID+1)*16);
-//			var idx:uint = skeletalID<<2;
-			var pData:Vector.<Number> = pMat.rawData;
+			var rawDatas:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
+			MathUtl.readByteToRawData(mm_frames[frame].frameAndLocalMatNumberList,skeletalID * 64,rawDatas);
+			var pData:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER2;
+			MathUtl.readByteToRawData(plist,0,pData);
 			list.position = skeletalID<<6;
 			list.writeFloat(pData[0] * rawDatas[0] + pData[4] * rawDatas[1] + pData[8] * rawDatas[2] + pData[12] * rawDatas[3]);
 			list.writeFloat(pData[0] * rawDatas[4] + pData[4] * rawDatas[5] + pData[8] * rawDatas[6] + pData[12] * rawDatas[7]);
@@ -241,6 +303,98 @@
 			list.writeFloat(pData[3] * rawDatas[8] + pData[7] * rawDatas[9] + pData[11] * rawDatas[10] + pData[15] * rawDatas[11]);
 			list.writeFloat(pData[3] * rawDatas[12] + pData[7] * rawDatas[13] + pData[11] * rawDatas[14] + pData[15] * rawDatas[15]);
 			
+			return 1;
+		}
+		
+		public function caleSkeletonFrameMatrix(frame:uint, skeletalID:uint, list:ByteArray):Number
+		{
+			if(mm_frames == null)
+			{
+				throw new Error("animation fillSkeletonPose error:"+"id::"+skeletalID,"name::"+this.name);
+				return 1;
+			}
+			
+//			var rawDatas:Vector.<Number> = MathUtl.readRawData(mm_frames[frame].frameMatNumberList,skeletalID * 64);
+//			var pData:Vector.<Number> = pMat.rawData;
+			list.position = skeletalID<<6;
+			list.writeBytes(mm_frames[frame].frameMatNumberList,skeletalID * 64,64);
+//			list.writeFloat(pData[0] * rawDatas[0] + pData[4] * rawDatas[1] + pData[8] * rawDatas[2] + pData[12] * rawDatas[3]);
+//			list.writeFloat(pData[1] * rawDatas[0] + pData[5] * rawDatas[1] + pData[9] * rawDatas[2] + pData[13] * rawDatas[3]);
+//			list.writeFloat(pData[2] * rawDatas[0] + pData[6] * rawDatas[1] + pData[10] * rawDatas[2] + pData[14] * rawDatas[3]);
+//			list.writeFloat(pData[3] * rawDatas[0] + pData[7] * rawDatas[1] + pData[11] * rawDatas[2] + pData[15] * rawDatas[3]);
+//			
+//			list.writeFloat(pData[0] * rawDatas[4] + pData[4] * rawDatas[5] + pData[8] * rawDatas[6] + pData[12] * rawDatas[7]);
+//			list.writeFloat(pData[1] * rawDatas[4] + pData[5] * rawDatas[5] + pData[9] * rawDatas[6] + pData[13] * rawDatas[7]);
+//			list.writeFloat(pData[2] * rawDatas[4] + pData[6] * rawDatas[5] + pData[10] * rawDatas[6] + pData[14] * rawDatas[7]);
+//			list.writeFloat(pData[3] * rawDatas[4] + pData[7] * rawDatas[5] + pData[11] * rawDatas[6] + pData[15] * rawDatas[7]);
+//			
+//			list.writeFloat(pData[0] * rawDatas[8] + pData[4] * rawDatas[9] + pData[8] * rawDatas[10] + pData[12] * rawDatas[11]);
+//			list.writeFloat(pData[1] * rawDatas[8] + pData[5] * rawDatas[9] + pData[9] * rawDatas[10] + pData[13] * rawDatas[11]);
+//			list.writeFloat(pData[2] * rawDatas[8] + pData[6] * rawDatas[9] + pData[10] * rawDatas[10] + pData[14] * rawDatas[11]);
+//			list.writeFloat(pData[3] * rawDatas[8] + pData[7] * rawDatas[9] + pData[11] * rawDatas[10] + pData[15] * rawDatas[11]);
+//			
+//			list.writeFloat(pData[0] * rawDatas[12] + pData[4] * rawDatas[13] + pData[8] * rawDatas[14] + pData[12] * rawDatas[15]);
+//			list.writeFloat(pData[1] * rawDatas[12] + pData[5] * rawDatas[13] + pData[9] * rawDatas[14] + pData[13] * rawDatas[15]);
+//			list.writeFloat(pData[2] * rawDatas[12] + pData[6] * rawDatas[13] + pData[10] * rawDatas[14] + pData[14] * rawDatas[15]);
+//			list.writeFloat(pData[3] * rawDatas[12] + pData[7] * rawDatas[13] + pData[11] * rawDatas[14] + pData[15] * rawDatas[15]);	
+			return 1;
+		}
+		
+		public function fillSkeletonMatrix2(frame:uint, skeletalID:uint, list:ByteArray,list2:ByteArray,plist:ByteArray):Number 
+		{
+			if(mm_frames == null)
+			{
+				throw new Error("animation fillSkeletonPose error:"+"id::"+skeletalID,"name::"+this.name);
+				return 1;
+			}
+			
+			var rawDatas:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
+			MathUtl.readByteToRawData(mm_frames[frame].frameAndLocalMatNumberList,skeletalID * 64,rawDatas);
+			var pData:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER2;
+			MathUtl.readByteToRawData(plist,0,pData);
+			list.position = skeletalID<<6;
+			list.writeFloat(pData[0] * rawDatas[0] + pData[4] * rawDatas[1] + pData[8] * rawDatas[2] + pData[12] * rawDatas[3]);
+			list.writeFloat(pData[0] * rawDatas[4] + pData[4] * rawDatas[5] + pData[8] * rawDatas[6] + pData[12] * rawDatas[7]);
+			list.writeFloat(pData[0] * rawDatas[8] + pData[4] * rawDatas[9] + pData[8] * rawDatas[10] + pData[12] * rawDatas[11]);
+			list.writeFloat(pData[0] * rawDatas[12] + pData[4] * rawDatas[13] + pData[8] * rawDatas[14] + pData[12] * rawDatas[15]);
+			
+			list.writeFloat(pData[1] * rawDatas[0] + pData[5] * rawDatas[1] + pData[9] * rawDatas[2] + pData[13] * rawDatas[3]);
+			list.writeFloat(pData[1] * rawDatas[4] + pData[5] * rawDatas[5] + pData[9] * rawDatas[6] + pData[13] * rawDatas[7]);
+			list.writeFloat(pData[1] * rawDatas[8] + pData[5] * rawDatas[9] + pData[9] * rawDatas[10] + pData[13] * rawDatas[11]);
+			list.writeFloat(pData[1] * rawDatas[12] + pData[5] * rawDatas[13] + pData[9] * rawDatas[14] + pData[13] * rawDatas[15]);
+			
+			list.writeFloat(pData[2] * rawDatas[0] + pData[6] * rawDatas[1] + pData[10] * rawDatas[2] + pData[14] * rawDatas[3]);
+			list.writeFloat(pData[2] * rawDatas[4] + pData[6] * rawDatas[5] + pData[10] * rawDatas[6] + pData[14] * rawDatas[7]);
+			list.writeFloat(pData[2] * rawDatas[8] + pData[6] * rawDatas[9] + pData[10] * rawDatas[10] + pData[14] * rawDatas[11]);
+			list.writeFloat(pData[2] * rawDatas[12] + pData[6] * rawDatas[13] + pData[10] * rawDatas[14] + pData[14] * rawDatas[15]);
+			
+			list.writeFloat(pData[3] * rawDatas[0] + pData[7] * rawDatas[1] + pData[11] * rawDatas[2] + pData[15] * rawDatas[3]);
+			list.writeFloat(pData[3] * rawDatas[4] + pData[7] * rawDatas[5] + pData[11] * rawDatas[6] + pData[15] * rawDatas[7]);
+			list.writeFloat(pData[3] * rawDatas[8] + pData[7] * rawDatas[9] + pData[11] * rawDatas[10] + pData[15] * rawDatas[11]);
+			list.writeFloat(pData[3] * rawDatas[12] + pData[7] * rawDatas[13] + pData[11] * rawDatas[14] + pData[15] * rawDatas[15]);
+			
+			list2.position = skeletalID<<6;
+			list2.writeBytes(mm_frames[frame].frameMatNumberList,skeletalID * 64,64);
+			
+//			list2.writeFloat(pData[0] * rawDatas[0] + pData[4] * rawDatas[1] + pData[8] * rawDatas[2] + pData[12] * rawDatas[3]);
+//			list2.writeFloat(pData[1] * rawDatas[0] + pData[5] * rawDatas[1] + pData[9] * rawDatas[2] + pData[13] * rawDatas[3]);
+//			list2.writeFloat(pData[2] * rawDatas[0] + pData[6] * rawDatas[1] + pData[10] * rawDatas[2] + pData[14] * rawDatas[3]);
+//			list2.writeFloat(pData[3] * rawDatas[0] + pData[7] * rawDatas[1] + pData[11] * rawDatas[2] + pData[15] * rawDatas[3]);
+//			
+//			list2.writeFloat(pData[0] * rawDatas[4] + pData[4] * rawDatas[5] + pData[8] * rawDatas[6] + pData[12] * rawDatas[7]);
+//			list2.writeFloat(pData[1] * rawDatas[4] + pData[5] * rawDatas[5] + pData[9] * rawDatas[6] + pData[13] * rawDatas[7]);
+//			list2.writeFloat(pData[2] * rawDatas[4] + pData[6] * rawDatas[5] + pData[10] * rawDatas[6] + pData[14] * rawDatas[7]);
+//			list2.writeFloat(pData[3] * rawDatas[4] + pData[7] * rawDatas[5] + pData[11] * rawDatas[6] + pData[15] * rawDatas[7]);
+//			
+//			list2.writeFloat(pData[0] * rawDatas[8] + pData[4] * rawDatas[9] + pData[8] * rawDatas[10] + pData[12] * rawDatas[11]);
+//			list2.writeFloat(pData[1] * rawDatas[8] + pData[5] * rawDatas[9] + pData[9] * rawDatas[10] + pData[13] * rawDatas[11]);
+//			list2.writeFloat(pData[2] * rawDatas[8] + pData[6] * rawDatas[9] + pData[10] * rawDatas[10] + pData[14] * rawDatas[11]);
+//			list2.writeFloat(pData[3] * rawDatas[8] + pData[7] * rawDatas[9] + pData[11] * rawDatas[10] + pData[15] * rawDatas[11]);
+//			
+//			list2.writeFloat(pData[0] * rawDatas[12] + pData[4] * rawDatas[13] + pData[8] * rawDatas[14] + pData[12] * rawDatas[15]);
+//			list2.writeFloat(pData[1] * rawDatas[12] + pData[5] * rawDatas[13] + pData[9] * rawDatas[14] + pData[13] * rawDatas[15]);
+//			list2.writeFloat(pData[2] * rawDatas[12] + pData[6] * rawDatas[13] + pData[10] * rawDatas[14] + pData[14] * rawDatas[15]);
+//			list2.writeFloat(pData[3] * rawDatas[12] + pData[7] * rawDatas[13] + pData[11] * rawDatas[14] + pData[15] * rawDatas[15]);
 			return 1;	
 		}
 		

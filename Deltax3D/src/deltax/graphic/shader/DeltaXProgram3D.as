@@ -366,7 +366,7 @@
             if (byte.readUnsignedInt() != 1685283328)
 			{
 				throw new Error("Program code parse error!!!");
-				return;
+				return false;
             }
 			
 			var assem:DeltaXAssembler = new DeltaXAssembler();			

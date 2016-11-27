@@ -1,5 +1,8 @@
 package deltax.graphic.animation.skeleton
 {
+	import flash.utils.ByteArray;
+	import flash.utils.Endian;
+
 	/**
 	 * 骨架姿势
 	 * @author lees
@@ -10,13 +13,17 @@ package deltax.graphic.animation.skeleton
 		/**关节姿势列表*/
 		public var jointPoses : Vector.<JointPose>;
 		
-		public var frameMatNumberList:Vector.<Number>;
+		public var frameMatNumberList:ByteArray;
 		
-		public var frameAndLocalMatNumberList:Vector.<Number>;
+		public var frameAndLocalMatNumberList:ByteArray;
 		
 		public function SkeletonPose()
 		{
 			jointPoses = new Vector.<JointPose>();
+			frameMatNumberList = new ByteArray();
+			frameMatNumberList.endian = Endian.LITTLE_ENDIAN;
+			frameAndLocalMatNumberList = new ByteArray();
+			frameAndLocalMatNumberList.endian = Endian.LITTLE_ENDIAN;
 		}
 		
 		/**

@@ -64,11 +64,6 @@
             }
         }
 		
-		/**
-		 * 可见性测试比较
-		 * @param camera
-		 * @param b
-		 */		
 		private function _compareMultiVisibleTest(camera:Camera3D, b:BoundingVolumeBase):void
 		{
 			var aabb:AxisAlignedBoundingBox = new AxisAlignedBoundingBox();

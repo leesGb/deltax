@@ -1,5 +1,4 @@
-﻿//Created by Action Script Viewer - http://www.buraks.com/asv
-package deltax.appframe.event {
+﻿package deltax.appframe.event {
     import flash.events.*;
     import deltax.appframe.*;
     import deltax.common.debug.*;
@@ -20,4 +19,4 @@ package deltax.appframe.event {
             this.syncBlockIndexInList = _arg4;
         }
     }
-}//package deltax.appframe.event 
+}

@@ -11,9 +11,7 @@
 
     public class Geometry 
 	{
-		/**子几何体数据列表*/
         private var _subGeometries:Vector.<SubGeometry>;
-		/**网格面片类*/
         private var _mesh:Mesh;
 
         public function Geometry($mesh:Mesh)

@@ -41,7 +41,7 @@
 		/**散射颜色*/
         public var m_diffuse:uint = 4278190080;
 		/**等比例缩放值*/
-        public var m_uniformScalar:int;
+        public var m_uniformScalar:Number;
 		
 		public function RegionModelInfo()
 		{
@@ -61,35 +61,52 @@
             this.m_y = data.readShort();
             this.m_z = data.readByte();
 			
-			var radius_per_unit:Number;
-			if (version >= MetaScene.VERSION_ADD_16BIT_ROTATION)
-			{
-				radius_per_unit = Math.PI * 2 / 0x010000;
-				this.m_rotationX = data.readUnsignedShort()*radius_per_unit;
-				this.m_rotationY = data.readUnsignedShort()*radius_per_unit;
-				this.m_rotationZ = data.readUnsignedShort()*radius_per_unit;
-			}
-			else
-			{
-				radius_per_unit = Math.PI * 2 / 0x0100;
-				this.m_rotationX = data.readUnsignedByte()*radius_per_unit;
-				this.m_rotationY = data.readUnsignedByte()*radius_per_unit;
-				this.m_rotationZ = data.readUnsignedByte()*radius_per_unit;
-			}
-
-            this.m_flag = data.readUnsignedByte();
-            this.m_figure = data.readUnsignedByte();
-            this.m_diffuse = (this.m_diffuse | (data.readUnsignedByte() << 16));
-            this.m_diffuse = (this.m_diffuse | (data.readUnsignedByte() << 8));
-            if (version >= MetaScene.VERSION_RESTORE_AMBIENT_COLOR)
-			{
-                this.m_diffuse = (this.m_diffuse | data.readUnsignedByte());
-            }
+			this.m_rotationX = data.readShort();
+			this.m_rotationY = data.readShort();
+			this.m_rotationZ = data.readShort();
 			
-            if ((version >= MetaScene.VERSION_ADD_OBJECT_SCALE) && ((this.m_flag & FLAG_UNIFORM_SCALE) > 0))
+			this.m_flag = data.readUnsignedByte();
+			this.m_figure = data.readUnsignedByte();
+			var colorR:uint = data.readUnsignedByte();
+			var colorG:uint = data.readUnsignedByte();
+			this.m_diffuse = (this.m_diffuse | (colorR << 16));
+			this.m_diffuse = (this.m_diffuse | (colorG << 8));
+			//
+			if (version >= MetaScene.VERSION_RESTORE_AMBIENT_COLOR)
 			{
-                this.m_uniformScalar = data.readShort();
-            }
+				var colorB:uint = data.readUnsignedByte();
+				this.m_diffuse = (this.m_diffuse | colorB);
+			}
+			this.m_uniformScalar = data.readFloat();
+//			var radius_per_unit:Number;
+//			if (version >= MetaScene.VERSION_ADD_16BIT_ROTATION)
+//			{
+//				radius_per_unit = Math.PI * 2 / 0x010000;
+//				this.m_rotationX = data.readUnsignedShort()*radius_per_unit;
+//				this.m_rotationY = data.readUnsignedShort()*radius_per_unit;
+//				this.m_rotationZ = data.readUnsignedShort()*radius_per_unit;
+//			}
+//			else
+//			{
+//				radius_per_unit = Math.PI * 2 / 0x0100;
+//				this.m_rotationX = data.readUnsignedByte()*radius_per_unit;
+//				this.m_rotationY = data.readUnsignedByte()*radius_per_unit;
+//				this.m_rotationZ = data.readUnsignedByte()*radius_per_unit;
+//			}
+//
+//            this.m_flag = data.readUnsignedByte();
+//            this.m_figure = data.readUnsignedByte();
+//            this.m_diffuse = (this.m_diffuse | (data.readUnsignedByte() << 16));
+//            this.m_diffuse = (this.m_diffuse | (data.readUnsignedByte() << 8));
+//            if (version >= MetaScene.VERSION_RESTORE_AMBIENT_COLOR)
+//			{
+//                this.m_diffuse = (this.m_diffuse | data.readUnsignedByte());
+//            }
+//			
+//            if ((version >= MetaScene.VERSION_ADD_OBJECT_SCALE) && ((this.m_flag & FLAG_UNIFORM_SCALE) > 0))
+//			{
+//                this.m_uniformScalar = data.readShort();
+//            }
 			
         }
 

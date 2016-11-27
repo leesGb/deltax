@@ -4,6 +4,7 @@
     import flash.geom.Point;
     import flash.geom.Rectangle;
     import flash.geom.Vector3D;
+    import flash.utils.ByteArray;
     
 
     public class MathUtl 
@@ -310,6 +311,27 @@
             _arg3.bottom = Math.max(_arg1.bottom, _arg2.bottom);
             return (_arg3);
         }
+		
+		public static function readByteToRawData(src:ByteArray,position:uint,out:Vector.<Number>):void
+		{
+			src.position = position;
+			for(var i:uint = 0;i<16;i++)
+			{
+				out[i] = src.readFloat();
+			}
+		}
+		
+		public static function readMatrixToByte(mat:Matrix3D,out:ByteArray):void
+		{
+			out.position = 0;
+			var rawData:Vector.<Number> = mat.rawData;
+			for(var i:uint = 0;i<16;i++)
+			{
+				out.writeFloat(rawData[i]);
+			}
+		}
+		
+		
 
     }
 }

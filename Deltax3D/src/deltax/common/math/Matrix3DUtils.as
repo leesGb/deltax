@@ -12,6 +12,7 @@
     public class Matrix3DUtils 
 	{
         public static const RAW_DATA_CONTAINER:Vector.<Number> = new Vector.<Number>(16);
+		public static const RAW_DATA_CONTAINER2:Vector.<Number> = new Vector.<Number>(16);
 
         public static function quaternion2matrix(_arg1:Quaternion, _arg2:Matrix3D=null):Matrix3D
 		{

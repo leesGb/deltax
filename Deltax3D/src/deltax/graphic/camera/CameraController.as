@@ -288,6 +288,11 @@
 				this.m_lookAtTarget.position = m_camera.lookAtPos;
 			}
 			this.invalidCamera();
+
+			if(BaseApplication.instance.sceneManager.m_renderScene)
+			{
+				BaseApplication.instance.sceneManager.m_renderScene.updateView(m_camera.lookAtPos);	
+			}
 		}
 		
 		/**

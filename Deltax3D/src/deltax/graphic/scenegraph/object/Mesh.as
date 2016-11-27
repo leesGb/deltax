@@ -17,18 +17,17 @@
 	
     public class Mesh extends Entity implements IMaterialOwner 
 	{
-		/**子网格面片列表*/
-        private var _subMeshes:Vector.<SubMesh>;
 		/**几何体数据*/
         protected var _geometry:Geometry;
-		/**材质*/
+		
+		private var _subMeshes:Vector.<SubMesh>;
         private var _material:MaterialBase;
+		private var _castsShadows:Boolean = true;
+		
 		/**动画状态*/
         delta var _animationState:AnimationStateBase;
 		/**动作控制器*/
         delta var _animationController:AnimatorBase;
-		/**是否显示阴影*/
-        private var _castsShadows:Boolean = true;
 
         public function Mesh($material:MaterialBase=null, $geometry:Geometry=null)
 		{

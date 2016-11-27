@@ -62,53 +62,29 @@
         private static const CAMERA_NEAR:Number = 50;
         public static const DEFAULT_ENVIROMENT:SceneEnv = new SceneEnv();
 
-		/***/
         private var m_regions:Vector.<RenderRegion>;
-		/***/
         private var m_metaScene:MetaScene;
-		/***/
         private var m_curEnv:SceneEnv;
-		/***/
         private var m_sunLight:DirectionalLight;
-		/***/
         private var m_materialWater:WaterMaterial;
-		/***/
         private var m_materialTerrain:TerrainMaterial;
-		/***/
         private var m_staticShadowRegionInfos:Vector.<ShadowRegionInfo>;
-		/***/
         private var m_curShadowProject:Matrix3D;
-		/***/
         private var m_shadowMaptexture:Texture;
-		/***/
         private var m_shadowMapBitmapData:BitmapData;
-		/***/
         private var m_invalidShadowMap:Boolean;
-		/***/
         private var m_initFirstTime:Boolean;
-		/***/
         private var m_visibleRenderRegion:Vector.<RenderRegion>;
-		/***/
         private var m_visibleRenderRegionString:String;
-		/***/
         private var m_rayForSelectTerrainGrid:Vector3D;
-		/***/
         private var m_context3D:Context3D;
-		/***/
         private var m_ambientFxMap:Dictionary;
-		/***/
         private var m_lastUpdateRegionCenter:Vector3D;
-		/***/
         private var m_paramToCalcHeightOnViewRay:Number;
-		/***/
         private var m_viewRay:Vector3D;
-		/***/
         private var m_preCheckedIntersectPos:Vector3D;
-		/***/
         private var m_preHeightOnViewRay:Number;
-		/***/
         private var m_selectGridPos:Point;
-		/***/
 		private var m_app:BaseApplication = BaseApplication.instance;
 
         public function RenderScene(mScene:MetaScene)
@@ -355,6 +331,7 @@
 			var tts:TerrainTileSetUnit;
 			var models:Vector.<RegionModelInfo> = rgn.delta::m_modelInfos;
 			var modelCount:uint = models.length;
+			trace("model count===============",modelCount);
 			var idx:uint;
 			while (idx < modelCount) 
 			{

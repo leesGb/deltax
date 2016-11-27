@@ -11,9 +11,7 @@
 	
     public class Window3D extends Entity 
 	{
-		/**检测节点*/
         private var m_entityNode:Window3DNode;
-		/**内嵌窗口*/
         private var m_innerWindow:DeltaXWindow;
 
         public function Window3D()

@@ -21,19 +21,13 @@
 	
     public class Entity extends ObjectContainer3D 
 	{
-		/**能否移动*/
 		protected var m_movable:Boolean;
-		/**节点*/
-		private var _partitionNode:EntityNode;
-		/**模型视图投影*/
-		protected var _modelViewProjection:Matrix3D;
-		/**z索引*/
 		protected var _zIndex:Number;
-		/**包围盒*/
+		protected var _modelViewProjection:Matrix3D;
 		protected var _bounds:BoundingVolumeBase;
-		/**包围盒是否失效*/
 		protected var _boundsInvalid:Boolean = true;
-		/**是否接受鼠标事件*/
+		
+		private var _partitionNode:EntityNode;
 		private var _mouseEnabled:Boolean;
 
 		public function Entity()
@@ -134,9 +128,6 @@
 			this.notifySceneBoundsInvalid();
 		}
 		
-		/**
-		 * 通知场景包围盒失效
-		 */		
 		private function notifySceneBoundsInvalid():void
 		{
 			if (_scene)

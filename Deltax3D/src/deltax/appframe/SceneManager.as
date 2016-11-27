@@ -21,6 +21,7 @@
         private var m_curLogicScene:LogicScene;
         private var m_shellLogicSceneType:Class;
         private var m_sceneInfoListLoadHandlers:Vector.<Function>;
+		public var m_renderScene:RenderScene;
 
         public function SceneManager(_arg1:String)
 		{
@@ -168,9 +169,9 @@
 				callBack(metaScene, true);
 			}
 			
-			var rScene:RenderScene = metaScene.createRenderScene();
+			m_renderScene = metaScene.createRenderScene();
 			metaScene.release();
-			return rScene;
+			return m_renderScene;
 		}
 		
         public function createLogicScene(_arg1:uint, _arg2:uint, _arg3:SceneGrid, _arg4:ByteArray, _arg5:Function=null):LogicScene

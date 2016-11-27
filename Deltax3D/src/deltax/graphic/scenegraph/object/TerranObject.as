@@ -4,6 +4,7 @@
     import flash.geom.Vector3D;
     
     import deltax.delta;
+    import deltax.common.math.MathConsts;
     import deltax.common.math.MathUtl;
     import deltax.common.math.Matrix3DUtils;
     import deltax.common.resource.Enviroment;
@@ -30,9 +31,7 @@
 	{
         private static var TEMP_AABBPOINTS:Vector.<Number> = new Vector.<Number>();
 		
-		/**分块模型信息*/
         private var m_modelInfo:RegionModelInfo;
-		/**地形分块单元*/
 		private var m_metaRegion:MetaRegion;
 
         public function TerranObject($material:MaterialBase=null, $geometry:Geometry=null)
@@ -105,33 +104,40 @@
             }
 			
             this.castsShadows = (mInfo.m_flag & RegionModelInfo.FLAG_CAST_SHADOW) > 0;
-            this.calTransform(0, 0, 0);
+//            this.calTransform(0, 0, 0);
         }
 		
 		private function calTransform(tx:Number, ty:Number, tz:Number):void
 		{
 			var mat:Matrix3D = MathUtl.TEMP_MATRIX3D2;
 			mat.identity();
-			mat.appendTranslation(tx, ty, tz);
+//			mat.appendTranslation(tx, ty, tz);
 			
-			var tScale:Number = 1;
-			if ((this.m_modelInfo.m_flag & RegionModelInfo.FLAG_UNIFORM_SCALE))
-			{
-				tScale = Math.pow(RegionModelInfo.OBJ_SCALE_POW_BASE, this.m_modelInfo.m_uniformScalar);
-			}
+			mat.appendScale(this.m_modelInfo.m_uniformScalar, this.m_modelInfo.m_uniformScalar, this.m_modelInfo.m_uniformScalar);
+//			var tScale:Number = 1;
+//			if ((this.m_modelInfo.m_flag & RegionModelInfo.FLAG_UNIFORM_SCALE))
+//			{
+//				tScale = Math.pow(RegionModelInfo.OBJ_SCALE_POW_BASE, this.m_modelInfo.m_uniformScalar);
+//			}
+//			
+//			if (this.m_modelInfo.m_flag & RegionModelInfo.FLAG_XMIRROR)
+//			{
+//				mat.appendScale(-(tScale), tScale, tScale);
+//			} else 
+//			{
+//				mat.appendScale(tScale, tScale, tScale);
+//			}
 			
-			if (this.m_modelInfo.m_flag & RegionModelInfo.FLAG_XMIRROR)
-			{
-				mat.appendScale(-(tScale), tScale, tScale);
-			} else 
-			{
-				mat.appendScale(tScale, tScale, tScale);
-			}
-			
-			var per_degree:Number = Math.PI * 2 / 0x0100;
-			mat.append(Matrix3DUtils.SetRotateZ(MathUtl.TEMP_MATRIX3D, (this.m_modelInfo.m_rotationZ * per_degree)));
-			mat.append(Matrix3DUtils.SetRotateX(MathUtl.TEMP_MATRIX3D, (this.m_modelInfo.m_rotationX * per_degree)));
-			mat.append(Matrix3DUtils.SetRotateY(MathUtl.TEMP_MATRIX3D, (this.m_modelInfo.m_rotationY * per_degree)));
+//			var per_degree:Number = Math.PI * 2 / 0x0100;
+//			mat.append(Matrix3DUtils.SetRotateZ(MathUtl.TEMP_MATRIX3D, (this.m_modelInfo.m_rotationZ * per_degree)));
+//			mat.append(Matrix3DUtils.SetRotateX(MathUtl.TEMP_MATRIX3D, (this.m_modelInfo.m_rotationX * per_degree)));
+//			mat.append(Matrix3DUtils.SetRotateY(MathUtl.TEMP_MATRIX3D, (this.m_modelInfo.m_rotationY * per_degree)));
+			var tempRz:Number = this.m_modelInfo.m_rotationZ*MathConsts.DEGREES_TO_RADIANS;
+			var tempRy:Number = this.m_modelInfo.m_rotationY*MathConsts.DEGREES_TO_RADIANS;
+			var tempRx:Number = this.m_modelInfo.m_rotationX*MathConsts.DEGREES_TO_RADIANS;
+			mat.append(Matrix3DUtils.SetRotateZ(MathUtl.TEMP_MATRIX3D, tempRz));
+			mat.append(Matrix3DUtils.SetRotateX(MathUtl.TEMP_MATRIX3D, tempRx));
+			mat.append(Matrix3DUtils.SetRotateY(MathUtl.TEMP_MATRIX3D, tempRy));
 			
 			var gridX:int = (this.m_modelInfo.m_gridIndex % MapConstants.REGION_SPAN) + this.m_metaRegion.regionLeftBottomGridX;
 			var gridZ:int = (this.m_modelInfo.m_gridIndex / MapConstants.REGION_SPAN) + this.m_metaRegion.regionLeftBottomGridZ;

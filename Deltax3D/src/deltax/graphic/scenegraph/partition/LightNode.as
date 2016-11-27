@@ -13,7 +13,6 @@
 	
     public class LightNode extends EntityNode 
 	{
-		/**灯光类*/
         private var _light:LightBase;
 
 		public function LightNode(light:LightBase)

@@ -45,12 +45,12 @@
 		protected var _explicitPartition:Partition3D;
 		protected var _implicitPartition:Partition3D;
 		
+		private var _name:String;
 		private var _rotationX:Number = 0;
 		private var _rotationY:Number = 0;
 		private var _rotationZ:Number = 0;
 		private var _rotationValuesDirty:Boolean;
 		private var _scaleValuesDirty:Boolean;
-		private var _name:String;
 		private var _children:Vector.<ObjectContainer3D>;
 		private var _oldScene:Scene3D;
 		private var _inverseSceneTransform:Matrix3D;

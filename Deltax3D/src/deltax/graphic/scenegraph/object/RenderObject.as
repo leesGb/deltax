@@ -69,10 +69,10 @@
         private static var m_tempFigureWeightsForUpdate:Vector.<Number> = new Vector.<Number>();
         public static var DEFAULT_HIGHLIGHT_EMMISIVE:Vector.<Number> = new Vector.<Number>(4, true);
 
-        public var m_aniGroup:AnimationGroup;
-		public var m_pieceGroups:Vector.<PieceGroup> = new Vector.<PieceGroup>();
+		protected var m_aniBindEffects:Dictionary;
+		protected var m_selectable:Boolean = true;
+		
         private var m_preOccupyEffectAttachNames:Dictionary;
-        protected var m_aniBindEffects:Dictionary;
         private var m_pendingMeshAddParams:Dictionary;
         private var m_addedPieceClasses:Dictionary;
         private var m_addedNamedSubMeshes:Dictionary;
@@ -101,7 +101,6 @@
         private var m_aniAndPieceAllLoaded:Boolean;
         private var m_boundsForSelect:BoundingVolumeBase;
         private var m_boundsForSelectInvalid:Boolean = true;
-        protected var m_selectable:Boolean = true;
         private var m_enableAddCameraShakeEffect:Boolean;
         private var m_parentObject:LinkableRenderable;
         private var m_selfSetSceneTransform:Boolean = false;
@@ -110,6 +109,9 @@
         private var m_curEmissive:Vector.<Number>;
         private var m_alphaController:DefaultAlphaController;
         private var m_materialModifiers:Vector.<IMaterialModifier>;
+		
+		public var m_aniGroup:AnimationGroup;
+		public var m_pieceGroups:Vector.<PieceGroup> = new Vector.<PieceGroup>();
 
         public function RenderObject($material:MaterialBase=null, $geometry:Geometry=null)
 		{
