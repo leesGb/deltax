@@ -1,126 +1,146 @@
-﻿package deltax.appframe.syncronize 
+﻿package deltax.appframe.syncronize
 {
-    import flash.utils.ByteArray;
-    import flash.utils.Dictionary;
-    import flash.utils.getTimer;
-    
-    import deltax.appframe.LogicObject;
-    import deltax.appframe.ShellLogicObject;
-    import deltax.common.NumberTo64bit;
-    import deltax.common.RunlengthCodec;
-    import deltax.common.log.LogLevel;
-    import deltax.common.log.dtrace;
-    import deltax.common.math.MathUtl;
-
-    public class ObjectSyncDataPool 
+	import flash.utils.Dictionary;
+	import flash.utils.getTimer;
+	
+	import deltax.appframe.LogicObject;
+	import deltax.appframe.ShellLogicObject;
+	import deltax.common.math.MathUtl;
+	
+	/**
+	 *角色对象数据管理池
+	 *@author lrw
+	 *@date 2015-3-20
+	 */
+	
+	public class ObjectSyncDataPool 
 	{
-
-        private static const QUERY_VERSION_INTERVAL:uint = 5000;
-
-        private static var m_partUpdatedBlocks:Vector.<uint> = new Vector.<uint>(0x0100, true);
-        private static var m_instance:ObjectSyncDataPool;
-
-        public var CURRENT_SYNC_DATA_COUNT:uint;
-        private var m_pool:Dictionary;
-
-        public function ObjectSyncDataPool(_arg1:SingletonEnforcer){
-            this.m_pool = new Dictionary();
-        }
-        public static function get instance():ObjectSyncDataPool{
-            return ((m_instance = ((m_instance) || (new ObjectSyncDataPool(new SingletonEnforcer())))));
-        }
-
-        public function getObjectData(_arg1:Number, _arg2:uint=0):ObjectSyncData{
-            var _local3:ObjectSyncData = (this.m_pool[_arg1] as ObjectSyncData);
-            if (!_local3){
-                _local3 = new ObjectSyncData();
-                this.m_pool[_arg1] = _local3;
-                this.CURRENT_SYNC_DATA_COUNT++;
-            };
-            if ((((_arg2 > 0)) && (!(_local3.initialized)))){
-                _local3.classID = _arg2;
-                _local3.dataDefinition = ObjectSyncDataDefinition.getDefinitionByClassID(_arg2);
-            };
-            return (_local3);
-        }
-        public function releaseObjectData(_arg1:Number):void{
-            var _local2:Object = this.m_pool[_arg1];
-            if (_local2){
-                delete this.m_pool[_arg1];
-                this.CURRENT_SYNC_DATA_COUNT--;
-            };
-        }
-        public function queryDataVersion(_arg1:Number, _arg2:Boolean):Boolean{
-            var _local3:ObjectSyncData = this.getObjectData(_arg1);
-            var _local4:uint = getTimer();
-            if (((((!(_arg2)) && ((_local3.lastQueryTime > 0)))) && (((_local4 - _local3.lastQueryTime) < QUERY_VERSION_INTERVAL)))){
-                return (false);
-            };
-            _local3.lastQueryTime = _local4;
-            return (true);
-        }
-        public function updateSyncData(_arg1:Number, _arg2:uint, _arg3:uint, _arg4:uint, _arg5:ByteArray, _arg6:uint, _arg7:Boolean):Boolean{
-            var _local12:SyncBlock;
-            var _local14:uint;
-            var _local15:uint;
-            var _local16:uint;
-            var _local17:uint;
-            var _local18:uint;
-            var _local8:ObjectSyncDataDefinition = ObjectSyncDataDefinition.getDefinitionByClassID(_arg2);
-            if (!_local8){
-                dtrace(LogLevel.IMPORTANT, "invalid class id in updateSyncData: ", _arg2, "objID=", NumberTo64bit.toString(_arg1));
-                return (false);
-            };
-            var _local9:ObjectSyncData = this.getObjectData(_arg1);
-            var _local10:LogicObject = LogicObject.getObject(_arg1);
-            var _local11:ShellLogicObject = (_local10) ? _local10.shellObject : null;
-            if (!_local9.initialized){
-                _local9.classID = _arg2;
-                _local9.dataDefinition = _local8;
-            };
-            var _local13:ByteArray = _local9.rawData;
-            if (_arg7){
-                _local13.position = 0;
-                RunlengthCodec.Decompress(_arg5, _arg6, _local13, 1, RunlengthCodec.FLAG_UINT8);
-                if (_local11){
-                    _local11.notifyAllSyncDataUpdated(_local8);
-                };
-            } else {
-                _local15 = (_arg5.position + _arg6);
-                while (_arg5.position < _local15) {
-                    _local16 = _arg5.readUnsignedByte();
-                    _local12 = _local8.getSyncBlockByGlobalIndex(_local16);
-                    _local13.position = _local12.offsetInSyncData;
-                    _local13.writeBytes(_arg5, _arg5.position, _local12.dataSize);
-                    _arg5.position = (_arg5.position + _local12.dataSize);
-                    m_partUpdatedBlocks[_local14++] = ((_local12.belongListIndex << 16) | _local12.indexInList);
-                };
-                if ((((_local9.version == 0)) && (!((_local14 == _local8.totalBlockCount))))){
-                    return (false);
-                };
-                if (_local11){
-                    _local18 = 0;
-                    while (_local18 < _local14) {
-                        _local17 = m_partUpdatedBlocks[_local18];
-                        _local11.onSynDataUpdated((0xFFFF & (_local17 >>> 16)), (_local17 & 0xFFFF));
-                        _local18++;
-                    };
-                    _local11.onSyncAllData();
-                };
-            };
-            _local9.version = _arg3;
-            _local9.createTime = MathUtl.max(_local9.createTime, _arg4);
-            return (((_local10) && (!(_local11))));
-        }
-
-    }
-} 
-
-class SingletonEnforcer 
-{
-
-    public function SingletonEnforcer()
-	{
-		//
-    }
+		private static const QUERY_VERSION_INTERVAL:uint = 5000;
+		
+		private static var m_instance:ObjectSyncDataPool;
+		
+		public var CURRENT_SYNC_DATA_COUNT:uint;
+		/**角色对象池*/
+		private var m_pool:Dictionary;
+		
+		public function ObjectSyncDataPool()
+		{
+			this.m_pool = new Dictionary();
+		}
+		
+		public static function get instance():ObjectSyncDataPool
+		{
+			if(!m_instance)
+			{
+				m_instance = new ObjectSyncDataPool();
+			}
+			return m_instance;
+		}
+		
+		/**
+		 * 获取角色对象的数据
+		 * @param key
+		 * @param classId
+		 * @return 
+		 */		
+		public function getObjectData(key:String, classId:uint=0):ObjectSyncData
+		{
+			var syncData:ObjectSyncData = (this.m_pool[key] as ObjectSyncData);
+			if (syncData == null)
+			{
+				syncData = new ObjectSyncData();
+				this.m_pool[key] = syncData;
+				this.CURRENT_SYNC_DATA_COUNT++;
+			}
+			//
+			if (classId > 0 && syncData.initialized == false)
+			{
+				syncData.classID = classId;
+			}
+			return (syncData);
+		}
+		
+		/**
+		 * 角色对象数据释放
+		 * @param key
+		 */		
+		public function releaseObjectData(key:String):void
+		{
+			var syncData:ObjectSyncData = this.m_pool[key];
+			if (syncData)
+			{
+				delete this.m_pool[key];
+				this.CURRENT_SYNC_DATA_COUNT--;
+			}
+		}
+		
+		public function queryDataVersion(key:String, isUpdate:Boolean):Boolean
+		{
+			var syncData:ObjectSyncData = this.getObjectData(key);
+			var curTime:uint = getTimer();
+			if (!isUpdate && syncData.lastQueryTime > 0 && (curTime - syncData.lastQueryTime) < QUERY_VERSION_INTERVAL)
+			{
+				return (false);
+			}
+			
+			syncData.lastQueryTime = curTime;
+			return (true);
+		}
+		
+		/**
+		 * 角色数据更新
+		 * @param key
+		 * @param classID
+		 * @param createTime
+		 * @param characterData
+		 * @param isAllUpdate
+		 * @param updateArr
+		 * @return 
+		 */		
+		public function updateSyncData(key:String, classID:uint, createTime:uint, characterData:Object, isAllUpdate:Boolean,updateArr:Array = null):Boolean
+		{
+			var synData:ObjectSyncData = this.getObjectData(key,classID);
+			//判断是否是机器人，key做特殊处理
+			if(synData.robotType > 0)
+			{
+				var id:int = int(key.split("_")[1]);
+				if(synData.robotType == 1)//机器人玩家
+					key = 1 + "_" + id;//玩家类型
+				else if(synData.robotType == 2)//机器人小伙伴
+					key = 4 + "_" + id;//小伙伴类型
+			}
+			var logicObject:LogicObject = LogicObject.getObject(key);
+			var shellLogicObject:ShellLogicObject = (logicObject) ? logicObject.shellObject : null;
+			//
+			if (!synData.initialized)
+			{
+				synData.classID = classID;
+				synData.characterData = characterData
+			}
+			//
+			if (isAllUpdate)
+			{
+				if (shellLogicObject)
+				{
+					shellLogicObject.notifyAllSyncDataUpdated();
+				}
+			} else 
+			{
+				if (shellLogicObject && updateArr && updateArr.length && updateArr.length>0)
+				{
+					for(var i:int = 0;i<updateArr.length;i++)
+					{
+						shellLogicObject.onSynDataUpdated(updateArr[i]);
+					}
+					shellLogicObject.onSyncAllData();
+				}
+			}
+			synData.createTime = MathUtl.max(synData.createTime, createTime);
+			
+			return logicObject && shellLogicObject == null;
+		}
+		
+		
+		
+	}
 }
