@@ -23,7 +23,7 @@
 	 * @date 2015/09/12
 	 */	
 	
-	public class Animation extends CommonFileHeader implements IResource 
+	public class Animation2 extends CommonFileHeader implements IResource 
 	{
 		public static const DEFAULT_FRAME_RATE:uint = 30;
 		public static const DEFAULT_FRAME_INTERVAL:uint = 33;
@@ -60,7 +60,7 @@
 		
 		private var m_loaded:Boolean;
 		
-		public function Animation()
+		public function Animation2()
 		{
 			//
 		}
