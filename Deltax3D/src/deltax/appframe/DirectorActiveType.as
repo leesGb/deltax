@@ -1,8 +1,8 @@
-﻿package deltax.appframe 
-{
-	
-    public final class DirectorActiveType 
-	{
+﻿//Created by Action Script Viewer - http://www.buraks.com/asv
+package deltax.appframe {
+
+    public final class DirectorActiveType {
+
         public static const DIE_AND_REBORN:uint = 1;
         public static const SKILL:uint = 2;
         public static const TASK:uint = 4;
@@ -19,4 +19,4 @@
         public static const MULTI_EMOTE:uint = 0x2000;
 
     }
-}
+}//package deltax.appframe 

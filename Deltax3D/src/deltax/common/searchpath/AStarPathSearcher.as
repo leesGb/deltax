@@ -1,573 +1,321 @@
-﻿package deltax.common.searchpath
-{
-	import flash.geom.Point;
-	import flash.utils.ByteArray;
-	import flash.utils.Dictionary;
-	
-	import deltax.common.log.LogLevel;
-	import deltax.common.log.dtrace;
-	import deltax.common.searchpath.LineToCheck;
-	
-	
-	public class AStarPathSearcher extends LineToCheck 
-	{
-		private static var m_nodeNext:Vector.<Point> = Vector.<Point>([new Point(-1, 1), new Point(0, 1), new Point(1, 1), new Point(-1, 0), new Point(1, 0), new Point(-1, -1), new Point(0, -1), new Point(1, -1)]);
-		
-		private var m_width:uint;
-		private var m_depth:uint;
-		private var m_allNode:Vector.<CSearchNode>;
-		private var m_vecOpen:Vector.<CSearchNode>;
-		private var m_closeNode:CSearchNode;
-		private var m_nodeEndX:uint;
-		private var m_nodeEndY:uint;
-		
-		public function AStarPathSearcher()
-		{
-			this.m_allNode = new Vector.<CSearchNode>();
-			this.m_vecOpen = new Vector.<CSearchNode>();
-		}
-		
-		/**
-		 * 初始话寻路数据
-		 * @param pathData
-		 * @param $w
-		 * @param $h
-		 */		
-		public function init(pathData:ByteArray, $w:uint, $h:uint):void
-		{
-			this.m_width = $w;
-			this.m_depth = $h;
-			this.m_allNode.length = pathData.length;
-			var gridIndex:uint = 0;
-			var va:int;
-			while (gridIndex < pathData.length) 
-			{
-				va = pathData[gridIndex];
-				if (va == 0)
-				{
-					this.m_allNode[gridIndex] = new CSearchNode((gridIndex % $w), (gridIndex / $w));
-				}
-				gridIndex++;
-			}
-		}
-		
-		/**
-		 * 动态设置路径
-		 * @param arr
-		 * @param value
-		 */		
-		public function dynamicSetWalkable(arr:Array,value:uint):void
-		{
-			var len:uint = arr.length;
-			var key:String;
-			var pointArr:Array;
-			var gx:uint;
-			var gz:uint;
-			var gridIndex:uint;
-			for(var i:uint = 0;i<len;i++)
-			{
-				key=arr[i];
-				pointArr = key.split("_");
-				gx=pointArr[0];
-				gz=pointArr[1];
-				gridIndex = this.m_width*gz+gx;
-				if(value==0)
-				{
-					this.m_allNode[gridIndex] = new CSearchNode((gridIndex % this.m_width), (gridIndex / this.m_width));
-				}else
-				{
-					this.m_allNode[gridIndex] = null;
-				}
-			}
-		}
-		
-		/**
-		 * 查找寻路路径
-		 * @param srcx
-		 * @param srcy
-		 * @param destx
-		 * @param desty
-		 * @param pathData
-		 * @return 
-		 */		
-		public function Search(srcx:uint, srcy:uint, destx:uint, desty:uint, pathData:ByteArray):Point
-		{
-			var nodeIndex:int;
-			var sNode:CSearchNode;
-			nodeIndex = 0;
-			while (nodeIndex < this.m_allNode.length)//重设每一个路径节点 
-			{
-				if (this.m_allNode[nodeIndex])
-				{
-					sNode = (this.m_allNode[nodeIndex] as CSearchNode);
-					sNode.m_parent = null;
-					sNode.m_openIndex = CSearchNode.eNew;
-				} 
-				nodeIndex++;
-			}
-			//
-			this.m_vecOpen.length = 0;
-			this.m_vecOpen.push(null);
-			this.m_nodeEndX = destx;
-			this.m_nodeEndY = desty;
-			this.m_closeNode = this.getNode(srcx, srcy);
-			if (!this.m_closeNode)//如果现在的角色站的位置是障碍点或无效的点事，则直接返回目标点
-			{
-				return (new Point(destx, desty));
-			}
-			//
-			this.insertOpenNode(this.m_closeNode, null);
-			nodeIndex = 0;
-			while ((nodeIndex < 100000) && (this.m_vecOpen.length > 1) && !(this.checkOpenNode())) 
-			{
-				nodeIndex++;
-			}
-			var resultPoint:Point = new Point(destx, desty);
-			if (this.m_closeNode)
-			{
-				resultPoint.x = this.m_closeNode.m_nodePosX;
-				resultPoint.y = this.m_closeNode.m_nodePosY;
-			}
-			if (pathData == null)
-			{
-				return (resultPoint);
-			}
-			if (!this.m_closeNode)
-			{
-				pathData.writeUnsignedInt(srcx);
-				pathData.writeUnsignedInt(srcy);
-				pathData.writeUnsignedInt(destx);
-				pathData.writeUnsignedInt(desty);
-				return (resultPoint);
-			}
-			//
-			var tPointList:Vector.<Point> = new Vector.<Point>();
-			while (this.m_closeNode) 
-			{
-				tPointList.push(new Point(this.m_closeNode.m_nodePosX, this.m_closeNode.m_nodePosY));
-				this.m_closeNode = this.m_closeNode.m_parent;
-			}
-			var optimizePointList:Vector.<Point> = new Vector.<Point>();
-			this.Optimize(tPointList, optimizePointList, true);
-			tPointList.length = 0;
-			nodeIndex = optimizePointList.length - 1;
-			while (nodeIndex >= 0) 
-			{
-				tPointList.push(optimizePointList[nodeIndex]);
-				nodeIndex--;
-			}
-			this.Optimize(tPointList, optimizePointList, false);
-			nodeIndex = 0;
-			while (nodeIndex < optimizePointList.length) 
-			{
-				pathData.writeUnsignedInt(optimizePointList[nodeIndex].x);
-				pathData.writeUnsignedInt(optimizePointList[nodeIndex].y);
-				nodeIndex++;
-			}
-			//			nodeIndex = 0;
-			//			optimizePointList.reverse();
-			//			while(nodeIndex<optimizePointList.length)
-			//			{
-			//				pathData.writeUnsignedInt(optimizePointList[nodeIndex].x);
-			//				pathData.writeUnsignedInt(optimizePointList[nodeIndex].y);
-			//				nodeIndex++;
-			//			}
-			return (resultPoint);
-		}
-		
-		/**
-		 * 插入开放节点
-		 * @param node
-		 * @param node2
-		 */		
-		private function insertOpenNode(node:CSearchNode, node2:CSearchNode):void
-		{
-			if (node.m_openIndex == CSearchNode.eNew)
-			{
-				node.calculateCost(node2, this.m_nodeEndX, this.m_nodeEndY);
-				this.Insert(node);
-			} else 
-			{
-				if (node.calculateCost(node2, this.m_nodeEndX, this.m_nodeEndY))
-				{
-					this.checkUp(node.m_openIndex);
-				}
-			}
-			//
-			if ((node.m_costTotal - node.m_costFromBegin) < (this.m_closeNode.m_costTotal - this.m_closeNode.m_costFromBegin))
-			{
-				this.m_closeNode = node;
-			}
-		}
-		
-		/**
-		 * 插入节点
-		 * @param node
-		 */		
-		private function Insert(node:CSearchNode):void
-		{
-			this.m_vecOpen.push(node);
-			this.checkUp(this.m_vecOpen.length - 1);
-		}
-		
-		/**
-		 * 获取有效的格子节点
-		 * @param gx
-		 * @param gy
-		 * @return 
-		 */		
-		public function getNode(gx:uint, gy:uint):CSearchNode
-		{
-			var gridIndex:uint = gy * this.m_width + gx;
-			if (gridIndex >= this.m_allNode.length)
-			{
-				dtrace(LogLevel.FATAL, "astar search error: invalid pos", gx, gy, " width:", this.m_width);
-				return (null);
-			}
-			return (this.m_allNode[gridIndex]);
-		}
-		
-		/**
-		 * 销毁数据
-		 */		
-		public function destroy():void
-		{
-			this.m_allNode = null;
-			this.m_vecOpen = null;
-		}
-		
-		/**
-		 * 是否为障碍点
-		 * @param gridx
-		 * @param gridy
-		 * @return 
-		 */		
-		public function isBarrier(gridx:uint, gridy:uint):Boolean
-		{
-			return ((gridx >= this.m_width) || (gridy >= this.m_depth) || (this.m_allNode[(gridy * this.m_width + gridx)] == null));
-		}
-		
-		/**
-		 * 检测开放列表的节点
-		 * @return 
-		 */		
-		private function checkOpenNode():Boolean
-		{
-			var tPosx:uint;
-			var tPosy:uint;
-			var offsetPoint:Point;
-			var node:CSearchNode;
-			var firstNode:CSearchNode = this.removeFront();
-			firstNode.m_openIndex = CSearchNode.eClosed;
-			if ((firstNode.m_nodePosX == this.m_nodeEndX) && (firstNode.m_nodePosY == this.m_nodeEndY))
-			{
-				return (true);
-			}
-			var posx:int = firstNode.m_nodePosX;
-			var posy:int = firstNode.m_nodePosY;
-			var index:int;
-			while (index < 8) 
-			{
-				offsetPoint = m_nodeNext[index];
-				tPosx = (posx + offsetPoint.x);
-				tPosy = (posy + offsetPoint.y);
-				node = this.getNode(tPosx, tPosy);
-				if (node)
-				{
-					if (node.m_openIndex != CSearchNode.eClosed)
-					{
-						this.insertOpenNode(node, firstNode);
-					}
-				}
-				index++;
-			}
-			return (false);
-		}
-		
-		/**
-		 * 向上检测
-		 * @param nodeIndex
-		 */		
-		private function checkUp(nodeIndex:uint):void
-		{
-			var node:CSearchNode = this.m_vecOpen[nodeIndex];
-			var preNodeIndex:uint = (nodeIndex >>> 1);
-			while (preNodeIndex && (node.m_costTotal < this.m_vecOpen[preNodeIndex].m_costTotal)) 
-			{
-				this.m_vecOpen[nodeIndex] = this.m_vecOpen[preNodeIndex];
-				this.m_vecOpen[nodeIndex].m_openIndex = nodeIndex;
-				nodeIndex = preNodeIndex;
-				preNodeIndex = (nodeIndex >> 1);
-			}
-			this.m_vecOpen[nodeIndex] = node;
-			this.m_vecOpen[nodeIndex].m_openIndex = nodeIndex;
-		}
-		
-		/**
-		 * 向下检测
-		 * @param nodeIndex
-		 */		
-		private function checkDown(nodeIndex:uint):void
-		{
-			var node:CSearchNode = this.m_vecOpen[nodeIndex];
-			var len:uint = this.m_vecOpen.length;
-			var nextNodeIndex:uint = (nodeIndex << 1);
-			while (nextNodeIndex < len) 
-			{
-				if (((nextNodeIndex + 1) < len) && (this.m_vecOpen[(nextNodeIndex + 1)].m_costTotal < this.m_vecOpen[nextNodeIndex].m_costTotal))
-				{
-					nextNodeIndex++;
-				}
-				if (this.m_vecOpen[nextNodeIndex].m_costTotal >= node.m_costTotal)
-				{
-					break;
-				}
-				this.m_vecOpen[nodeIndex] = this.m_vecOpen[nextNodeIndex];
-				this.m_vecOpen[nodeIndex].m_openIndex = nodeIndex;
-				nodeIndex = nextNodeIndex;
-				nextNodeIndex = (nodeIndex << 1);
-			}
-			this.m_vecOpen[nodeIndex] = node;
-			this.m_vecOpen[nodeIndex].m_openIndex = nodeIndex;
-		}
-		
-		/**
-		 * 找最近可走的点
-		 **/
-		public function FindNearPassPoint(endPoint_x:int,endPoint_y:int):Point
-		{
-			if(!isBarrier(endPoint_x,endPoint_y))
-			{
-				return new Point(endPoint_x,endPoint_y);
-			}
-			
-			var getNextPointByDir:Function = function getNextPointByDir(dir:int,point:Point):Point
-			{
-				var pointTemp:Point = point.clone();
-				switch(dir)
-				{
-					case 0:
-						pointTemp.x -= 1;
-						break;
-					case 1:
-						pointTemp.y += 1;
-						break;
-					case 2:
-						pointTemp.x += 1;
-						break;
-					case 3:
-						pointTemp.y -= 1;
-						break;
-				}
-				return pointTemp;
-			}
-			var maxDis:int = 5;
-			var curDis:int = 0;
-			var checkPoint:Point = new Point();
-			checkPoint.x = endPoint_x;
-			checkPoint.y = endPoint_y;
-			var checkedMap:Dictionary = new Dictionary();
-			checkedMap[checkPoint.x + "_" + checkPoint.y] = true;
-			var dir:int = 0;//上右下左
-			
-			while(isBarrier(checkPoint.x,checkPoint.y))
-			{
-				checkPoint = getNextPointByDir(dir,checkPoint);
-				checkedMap[checkPoint.x + "_" + checkPoint.y] = true;
-				
-				var nextPoint:Point = getNextPointByDir((dir+1)%4,checkPoint);
-				if(checkedMap[nextPoint.x + "_" + nextPoint.y] == null)
-				{
-					dir++;
-				}
-				
-				if(dir >= 4)
-				{
-					curDis ++ ;
-					dir -= 4;
-				}
-				if(curDis>maxDis)
-				{
-					break;
-				}
-			}
-			checkedMap = null
-			return checkPoint;
-		}		
-		
-		/**
-		 * 移除开放列表的第一个节点
-		 * @return 
-		 */		
-		private function removeFront():CSearchNode
-		{
-			if (this.m_vecOpen.length < 2)
-			{
-				return (null);
-			}
-			var firstNode:CSearchNode = this.m_vecOpen[1];
-			var lastNodeIndex:uint = (this.m_vecOpen.length - 1);
-			this.m_vecOpen[1] = this.m_vecOpen[lastNodeIndex];
-			this.m_vecOpen.length = lastNodeIndex;
-			if (lastNodeIndex > 1)
-			{
-				this.checkDown(1);
-			}
-			return (firstNode);
-		}
-		
-		/**
-		 * 检测该节点是否有效
-		 * @param gx
-		 * @param gy
-		 * @return 
-		 */		
-		override public function check(gx:int, gy:int):Boolean
-		{
-			return !(this.getNode(gx, gy) == null);
-		}
-		
-		/**
-		 * 优化
-		 * @param pointList
-		 * @param resultPointList
-		 * @param value
-		 */		
-		private function Optimize(pointList:Vector.<Point>, resultPointList:Vector.<Point>, value:Boolean):void
-		{
-			var _local8:int;
-			var _local9:Point;
-			var _local10:Point;
-			var _local4:int;
-			var pCounts:int = pointList.length;
-			var firstPoint:Point = pointList[0];
-			var pass:CheckPass = new CheckPass();
-			pass.m_lineToCheck = this;
-			resultPointList.length = 0;
-			resultPointList.push(firstPoint);
-			while ((pCounts - _local4) > 2) 
-			{
-				_local8 = (_local4 + 2);
-				while (_local8 != pCounts) 
-				{
-					_local9 = (value) ? pointList[_local8] : firstPoint;
-					_local10 = (value) ? firstPoint : pointList[_local8];
-					if (!LineTo(_local9.x, _local9.y, _local10.x, _local10.y))
-					{
-						break;
-					}
-					_local8++;
-				}
-				
-				firstPoint = pointList[(_local8 - 1)];
-				if ((value == false) && !(_local8 == pCounts))
-				{
-					pass.m_posCur = resultPointList[(resultPointList.length - 1)];
-					pass.m_posEnd = pointList[_local8];
-					pass.m_posPassX = firstPoint.x;
-					pass.m_posPassY = firstPoint.y;
-					pass.LineTo(firstPoint.x, firstPoint.y, pointList[_local8].x, pointList[_local8].y);
-					firstPoint = new Point(pass.m_posPassX, pass.m_posPassY);
-				}
-				_local4 = (_local8 - 1);
-				resultPointList.push(firstPoint);
-			}
-			
-			if (_local4 != (pCounts - 1))
-			{
-				resultPointList.push(pointList[(pCounts - 1)]);
-			}
-		}
-		
-		
-		
-	}
-} 
+﻿//Created by Action Script Viewer - http://www.buraks.com/asv
+package deltax.common.searchpath {
+    import flash.geom.*;
+    import __AS3__.vec.*;
+    import flash.utils.*;
+    import deltax.common.log.*;
 
-import flash.geom.Point;
+    public class AStarPathSearcher extends LineToCheck {
 
-import deltax.common.searchpath.LineToCheck;
-class CheckPass extends LineToCheck 
-{
-	public var m_posCur:Point;
-	public var m_posEnd:Point;
-	public var m_posPassX:int;
-	public var m_posPassY:int;
-	public var m_lineToCheck:LineToCheck;
-	
-	public function CheckPass()
-	{
-		//
-	}
-	
-	override public function check(gx:int, gy:int):Boolean
-	{
-		if (((!(this.m_lineToCheck.LineTo(this.m_posCur.x, this.m_posCur.y, gx, gy))) || (!(this.m_lineToCheck.LineTo(gx, gy, this.m_posEnd.x, this.m_posEnd.y)))))
-		{
-			return (false);
-		}
-		this.m_posPassX = gx;
-		this.m_posPassY = gy;
-		return (true);
-	}
+        private static var m_nodeNext:Vector.<Point> = Vector.<Point>([new Point(-1, 1), new Point(0, 1), new Point(1, 1), new Point(-1, 0), new Point(1, 0), new Point(-1, -1), new Point(0, -1), new Point(1, -1)]);
+
+        private var m_width:uint;
+        private var m_depth:uint;
+        private var m_allNode:Vector.<CSearchNode>;
+        private var m_vecOpen:Vector.<CSearchNode>;
+        private var m_closeNode:CSearchNode;
+        private var m_nodeEndX:uint;
+        private var m_nodeEndY:uint;
+
+        public function AStarPathSearcher(){
+            this.m_allNode = new Vector.<CSearchNode>();
+            this.m_vecOpen = new Vector.<CSearchNode>();
+            super();
+        }
+        public function destroy():void{
+            this.m_allNode = null;
+            this.m_vecOpen = null;
+        }
+        public function getNode(_arg1:uint, _arg2:uint):CSearchNode{
+            var _local3:uint = ((_arg2 * this.m_width) + _arg1);
+            if (_local3 >= this.m_allNode.length){
+                dtrace(LogLevel.FATAL, "astar search error: invalid pos", _arg1, _arg2, " width:", this.m_width);
+                return (null);
+            };
+            return (this.m_allNode[_local3]);
+        }
+        public function isBarrier(_arg1:uint, _arg2:uint):Boolean{
+            return ((((((_arg1 >= this.m_width)) || ((_arg2 >= this.m_depth)))) || ((this.m_allNode[((_arg2 * this.m_width) + _arg1)] == null))));
+        }
+        private function checkUp(_arg1:uint):void{
+            var _local2:CSearchNode = this.m_vecOpen[_arg1];
+            var _local3:uint = (_arg1 >>> 1);
+            while (((_local3) && ((_local2.m_costTotal < this.m_vecOpen[_local3].m_costTotal)))) {
+                this.m_vecOpen[_arg1] = this.m_vecOpen[_local3];
+                this.m_vecOpen[_arg1].m_openIndex = _arg1;
+                _arg1 = _local3;
+                _local3 = (_arg1 >> 1);
+            };
+            this.m_vecOpen[_arg1] = _local2;
+            this.m_vecOpen[_arg1].m_openIndex = _arg1;
+        }
+        private function checkDown(_arg1:uint):void{
+            var _local2:CSearchNode = this.m_vecOpen[_arg1];
+            var _local3:uint = this.m_vecOpen.length;
+            var _local4:uint = (_arg1 << 1);
+            while (_local4 < _local3) {
+                if (((((_local4 + 1) < _local3)) && ((this.m_vecOpen[(_local4 + 1)].m_costTotal < this.m_vecOpen[_local4].m_costTotal)))){
+                    _local4++;
+                };
+                if (this.m_vecOpen[_local4].m_costTotal >= _local2.m_costTotal){
+                    break;
+                };
+                this.m_vecOpen[_arg1] = this.m_vecOpen[_local4];
+                this.m_vecOpen[_arg1].m_openIndex = _arg1;
+                _arg1 = _local4;
+                _local4 = (_arg1 << 1);
+            };
+            this.m_vecOpen[_arg1] = _local2;
+            this.m_vecOpen[_arg1].m_openIndex = _arg1;
+        }
+        private function Insert(_arg1:CSearchNode):void{
+            this.m_vecOpen.push(_arg1);
+            this.checkUp((this.m_vecOpen.length - 1));
+        }
+        private function removeFront():CSearchNode{
+            if (this.m_vecOpen.length < 2){
+                return (null);
+            };
+            var _local1:CSearchNode = this.m_vecOpen[1];
+            var _local2:uint = (this.m_vecOpen.length - 1);
+            this.m_vecOpen[1] = this.m_vecOpen[_local2];
+            this.m_vecOpen.length = _local2;
+            if (_local2 > 1){
+                this.checkDown(1);
+            };
+            return (_local1);
+        }
+        private function insertOpenNode(_arg1:CSearchNode, _arg2:CSearchNode):void{
+            if (_arg1.m_openIndex == CSearchNode.eNew){
+                _arg1.calculateCost(_arg2, this.m_nodeEndX, this.m_nodeEndY);
+                this.Insert(_arg1);
+            } else {
+                if (_arg1.calculateCost(_arg2, this.m_nodeEndX, this.m_nodeEndY)){
+                    this.checkUp(_arg1.m_openIndex);
+                };
+            };
+            if ((_arg1.m_costTotal - _arg1.m_costFromBegin) < (this.m_closeNode.m_costTotal - this.m_closeNode.m_costFromBegin)){
+                this.m_closeNode = _arg1;
+            };
+        }
+        private function checkOpenNode():Boolean{
+            var _local4:uint;
+            var _local5:uint;
+            var _local6:Point;
+            var _local7:CSearchNode;
+            var _local1:CSearchNode = this.removeFront();
+            _local1.m_openIndex = CSearchNode.eClosed;
+            if ((((_local1.m_nodePosX == this.m_nodeEndX)) && ((_local1.m_nodePosY == this.m_nodeEndY)))){
+                return (true);
+            };
+            var _local2:int = _local1.m_nodePosX;
+            var _local3:int = _local1.m_nodePosY;
+            var _local8:int;
+            while (_local8 < 8) {
+                _local6 = m_nodeNext[_local8];
+                _local4 = (_local2 + _local6.x);
+                _local5 = (_local3 + _local6.y);
+                _local7 = this.getNode(_local4, _local5);
+                if (_local7 == null){
+                } else {
+                    if (_local7.m_openIndex != CSearchNode.eClosed){
+                        this.insertOpenNode(_local7, _local1);
+                    };
+                };
+                _local8++;
+            };
+            return (false);
+        }
+        public function init(_arg1:ByteArray, _arg2:uint, _arg3:uint):void{
+            var _local4:uint;
+            this.m_width = _arg2;
+            this.m_depth = _arg3;
+            this.m_allNode.length = _arg1.length;
+            _local4 = 0;
+            while (_local4 < _arg1.length) {
+                if (_arg1[_local4]){
+                } else {
+                    this.m_allNode[_local4] = new CSearchNode((_local4 % _arg2), (_local4 / _arg2));
+                };
+                _local4++;
+            };
+        }
+        override public function check(_arg1:int, _arg2:int):Boolean{
+            return (!((this.getNode(_arg1, _arg2) == null)));
+        }
+        private function Optimize(_arg1:Vector.<Point>, _arg2:Vector.<Point>, _arg3:Boolean):void{
+            var _local8:int;
+            var _local9:Point;
+            var _local10:Point;
+            var _local4:int;
+            var _local5:int = _arg1.length;
+            var _local6:Point = _arg1[0];
+            var _local7:CheckPass = new CheckPass();
+            _local7.m_lineToCheck = this;
+            _arg2.length = 0;
+            _arg2.push(_local6);
+            while ((_local5 - _local4) > 2) {
+                _local8 = (_local4 + 2);
+                while (_local8 != _local5) {
+                    _local9 = (_arg3) ? _arg1[_local8] : _local6;
+                    _local10 = (_arg3) ? _local6 : _arg1[_local8];
+                    if (!LineTo(_local9.x, _local9.y, _local10.x, _local10.y)){
+                        break;
+                    };
+                    _local8++;
+                };
+                _local6 = _arg1[(_local8 - 1)];
+                if ((((_arg3 == false)) && (!((_local8 == _local5))))){
+                    _local7.m_posCur = _arg2[(_arg2.length - 1)];
+                    _local7.m_posEnd = _arg1[_local8];
+                    _local7.m_posPassX = _local6.x;
+                    _local7.m_posPassY = _local6.y;
+                    _local7.LineTo(_local6.x, _local6.y, _arg1[_local8].x, _arg1[_local8].y);
+                    _local6 = new Point(_local7.m_posPassX, _local7.m_posPassY);
+                };
+                _local4 = (_local8 - 1);
+                _arg2.push(_local6);
+            };
+            if (_local4 != (_local5 - 1)){
+                _arg2.push(_arg1[(_local5 - 1)]);
+            };
+        }
+        public function Search(_arg1:uint, _arg2:uint, _arg3:uint, _arg4:uint, _arg5:ByteArray):Point{
+            var _local6:int;
+            var _local10:CSearchNode;
+            _local6 = 0;
+            while (_local6 < this.m_allNode.length) {
+                if (this.m_allNode[_local6] == null){
+                } else {
+                    _local10 = (this.m_allNode[_local6] as CSearchNode);
+                    _local10.m_parent = null;
+                    _local10.m_openIndex = CSearchNode.eNew;
+                };
+                _local6++;
+            };
+            this.m_vecOpen.length = 0;
+            this.m_vecOpen.push(null);
+            this.m_nodeEndX = _arg3;
+            this.m_nodeEndY = _arg4;
+            this.m_closeNode = this.getNode(_arg1, _arg2);
+            if (!this.m_closeNode){
+                return (new Point(_arg3, _arg4));
+            };
+            this.insertOpenNode(this.m_closeNode, null);
+            _local6 = 0;
+            while ((((((_local6 < 100000)) && ((this.m_vecOpen.length > 1)))) && (!(this.checkOpenNode())))) {
+                _local6++;
+            };
+            var _local7:Point = new Point(_arg3, _arg4);
+            if (this.m_closeNode){
+                _local7.x = this.m_closeNode.m_nodePosX;
+                _local7.y = this.m_closeNode.m_nodePosY;
+            };
+            if (_arg5 == null){
+                return (_local7);
+            };
+            if (!this.m_closeNode){
+                _arg5.writeUnsignedInt(_arg1);
+                _arg5.writeUnsignedInt(_arg2);
+                _arg5.writeUnsignedInt(_arg3);
+                _arg5.writeUnsignedInt(_arg4);
+                return (_local7);
+            };
+            var _local8:Vector.<Point> = new Vector.<Point>();
+            while (this.m_closeNode) {
+                _local8.push(new Point(this.m_closeNode.m_nodePosX, this.m_closeNode.m_nodePosY));
+                this.m_closeNode = this.m_closeNode.m_parent;
+            };
+            var _local9:Vector.<Point> = new Vector.<Point>();
+            this.Optimize(_local8, _local9, true);
+            _local8.length = 0;
+            _local6 = (_local9.length - 1);
+            while (_local6 >= 0) {
+                _local8.push(_local9[_local6]);
+                _local6--;
+            };
+            this.Optimize(_local8, _local9, false);
+            _local6 = 0;
+            while (_local6 < _local9.length) {
+                _arg5.writeUnsignedInt(_local9[_local6].x);
+                _arg5.writeUnsignedInt(_local9[_local6].y);
+                _local6++;
+            };
+            return (_local7);
+        }
+
+    }
+}//package deltax.common.searchpath 
+
+import flash.geom.*;
+import deltax.common.searchpath.*;
+class CheckPass extends LineToCheck {
+
+    public var m_posCur:Point;
+    public var m_posEnd:Point;
+    public var m_posPassX:int;
+    public var m_posPassY:int;
+    public var m_lineToCheck:LineToCheck;
+
+    public function CheckPass(){
+    }
+    override public function check(_arg1:int, _arg2:int):Boolean{
+        if (((!(this.m_lineToCheck.LineTo(this.m_posCur.x, this.m_posCur.y, _arg1, _arg2))) || (!(this.m_lineToCheck.LineTo(_arg1, _arg2, this.m_posEnd.x, this.m_posEnd.y))))){
+            return (false);
+        };
+        this.m_posPassX = _arg1;
+        this.m_posPassY = _arg2;
+        return (true);
+    }
+
 }
+class CSearchNode {
 
+    public static const eNew:int = -2;
+    public static const eClosed:int = -1;
 
-class CSearchNode 
-{
-	public static const eNew:int = -2;
-	public static const eClosed:int = -1;
-	
-	public var m_nodePosX:uint;
-	public var m_nodePosY:uint;
-	public var m_costFromBegin:uint;
-	public var m_costTotal:uint;
-	public var m_parent:CSearchNode;
-	public var m_openIndex:int;
-	
-	public function CSearchNode($x:uint, $y:uint)
-	{
-		this.m_nodePosX = $x;
-		this.m_nodePosY = $y;
-	}
-	
-	public function calculateCost(node:CSearchNode, posx:uint, posy:uint):Boolean
-	{
-		var offsetX:int;
-		var offsetY:int;
-		var cost:uint;
-		if (!node)
-		{
-			this.m_costFromBegin = 0;
-			this.m_parent = node;
-			offsetX = posx - this.m_nodePosX;
-			offsetY = posy - this.m_nodePosY;
-			this.m_costTotal = (Math.abs(offsetX) + Math.abs(offsetY)) << 10;//1024
-			return (true);
-		}
-		//
-		cost = 0x0400;
-		if (!(node.m_nodePosX == this.m_nodePosX) && !(node.m_nodePosY == this.m_nodePosY))
-		{
-			cost = 1448;
-		}
-		cost = (cost + node.m_costFromBegin);
-		if (!(this.m_parent) || (cost < this.m_costFromBegin))
-		{
-			if (!this.m_parent)
-			{
-				offsetX = posx - this.m_nodePosX;
-				offsetY = posy - this.m_nodePosY;
-				this.m_costTotal = cost + ((Math.abs(offsetX) + Math.abs(offsetY)) << 10);
-			} else 
-			{
-				this.m_costTotal = (this.m_costTotal - this.m_costFromBegin) + cost;
-			}
-			this.m_costFromBegin = cost;
-			this.m_parent = node;
-			return (true);
-		}
-		return (false);
-	}
-	
+    public var m_nodePosX:uint;
+    public var m_nodePosY:uint;
+    public var m_costFromBegin:uint;
+    public var m_costTotal:uint;
+    public var m_parent:CSearchNode;
+    public var m_openIndex:int;
+
+    public function CSearchNode(_arg1:uint, _arg2:uint){
+        this.m_nodePosX = _arg1;
+        this.m_nodePosY = _arg2;
+    }
+    public function calculateCost(_arg1:CSearchNode, _arg2:uint, _arg3:uint):Boolean{
+        var _local4:uint;
+        var _local5:int;
+        var _local6:int;
+        var _local7:uint;
+        if (!_arg1){
+            this.m_costFromBegin = 0;
+            this.m_parent = _arg1;
+            _local5 = (_arg2 - this.m_nodePosX);
+            _local6 = (_arg3 - this.m_nodePosY);
+            this.m_costTotal = ((Math.abs(_local5) + Math.abs(_local6)) << 10);
+            return (true);
+        };
+        _local7 = 0x0400;
+        if (((!((_arg1.m_nodePosX == this.m_nodePosX))) && (!((_arg1.m_nodePosY == this.m_nodePosY))))){
+            _local7 = 1448;
+        };
+        _local7 = (_local7 + _arg1.m_costFromBegin);
+        if (((!(this.m_parent)) || ((_local7 < this.m_costFromBegin)))){
+            if (!this.m_parent){
+                _local5 = (_arg2 - this.m_nodePosX);
+                _local6 = (_arg3 - this.m_nodePosY);
+                this.m_costTotal = (_local7 + ((Math.abs(_local5) + Math.abs(_local6)) << 10));
+            } else {
+                this.m_costTotal = ((this.m_costTotal - this.m_costFromBegin) + _local7);
+            };
+            this.m_costFromBegin = _local7;
+            this.m_parent = _arg1;
+            return (true);
+        };
+        return (false);
+    }
+
 }

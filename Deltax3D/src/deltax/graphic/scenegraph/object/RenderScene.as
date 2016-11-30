@@ -1072,6 +1072,7 @@
 			
 			this.m_materialWater = null;
 			this.m_materialTerrain = null;
+			this.m_metaScene.removeRenderScene(this);
 			this.m_metaScene.release();
 			this.m_metaScene = null;
 			

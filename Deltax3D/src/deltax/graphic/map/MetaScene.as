@@ -1,7 +1,6 @@
 ﻿package deltax.graphic.map 
 {
     import flash.display3D.Context3D;
-    import flash.geom.Point;
     import flash.geom.Rectangle;
     import flash.geom.Vector3D;
     import flash.net.URLLoaderDataFormat;
@@ -70,6 +69,7 @@
         private var m_scriptList:Vector.<String>;
         private var m_loadingHandler:IMapLoadHandler;
         private var m_initPos:SceneGrid;
+        private var m_renderScenes:Vector.<RenderScene>;
         private var m_terrainMergeTexture:DeltaXTexture;
         private var m_aStartSearcher:AStarPathSearcher;
         private var m_visibleRegionIDs:Vector.<uint>;
@@ -80,15 +80,6 @@
         private var m_terrianObjects:Dictionary;
         private var m_resourceLoadingOnIdle:IResource;
         private var m_resourceLoadingStep:uint;
-		private var m_renderScene:RenderScene;
-		/**主角位置*/
-		private var m_mainplayerPos:Vector3D = new Vector3D();
-		private var needLoadTerranObjCount:uint;
-		private var hadLoadTerranObjCount:uint;
-		/**是否渲染地面*/
-		private var m_isRenderTerrain:Boolean=true;
-		/**场景类型*/
-		private var m_sceneType:uint;
 		
 		/**地图分块列表*/
 		public var m_regions:Vector.<MetaRegion>;
@@ -100,13 +91,12 @@
 		public var m_pixelWidth:uint;
 		/**地图高度*/
 		public var m_pixelHeight:uint;
-		/**开始后台加载*/
-		public var beginIDLLoad:Boolean;
 
         public function MetaScene()
 		{
             this.m_sceneInfo = new MetaSceneInfo();
             this.m_ambientFxIdToNameDict = new Dictionary();
+            this.m_renderScenes = new Vector.<RenderScene>();
             this.m_aStartSearcher = new AStarPathSearcher();
             this.m_visibleRegionIDs = new Vector.<uint>();
             this.m_terrianObjects = new Dictionary();
@@ -174,19 +164,6 @@
 		{
             return (p & 63);
         }
-		
-		/**
-		 * 是否渲染地面
-		 * @return 
-		 */		
-		public function get isRenderTerrain():Boolean
-		{
-			return m_isRenderTerrain;
-		}
-		public function set isRenderTerrain(value:Boolean):void
-		{
-			m_isRenderTerrain = value;
-		}
 
 		/**
 		 * 获取地形分块单元列表
@@ -254,25 +231,6 @@
             }
         }
 		
-		public function setLoadingHandler(value:IMapLoadHandler,isShowLoadingUI:Boolean):void
-		{
-			this.m_loadingHandler = value;
-			if (this.m_loadingHandler && isShowLoadingUI)
-			{
-				this.m_loadingHandler.onLoadingStart();
-			}
-		}
-		
-		public function get mRenderScene():RenderScene
-		{
-			return m_renderScene;
-		}
-		
-		public function set mainplayerPos(value:Point):void
-		{
-			this.m_mainplayerPos.setTo(value.x,0,value.y);
-		}
-		
 		/**
 		 * 地图ID
 		 * @return 
@@ -285,15 +243,6 @@
 		{
             this.m_sceneID = va;
         }
-		
-		public function get sceneType():uint
-		{
-			return this.m_sceneType;
-		}
-		public function set sceneType(value:uint):void
-		{
-			this.m_sceneType = value
-		}
 		
 		/**
 		 * 地图水平分块数量
@@ -485,11 +434,27 @@
 		 * 创建渲染场景
 		 * @return 
 		 */		
-		public function setRenderScene($renderScene:RenderScene):RenderScene
+        public function createRenderScene():RenderScene
 		{
-			m_renderScene = $renderScene;
-			return m_renderScene;
-		}
+            var renderScene:RenderScene = new RenderScene(this);
+            this.m_renderScenes.push(renderScene);
+            return renderScene;
+        }
+		
+		/**
+		 * 移除渲染场景
+		 * @param va
+		 */		
+        public function removeRenderScene(va:RenderScene):void
+		{
+            var idx:int = this.m_renderScenes.indexOf(va);
+            if (idx < 0)
+			{
+                throw new Error("Parameter is not a renderScene of the caller");
+            }
+			
+            this.m_renderScenes.splice(idx, 1);
+        }
 		
         override public function load(data:ByteArray):Boolean
 		{
@@ -501,8 +466,7 @@
             this.readIndexData(data);
             this.readMainData(data);
             this.m_loaded = true;
-//            this.updateLoadingProgress();
-			updateVisibleRegions(m_mainplayerPos);
+            this.updateLoadingProgress();
 			
             return true;
         }
@@ -558,7 +522,7 @@
 					gridIdx = 0;
                     while (gridIdx < MapConstants.REGION_SPAN) 
 					{
-                        pathData[(rgnIdx + gridIdx)] = ((blockNum & (1 << gridIdx)) > 0) ? 1 : 0;
+                        pathData[(rgnIdx + gridIdx)] = (((blockNum & (1 << gridIdx)) > 0) ? 1 : 0);
 						gridIdx ++;
                     }
                     j++;
@@ -568,7 +532,12 @@
 			
             this.m_aStartSearcher.init(pathData, this.gridWidth, this.gridHeight);
             
-			this.m_renderScene.onSceneInfoRetrieved(this.m_sceneInfo);
+			var idx:uint;
+            while (idx < this.m_renderScenes.length) 
+			{
+                this.m_renderScenes[idx].onSceneInfoRetrieved(this.m_sceneInfo);
+				idx++;
+            }
 			
             if (this.m_loadingHandler)
 			{
@@ -774,7 +743,12 @@
                 throw new Error("unsupport low version map");
             }
 			
-			this.m_renderScene.updateView(null);
+            var idx:uint;
+            while (idx < this.m_renderScenes.length) 
+			{
+                this.m_renderScenes[idx].updateView(null);
+				idx++;
+            }
         }
 		
 		/**
@@ -1043,7 +1017,12 @@
 		 */		
 		public function onCalcBorderVertexNormals(rgn:MetaRegion, idx:uint):void
 		{
-			this.m_renderScene.onCalcBorderVertexNormals(rgn,idx);
+			var i:uint;
+			while (i < this.m_renderScenes.length) 
+			{
+				this.m_renderScenes[i].onCalcBorderVertexNormals(rgn, idx);
+				i++;
+			}
 		}
 		
 		/**
@@ -1056,16 +1035,6 @@
 		{
             return this.m_aStartSearcher.isBarrier(gx, gz);
         }
-		
-		/**
-		 * 动态设置路径是否可走
-		 * @param arr
-		 * @param value ,0可走，1不可走
-		 */		
-		public function dynamicSetWalkable(arr:Array,value:uint):void
-		{
-			this.m_aStartSearcher.dynamicSetWalkable(arr,value);
-		}
 		
 		/**
 		 * 获取指定格子处的分块ID
@@ -1088,7 +1057,7 @@
             return (((gIdx / this.m_gridWidth) >>> 4) * this.m_sceneInfo.m_regionWidth + ((gIdx % this.m_gridWidth) >>> 4));
         }
 		
-		public function loadOnIdle():void 
+        private function loadOnIdle():void 
 		{
             if (this.m_resourceLoadingOnIdle && !this.m_resourceLoadingOnIdle.loaded && !this.m_resourceLoadingOnIdle.loadfailed)
 			{
@@ -1129,31 +1098,6 @@
             this.m_terrianObjects[obj] = obj;
         }
 		
-		public function addTerranObject(value:TerranObject):void
-		{
-			if (this.loadAllDependecy)
-			{
-				return;
-			}
-			this.m_terrianObjects[value] = value;
-			needLoadTerranObjCount++;
-		}
-		
-		public function delectTerranObject(value:TerranObject):void
-		{
-			if (this.loadAllDependecy)
-			{
-				return;
-			}
-			//
-			if(this.m_terrianObjects[value])
-			{
-				this.m_terrianObjects[value] = null;
-				delete this.m_terrianObjects[value];
-				hadLoadTerranObjCount++;
-			}
-		}
-		
 		/**
 		 * 更新加载进度 
 		 */		
@@ -1161,79 +1105,60 @@
 		{
             if (this.loadAllDependecy)
 			{
-				if(beginIDLLoad)
-				{
-					this.loadOnIdle();
-				}
-				return;
+                return this.loadOnIdle();
             }
 			
-			if(isSourceAllLoaded())
+			var idx:uint = 0;
+			var hadLoadTextureCount:uint;
+            while (idx < this.m_terrainTextures.length) 
 			{
-				setTerranObjectsNull();
-				this.m_loadingHandler.onLoadingDone();
-			}
+                if (this.m_terrainTextures[idx] == null || this.m_terrainTextures[idx].loaded || this.m_terrainTextures[idx].loadfailed)
+				{
+					hadLoadTextureCount++;
+                }
+				idx++;
+            }
+			
+			var tMergeTextureCount:uint;
+            var tTexture:DeltaXTexture = this.terrainMergeTexture;
+			var context:Context3D = BaseApplication.instance.context3D;
+            if (tTexture && tTexture.getTextureForContext(context) != DeltaXTextureManager.defaultTexture3D)
+			{
+				tMergeTextureCount++;
+            }
+			
+			idx = 0;
+            while (idx < this.m_waterTextures.length) 
+			{
+                this.m_waterTextures[idx].getTextureForContext(context);
+				idx++;
+            }
+			
+			idx = 0;
+			var hadLoadRgnCount:uint;
+            while (idx < this.m_visibleRegionIDs.length) 
+			{
+                if (!this.m_regions[this.m_visibleRegionIDs[idx]] || this.m_regions[this.m_visibleRegionIDs[idx]].loaded || this.m_regions[this.m_visibleRegionIDs[idx]].loadfailed)
+				{
+					hadLoadRgnCount++;
+                }
+				idx++;
+            }
+			
+            if (this.m_loadingHandler)
+			{
+				var loadedCount:uint = hadLoadTextureCount + tMergeTextureCount + hadLoadRgnCount;
+				var needLoadCount:uint = this.m_terrainTextures.length + this.m_visibleRegionIDs.length + 1;
+				var percent:Number = loadedCount * 100 / needLoadCount;
+                this.m_loadingHandler.onLoading(percent);
+                if (loadedCount >= needLoadCount)
+				{
+                    DictionaryUtil.clearDictionary(this.m_terrianObjects);
+                    this.m_terrianObjects = null;
+                    this.m_loadingHandler.onLoadingDone();
+                }
+            }
         }
-		
-		public function setTerranObjectsNull():void
-		{
-			DictionaryUtil.clearDictionary(this.m_terrianObjects);
-			this.m_terrianObjects = null;	
-		}
-		
-		public function isSourceAllLoaded():Boolean
-		{
-			var terrainTextureNullCount:uint;
-			var terrainMergeTextureCount:uint;
-			var visibleRgnNullCounts:uint;
-			var context3d:Context3D = BaseApplication.instance.context3D;
-			//
-			var index:uint = 0;
-			while (index < this.m_terrainTextures.length) 
-			{
-				if (this.m_terrainTextures[index] == null || this.m_terrainTextures[index].loaded || this.m_terrainTextures[index].loadfailed)
-				{
-					terrainTextureNullCount++;
-				}
-				index++;
-			}
-			//
-			var mergeTexture:DeltaXTexture = this.terrainMergeTexture;
-			if (mergeTexture && mergeTexture.getTextureForContext(context3d) != DeltaXTextureManager.defaultTexture3D)
-			{
-				terrainMergeTextureCount++;
-			}
-			//
-			index = 0;
-			while (index < this.m_waterTextures.length) 
-			{
-				this.m_waterTextures[index].getTextureForContext(context3d);
-				index++;
-			}
-			//
-			index = 0;
-			while (index < this.m_visibleRegionIDs.length) 
-			{
-				if (this.m_regions[this.m_visibleRegionIDs[index]] == null || this.m_regions[this.m_visibleRegionIDs[index]].loaded || this.m_regions[this.m_visibleRegionIDs[index]].loadfailed)
-				{
-					visibleRgnNullCounts++;
-				}
-				index++;
-			}
-			//
-			if (this.m_loadingHandler)
-			{
-				var hadLoadCount:uint = terrainTextureNullCount + terrainMergeTextureCount + visibleRgnNullCounts+hadLoadTerranObjCount;
-				var totalLoadCount:uint = this.m_terrainTextures.length + 1 + this.m_visibleRegionIDs.length+needLoadTerranObjCount;
-				var loadProgress:Number = hadLoadCount  / totalLoadCount;
-				this.m_loadingHandler.onLoading(loadProgress);
-				if (hadLoadCount >= totalLoadCount&& DictionaryUtil.isDictionaryEmpty(m_terrianObjects))
-				{
-					return true;
-				}
-			}
-			return false;
-		}
 		
 		
 		//=======================================================================================================================
@@ -1282,7 +1207,12 @@
 			if (res is MetaRegion)
 			{
 				this.m_regionLoaded++;
-				this.m_renderScene.onRegionLoaded(res as MetaRegion);
+				var idx:uint = 0;
+				while (idx < this.m_renderScenes.length) 
+				{
+					this.m_renderScenes[idx].onRegionLoaded(res as MetaRegion);
+					idx++;
+				}
 				
 				if (this.m_loadingHandler)
 				{
@@ -1324,6 +1254,11 @@
 		
 		public function dispose():void
 		{
+			if (this.m_renderScenes.length != 0)
+			{
+				throw new Error("renderScenes list is not empty");
+			}
+			
 			if (!this.m_regions)
 			{
 				return;
@@ -1366,7 +1301,6 @@
 			this.m_terrainTextures = null;
 			this.m_regions = null;
 			this.m_resourceLoadingOnIdle = null;
-			this.isRenderTerrain = false;
 		}
 
 		
