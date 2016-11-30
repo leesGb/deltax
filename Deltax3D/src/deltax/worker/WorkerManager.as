@@ -5,6 +5,7 @@ package deltax.worker
 	import flash.system.Worker;
 	import flash.system.WorkerDomain;
 	import flash.system.WorkerState;
+	import flash.utils.ByteArray;
 	
 	/**
 	 *线程管理器
@@ -15,6 +16,7 @@ package deltax.worker
 	public class WorkerManager
 	{
 		private static var _instance:WorkerManager;
+		public static var useWorker:Boolean;
 		
 		private var _threadMap:Vector.<Worker>;
 		private var _msgToMainMap:Vector.<MessageChannel>;
@@ -63,6 +65,7 @@ package deltax.worker
 			_threadMap[key] = thread;
 			_msgToMainMap[key] = msgToMain;
 			_msgToOtherMap[key] = msgToChild;
+			useWorker = true;
 		}
 		
 		private function onWorkerState(evt:Event):void
@@ -98,9 +101,17 @@ package deltax.worker
 			_msgToOtherMap[WorkerName.CALE_THREAD].send(arr);
 		}
 		
-		public function setShareProperty(key:uint,cmd:String,value:*=null):void
+		public function setShareProperty(key:uint,value:Array):void
 		{
-			
+			var thread:Worker = _threadMap[key];
+			if(thread)
+			{
+				var msg:String = value[0];
+				var data:ByteArray = value[1];
+				data.shareable = true;
+				thread.setSharedProperty(CMDKeys.SHARE_DATA,data);
+				sendMsgToCaleThread(CMDKeys.SHARE_DATA_NOTICE,msg);
+			}
 		}
 		
 		

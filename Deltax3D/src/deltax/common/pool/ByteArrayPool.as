@@ -12,7 +12,7 @@ package deltax.common.pool
 			//
 		}
 		
-		public static function pop():ByteArray
+		public static function pop(isShare:Boolean = false):ByteArray
 		{
 			var byte:ByteArray = byteMap.pop();
 			if(byte == null)
@@ -20,7 +20,8 @@ package deltax.common.pool
 				byte = new ByteArray();
 				byte.endian = Endian.LITTLE_ENDIAN;
 			}
-			
+			byte.position = 0;
+			byte.shareable = isShare;
 			return byte;
 		}
 		
@@ -29,6 +30,7 @@ package deltax.common.pool
 			va.length = 0;
 			va.position = 0;
 			va.endian = Endian.LITTLE_ENDIAN;
+			va.shareable = false;
 			byteMap.push(va);
 		}
 		

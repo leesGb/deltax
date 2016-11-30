@@ -1,22 +1,16 @@
 ﻿package deltax.graphic.model 
 {
-	import flash.geom.Matrix3D;
-	import flash.geom.Vector3D;
 	import flash.net.URLLoaderDataFormat;
 	import flash.utils.ByteArray;
 	import flash.utils.CompressionAlgorithm;
-	import flash.utils.Endian;
 	
 	import deltax.delta;
 	import deltax.common.Util;
 	import deltax.common.error.Exception;
 	import deltax.common.math.MathUtl;
 	import deltax.common.math.Matrix3DUtils;
-	import deltax.common.math.Quaternion;
 	import deltax.common.pool.ByteArrayPool;
 	import deltax.common.resource.CommonFileHeader;
-	import deltax.graphic.animation.skeleton.JointPose;
-	import deltax.graphic.animation.skeleton.SkeletonPose;
 	import deltax.graphic.manager.IResource;
 	import deltax.graphic.manager.ResourceManager;
 	import deltax.graphic.manager.ResourceType;
@@ -50,11 +44,11 @@
 		/**最大帧数*/
 		public var m_maxFrame:uint;
 		/**帧id列表*/
-		private var m_frames:Vector.<int>;
+//		private var m_frames:Vector.<int>;
 		/**帧骨骼信息列表*/
-		private var mm_frames:Vector.<SkeletonPose>;
+//		private var mm_frames:Vector.<SkeletonPose>;
 		/**骨骼数量*/
-		private var m_skeletonCount:uint;
+//		private var m_skeletonCount:uint;
 		/**引用数量*/
 		private var m_refCount:int = 1;
 		/**加载失败*/
@@ -62,7 +56,9 @@
 		/**帧率*/
 		public var m_frameRate:uint = 0;
 		
-		private var m_workerDataArr:Array;
+		private var m_workerDataArr:Vector.<ByteArray>;
+		
+		private var m_loaded:Boolean;
 		
 		public function Animation()
 		{
@@ -116,14 +112,21 @@
 			var verstion:uint = data.readUnsignedInt();
 			var animationName:String = Util.readUcs2StringWithCount(data);
 			
+			if(this.m_workerDataArr)
+			{
+				recycle();
+			}
+			
+			this.m_workerDataArr = new Vector.<ByteArray>(3);
+			this.m_workerDataArr[0] = ByteArrayPool.pop(true);
+			this.m_workerDataArr[1] = ByteArrayPool.pop(true);
+			this.m_workerDataArr[2] = ByteArrayPool.pop(true);
 			if(WorkerManager.useWorker)
 			{
-				this.m_workerDataArr = [];
-				var byte:ByteArray = ByteArrayPool.pop();
-				this.m_workerDataArr[0] = byte;
+				var byte:ByteArray = this.m_workerDataArr[0];
 				var offset:uint = data.position;
-				var length:uint = data.bytesAvailable;
-				byte.writeBytes(data,offset,length);
+				var count:uint = data.bytesAvailable;
+				byte.writeBytes(data,offset,count);
 				
 				byte.position = 0;
 				this.m_maxFrame = byte.readUnsignedInt() - 1;
@@ -137,8 +140,6 @@
 			this.m_maxFrame = frameNum-1;
 			this.m_frameRate = data.readUnsignedInt();
 			var jointsNum:uint = data.readUnsignedInt();
-			this.mm_frames = new Vector.<SkeletonPose>();
-			var skeletonPose:SkeletonPose;
 			var qx:Number;
 			var qy:Number;
 			var qz:Number;
@@ -146,13 +147,14 @@
 			var tx:Number;
 			var ty:Number;
 			var tz:Number;
-			var tData:ByteArray;
-			var tData2:ByteArray;
+			var length:uint = frameNum * jointsNum * 64;
+			var tData:ByteArray = this.m_workerDataArr[1];
+			var tData2:ByteArray = this.m_workerDataArr[2];
+			tData.length = length;
+			tData2.length = length;
+			
 			for(var i:int = 0;i<frameNum;i++)
 			{
-				skeletonPose = new SkeletonPose();
-				tData = skeletonPose.frameMatNumberList;
-				tData2 = skeletonPose.frameAndLocalMatNumberList;
 				for(var j:uint = 0;j<jointsNum;j++)
 				{
 					qx = data.readFloat();
@@ -210,8 +212,9 @@
 					tData2.writeFloat(1);
 				}
 				
-				this.mm_frames.push(skeletonPose);
 			}
+			
+			this.m_loaded = true;
 			
 			if(m_aniGroup)
 			{
@@ -237,66 +240,16 @@
 			this.m_frameStrings = value.frameStrings;
 		}
 		
-		/**
-		 * 填充骨骼姿势数据
-		 * @param frame
-		 * @param skeletalID
-		 * @param translation
-		 * @param qua
-		 * @return 
-		 */		
-		public function fillSkeletonPose(frame:uint, skeletalID:uint, translation:Vector3D, qua:Quaternion):Number 
-		{
-			if(mm_frames == null || mm_frames[frame].jointPoses.length<=skeletalID)
-			{
-				throw new Error("animation fillSkeletonPose error:"+"id::"+skeletalID,"name::"+this.name);
-				return 1;
-			}
-			
-			var jointPose:JointPose = mm_frames[frame].jointPoses[skeletalID];				
-			qua.x = jointPose.orientation.x;
-			qua.y = jointPose.orientation.y;
-			qua.z = jointPose.orientation.z;
-			qua.w = jointPose.orientation.w;
-			translation.x = jointPose.translation.x;
-			translation.y = jointPose.translation.y;
-			translation.z = jointPose.translation.z;
-			
-			return 1;
-		}
-		
-		/**
-		 * 填充骨骼矩阵数据
-		 * @param frame
-		 * @param skeletalID
-		 * @param mat
-		 * @return 
-		 */		
-		public function fillSkeletonMatrix(frame:uint, skeletalID:uint, mat:Matrix3D):Number 
-		{
-			if(mm_frames == null || mm_frames[frame].jointPoses.length<=skeletalID)
-			{
-				throw new Error("animation fillSkeletonPose error:"+"id::"+skeletalID,"name::"+this.name);
-				return 1;
-			}
-			
-			var jointPose:JointPose = mm_frames[frame].jointPoses[skeletalID];
-			var poseMat:Matrix3D = jointPose.orientation.toMatrix3D();
-			poseMat.appendTranslation(jointPose.translation.x,jointPose.translation.y,jointPose.translation.z);
-			mat.copyRawDataFrom(poseMat.rawData);
-			return 1;	
-		}
-		
 		public function caleSkeletonLocalMatrix(frame:uint, skeletalID:uint, list:ByteArray,plist:ByteArray):Number
 		{
-			if(mm_frames == null)
+			if(!this.m_loaded)
 			{
 				throw new Error("animation fillSkeletonPose error:"+"id::"+skeletalID,"name::"+this.name);
 				return 1;
 			}
 			
 			var rawDatas:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
-			MathUtl.readByteToRawData(mm_frames[frame].frameAndLocalMatNumberList,skeletalID * 64,rawDatas);
+			MathUtl.readByteToRawData(this.m_workerDataArr[2],frame * skeletalID * 64,rawDatas);
 			var pData:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER2;
 			MathUtl.readByteToRawData(plist,0,pData);
 			list.position = skeletalID<<6;
@@ -325,48 +278,29 @@
 		
 		public function caleSkeletonFrameMatrix(frame:uint, skeletalID:uint, list:ByteArray):Number
 		{
-			if(mm_frames == null)
+			if(!this.m_loaded)
 			{
 				throw new Error("animation fillSkeletonPose error:"+"id::"+skeletalID,"name::"+this.name);
 				return 1;
 			}
 			
-//			var rawDatas:Vector.<Number> = MathUtl.readRawData(mm_frames[frame].frameMatNumberList,skeletalID * 64);
-//			var pData:Vector.<Number> = pMat.rawData;
-			list.position = skeletalID<<6;
-			list.writeBytes(mm_frames[frame].frameMatNumberList,skeletalID * 64,64);
-//			list.writeFloat(pData[0] * rawDatas[0] + pData[4] * rawDatas[1] + pData[8] * rawDatas[2] + pData[12] * rawDatas[3]);
-//			list.writeFloat(pData[1] * rawDatas[0] + pData[5] * rawDatas[1] + pData[9] * rawDatas[2] + pData[13] * rawDatas[3]);
-//			list.writeFloat(pData[2] * rawDatas[0] + pData[6] * rawDatas[1] + pData[10] * rawDatas[2] + pData[14] * rawDatas[3]);
-//			list.writeFloat(pData[3] * rawDatas[0] + pData[7] * rawDatas[1] + pData[11] * rawDatas[2] + pData[15] * rawDatas[3]);
-//			
-//			list.writeFloat(pData[0] * rawDatas[4] + pData[4] * rawDatas[5] + pData[8] * rawDatas[6] + pData[12] * rawDatas[7]);
-//			list.writeFloat(pData[1] * rawDatas[4] + pData[5] * rawDatas[5] + pData[9] * rawDatas[6] + pData[13] * rawDatas[7]);
-//			list.writeFloat(pData[2] * rawDatas[4] + pData[6] * rawDatas[5] + pData[10] * rawDatas[6] + pData[14] * rawDatas[7]);
-//			list.writeFloat(pData[3] * rawDatas[4] + pData[7] * rawDatas[5] + pData[11] * rawDatas[6] + pData[15] * rawDatas[7]);
-//			
-//			list.writeFloat(pData[0] * rawDatas[8] + pData[4] * rawDatas[9] + pData[8] * rawDatas[10] + pData[12] * rawDatas[11]);
-//			list.writeFloat(pData[1] * rawDatas[8] + pData[5] * rawDatas[9] + pData[9] * rawDatas[10] + pData[13] * rawDatas[11]);
-//			list.writeFloat(pData[2] * rawDatas[8] + pData[6] * rawDatas[9] + pData[10] * rawDatas[10] + pData[14] * rawDatas[11]);
-//			list.writeFloat(pData[3] * rawDatas[8] + pData[7] * rawDatas[9] + pData[11] * rawDatas[10] + pData[15] * rawDatas[11]);
-//			
-//			list.writeFloat(pData[0] * rawDatas[12] + pData[4] * rawDatas[13] + pData[8] * rawDatas[14] + pData[12] * rawDatas[15]);
-//			list.writeFloat(pData[1] * rawDatas[12] + pData[5] * rawDatas[13] + pData[9] * rawDatas[14] + pData[13] * rawDatas[15]);
-//			list.writeFloat(pData[2] * rawDatas[12] + pData[6] * rawDatas[13] + pData[10] * rawDatas[14] + pData[14] * rawDatas[15]);
-//			list.writeFloat(pData[3] * rawDatas[12] + pData[7] * rawDatas[13] + pData[11] * rawDatas[14] + pData[15] * rawDatas[15]);	
+			list.position =  skeletalID >> 6;
+			list.writeBytes(this.m_workerDataArr[1],frame * skeletalID * 64,64);
 			return 1;
 		}
 		
 		public function fillSkeletonMatrix2(frame:uint, skeletalID:uint, list:ByteArray,list2:ByteArray,plist:ByteArray):Number 
 		{
-			if(mm_frames == null)
+			if(!this.m_loaded)
 			{
 				throw new Error("animation fillSkeletonPose error:"+"id::"+skeletalID,"name::"+this.name);
 				return 1;
 			}
 			
+			var position:uint = frame * skeletalID * 64;
+			
 			var rawDatas:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
-			MathUtl.readByteToRawData(mm_frames[frame].frameAndLocalMatNumberList,skeletalID * 64,rawDatas);
+			MathUtl.readByteToRawData(this.m_workerDataArr[2],position,rawDatas);
 			var pData:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER2;
 			MathUtl.readByteToRawData(plist,0,pData);
 			list.position = skeletalID<<6;
@@ -391,7 +325,7 @@
 			list.writeFloat(pData[3] * rawDatas[12] + pData[7] * rawDatas[13] + pData[11] * rawDatas[14] + pData[15] * rawDatas[15]);
 			
 			list2.position = skeletalID<<6;
-			list2.writeBytes(mm_frames[frame].frameMatNumberList,skeletalID * 64,64);
+			list2.writeBytes(this.m_workerDataArr[1],position,64);
 			
 //			list2.writeFloat(pData[0] * rawDatas[0] + pData[4] * rawDatas[1] + pData[8] * rawDatas[2] + pData[12] * rawDatas[3]);
 //			list2.writeFloat(pData[1] * rawDatas[0] + pData[5] * rawDatas[1] + pData[9] * rawDatas[2] + pData[13] * rawDatas[3]);
@@ -415,6 +349,14 @@
 			return 1;	
 		}
 		
+		private function recycle():void
+		{
+			ByteArrayPool.push(this.m_workerDataArr[0]);
+			ByteArrayPool.push(this.m_workerDataArr[1]);
+			ByteArrayPool.push(this.m_workerDataArr[2]);
+			this.m_workerDataArr=null;
+		}
+		
 		//=======================================================================================================================
 		//=======================================================================================================================
 		//
@@ -429,7 +371,7 @@
 		
 		public function get loaded():Boolean
 		{
-			return this.mm_frames!=null;
+			return this.m_loaded;
 		}
 		
 		public function get loadfailed():Boolean
@@ -495,11 +437,9 @@
 		public function dispose():void
 		{
 			this.m_frameStrings = null;
-			if(this.m_workerDataArr && this.m_workerDataArr.length>0)
+			if(this.m_workerDataArr)
 			{
-				var byte:ByteArray = this.m_workerDataArr[0];
-				ByteArrayPool.push(byte);
-				this.m_workerDataArr=null;
+				recycle();
 			}
 		}
 		

@@ -57,10 +57,11 @@
 //		private var m_curSkeletalMatrice:Vector.<Matrix3D> = new Vector.<Matrix3D>();
 		/**世界视图的逆矩阵*/
 //		private var m_worldViewInvertArr:Vector.<Matrix3D> = new Vector.<Matrix3D>();
+		private var matList:Vector.<ByteArray> = new Vector.<ByteArray>(3);
 		
-		private var m_skeletalGlobalMatrices:ByteArray;
-		private var m_skeletalRelativeToView:ByteArray;
-		private var m_sceneMat:ByteArray;
+//		private var m_skeletalGlobalMatrices:ByteArray;
+//		private var m_skeletalRelativeToView:ByteArray;
+//		private var m_sceneMat:ByteArray;
 		
 		public function EnhanceSkeletonAnimationState(ans:AnimationGroup):void
 		{
@@ -133,14 +134,16 @@
 			if (skeletalCount>0)
 			{
 //				this.m_skeletalGlobalMatrices = new Vector.<Number>((skeletalCount * 16), true);
-				this.m_skeletalGlobalMatrices = ByteArrayPool.pop();
-				this.m_skeletalGlobalMatrices.length = skeletalCount * 64;
+				this.matList[0] = ByteArrayPool.pop();
+				this.matList[0].shareable = true;
+				this.matList[0].length = skeletalCount * 64;
 				
-				this.m_skeletalRelativeToView = ByteArrayPool.pop();
-				this.m_skeletalRelativeToView.length = skeletalCount * 64;
+				this.matList[1] = ByteArrayPool.pop();
+				this.matList[1].shareable = true;
+				this.matList[1].length = skeletalCount * 64;
 				
-				this.m_sceneMat = ByteArrayPool.pop();
-				this.m_sceneMat.length = 64;
+				this.matList[2] = ByteArrayPool.pop();
+				this.matList[2].length = 64;
 //				var i:int = 0;
 //				while (i < skeletalCount) 
 //				{
@@ -163,7 +166,7 @@
 		 */		
 		public function updatePose(mat:Matrix3D, renderObject:RenderObject=null):void
 		{
-			MathUtl.readMatrixToByte(mat,this.m_sceneMat);
+			MathUtl.readMatrixToByte(mat,this.matList[2]);
 //			this.m_mat = mat;
 //			this.m_worldViewInvertArr[0].copyFrom(mat);
 //			this.m_worldViewInvertArr[0].invert();
@@ -174,7 +177,7 @@
 			//
 			if (this.m_curRenderingMesh)
 			{
-				this.calcSkeletalMatrices(this.m_sceneMat);
+				this.calcSkeletalMatrices(this.matList[2]);
 				this.m_curRenderingMesh.onSkeletonUpdated();
 			}
 			_stateInvalid = false;
@@ -290,16 +293,16 @@
 		{
 			//			trace("skeletalID::",skeletalID,"   parentMat::",mat.rawData);
 			var frame:uint;
-			var translation:Vector3D;
-			var scale:Number=1;
-			var pSkeletalID:uint;
-			var lastQua:Quaternion;
-			var qua:Quaternion;
-			var slerpValue:Number;
-			var figureScale:Vector3D;
-			var curSkeletalMat:Matrix3D;
-			var matDataIndex:uint = skeletalID << 4;
-			var figureUnit:FigureUnit = this.m_curRenderingMesh.getCurFigureUnit(skeletalID);
+//			var translation:Vector3D;
+//			var scale:Number=1;
+//			var pSkeletalID:uint;
+//			var lastQua:Quaternion;
+//			var qua:Quaternion;
+//			var slerpValue:Number;
+//			var figureScale:Vector3D;
+//			var curSkeletalMat:Matrix3D;
+//			var matDataIndex:uint = skeletalID << 4;
+//			var figureUnit:FigureUnit = this.m_curRenderingMesh.getCurFigureUnit(skeletalID);
 			this.m_curSkeletonFrame[skeletalID] = this.m_curFrame;
 			//对全局的矩阵变化进行计算
 			if (skeletalID == 0 || animationNode == null) //根骨骼
@@ -318,10 +321,10 @@
 					//					animationNode.m_animation.fillSkeletonMatrix(frame, skeletalID, curSkeletalMat);
 					if(isCaleParent)
 					{
-						animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.m_skeletalGlobalMatrices,this.m_skeletalRelativeToView,rawData);	
+						animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.matList[0],this.matList[1],rawData);	
 					}else
 					{
-						animationNode.m_animation.caleSkeletonLocalMatrix(frame, skeletalID, this.m_skeletalGlobalMatrices,rawData);
+						animationNode.m_animation.caleSkeletonLocalMatrix(frame, skeletalID, this.matList[0],rawData);
 					}
 				}
 //				else
@@ -347,47 +350,56 @@
 			{
 				animationNode.m_frameOrWeight = 0;
 			}
-			
-			if (animationNode.m_frameOrWeight >= 0)
+			frame = uint(animationNode.m_frameOrWeight);//第几帧
+			//				scale = animationNode.m_animation.fillSkeletonMatrix(frame, skeletalID, curSkeletalMat);
+			if(isCaleParent)
 			{
-				frame = uint(animationNode.m_frameOrWeight);//第几帧
-				//				scale = animationNode.m_animation.fillSkeletonMatrix(frame, skeletalID, curSkeletalMat);
-				if(isCaleParent)
-				{
-					animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.m_skeletalGlobalMatrices,this.m_skeletalRelativeToView,rawData);	
-				}else
-				{
-					animationNode.m_animation.caleSkeletonLocalMatrix(frame, skeletalID, this.m_skeletalGlobalMatrices,rawData);
-				}
-			} else 
+				animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.matList[0],this.matList[1],rawData);	
+			}else
 			{
-				pSkeletalID = skeletalID * 8;
-				translation = MathUtl.TEMP_VECTOR3D;
-				lastQua = MathUtl.TEMP_QUATERNION;
-				qua = MathUtl.TEMP_QUATERNION2;
-				scale = animationNode.m_animation.fillSkeletonPose(animationNode.m_initFrame, skeletalID, translation, qua);
-				slerpValue = -(animationNode.m_frameOrWeight);
-				lastQua.x = this.m_curSkeletonPose[pSkeletalID++];
-				lastQua.y = this.m_curSkeletonPose[pSkeletalID++];
-				lastQua.z = this.m_curSkeletonPose[pSkeletalID++];
-				lastQua.w = this.m_curSkeletonPose[pSkeletalID++];
-				lastQua.slerp(qua, lastQua, slerpValue);
-				translation.x += slerpValue * (this.m_curSkeletonPose[pSkeletalID++] - translation.x);
-				translation.y += slerpValue * (this.m_curSkeletonPose[pSkeletalID++] - translation.y);
-				translation.z += slerpValue * (this.m_curSkeletonPose[pSkeletalID++] - translation.z);
-				scale += slerpValue * (this.m_curSkeletonPose[pSkeletalID] - scale);
-				pSkeletalID  -= 7;
-				this.m_curSkeletonPose[pSkeletalID++] = lastQua.x;
-				this.m_curSkeletonPose[pSkeletalID++] = lastQua.y;
-				this.m_curSkeletonPose[pSkeletalID++] = lastQua.z;
-				this.m_curSkeletonPose[pSkeletalID++] = lastQua.w;
-				this.m_curSkeletonPose[pSkeletalID++] = translation.x;
-				this.m_curSkeletonPose[pSkeletalID++] = translation.y;
-				this.m_curSkeletonPose[pSkeletalID++] = translation.z;
-				this.m_curSkeletonPose[pSkeletalID] = scale;
-				lastQua.toMatrix3D(curSkeletalMat);
-				curSkeletalMat.appendTranslation(translation.x, translation.y, translation.z);
+				animationNode.m_animation.caleSkeletonLocalMatrix(frame, skeletalID, this.matList[0],rawData);
 			}
+			
+//			if (animationNode.m_frameOrWeight >= 0)
+//			{
+//				frame = uint(animationNode.m_frameOrWeight);//第几帧
+//				//				scale = animationNode.m_animation.fillSkeletonMatrix(frame, skeletalID, curSkeletalMat);
+//				if(isCaleParent)
+//				{
+//					animationNode.m_animation.fillSkeletonMatrix2(frame, skeletalID, this.matList[0],this.matList[1],rawData);	
+//				}else
+//				{
+//					animationNode.m_animation.caleSkeletonLocalMatrix(frame, skeletalID, this.matList[0],rawData);
+//				}
+//			} else 
+//			{
+//				pSkeletalID = skeletalID * 8;
+//				translation = MathUtl.TEMP_VECTOR3D;
+//				lastQua = MathUtl.TEMP_QUATERNION;
+//				qua = MathUtl.TEMP_QUATERNION2;
+//				scale = animationNode.m_animation.fillSkeletonPose(animationNode.m_initFrame, skeletalID, translation, qua);
+//				slerpValue = -(animationNode.m_frameOrWeight);
+//				lastQua.x = this.m_curSkeletonPose[pSkeletalID++];
+//				lastQua.y = this.m_curSkeletonPose[pSkeletalID++];
+//				lastQua.z = this.m_curSkeletonPose[pSkeletalID++];
+//				lastQua.w = this.m_curSkeletonPose[pSkeletalID++];
+//				lastQua.slerp(qua, lastQua, slerpValue);
+//				translation.x += slerpValue * (this.m_curSkeletonPose[pSkeletalID++] - translation.x);
+//				translation.y += slerpValue * (this.m_curSkeletonPose[pSkeletalID++] - translation.y);
+//				translation.z += slerpValue * (this.m_curSkeletonPose[pSkeletalID++] - translation.z);
+//				scale += slerpValue * (this.m_curSkeletonPose[pSkeletalID] - scale);
+//				pSkeletalID  -= 7;
+//				this.m_curSkeletonPose[pSkeletalID++] = lastQua.x;
+//				this.m_curSkeletonPose[pSkeletalID++] = lastQua.y;
+//				this.m_curSkeletonPose[pSkeletalID++] = lastQua.z;
+//				this.m_curSkeletonPose[pSkeletalID++] = lastQua.w;
+//				this.m_curSkeletonPose[pSkeletalID++] = translation.x;
+//				this.m_curSkeletonPose[pSkeletalID++] = translation.y;
+//				this.m_curSkeletonPose[pSkeletalID++] = translation.z;
+//				this.m_curSkeletonPose[pSkeletalID] = scale;
+//				lastQua.toMatrix3D(curSkeletalMat);
+//				curSkeletalMat.appendTranslation(translation.x, translation.y, translation.z);
+//			}
 			
 			//			trace("frame::",frame,"    frameMat::",curSkeletalMat.rawData);
 			
@@ -424,26 +436,26 @@
 		 */		
 		public function initBlendInfo(skeletonID:uint, animation:Animation, frame:uint):void
 		{
-			var idx:uint = skeletonID * 8;
-			var translation:Vector3D = MathUtl.TEMP_VECTOR3D;
-			var qua:Quaternion = MathUtl.TEMP_QUATERNION;
-			var scale:Number = animation.fillSkeletonPose(frame, skeletonID, translation, qua);
-			this.m_curSkeletonPose[idx++] = qua.x;
-			this.m_curSkeletonPose[idx++] = qua.y;
-			this.m_curSkeletonPose[idx++] = qua.z;
-			this.m_curSkeletonPose[idx++] = qua.w;
-			this.m_curSkeletonPose[idx++] = translation.x;
-			this.m_curSkeletonPose[idx++] = translation.y;
-			this.m_curSkeletonPose[idx++] = translation.z;
-			this.m_curSkeletonPose[idx] = scale;
-			
-			var childIds:Vector.<uint> = this.m_animationGroup.getSkeletalByID(skeletonID).m_childIds;
-			var i:uint;
-			while (childIds && (i < childIds.length)) 
-			{
-				this.initBlendInfo(childIds[i], animation, frame);
-				i++;
-			}
+//			var idx:uint = skeletonID * 8;
+//			var translation:Vector3D = MathUtl.TEMP_VECTOR3D;
+//			var qua:Quaternion = MathUtl.TEMP_QUATERNION;
+//			var scale:Number = animation.fillSkeletonPose(frame, skeletonID, translation, qua);
+//			this.m_curSkeletonPose[idx++] = qua.x;
+//			this.m_curSkeletonPose[idx++] = qua.y;
+//			this.m_curSkeletonPose[idx++] = qua.z;
+//			this.m_curSkeletonPose[idx++] = qua.w;
+//			this.m_curSkeletonPose[idx++] = translation.x;
+//			this.m_curSkeletonPose[idx++] = translation.y;
+//			this.m_curSkeletonPose[idx++] = translation.z;
+//			this.m_curSkeletonPose[idx] = scale;
+//			
+//			var childIds:Vector.<uint> = this.m_animationGroup.getSkeletalByID(skeletonID).m_childIds;
+//			var i:uint;
+//			while (childIds && (i < childIds.length)) 
+//			{
+//				this.initBlendInfo(childIds[i], animation, frame);
+//				i++;
+//			}
 		}
 		
 		/**
@@ -489,7 +501,7 @@
 					}
 //					this.calcCurrentSkeletal(animationNode, skeletalID, m_curSkeletalMatrice[curSkeletalIndex]);
 					boo = true;
-					this.calcCurrentSkeletal(animationNode, skeletalID, this.m_sceneMat,true);
+					this.calcCurrentSkeletal(animationNode, skeletalID, this.matList[2],true);
 					curSkeletalIndex = skeletalID;
 					skeletalCount--;
 				}
@@ -498,11 +510,11 @@
 			if(!boo)
 			{
 				animationNode = this.m_animationOnSkeleton[skeletonIdx]?this.m_animationOnSkeleton[skeletonIdx]:this.m_animationOnSkeleton[0];
-				animationNode.m_animation.caleSkeletonFrameMatrix(uint(animationNode.m_frameOrWeight),skeletonIdx,this.m_skeletalRelativeToView);
+				animationNode.m_animation.caleSkeletonFrameMatrix(uint(animationNode.m_frameOrWeight),skeletonIdx,this.matList[1]);
 			}
 			
 			var rawDatas:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;
-			MathUtl.readByteToRawData(this.m_skeletalRelativeToView,skeletonIdx * 64,rawDatas);
+			MathUtl.readByteToRawData(this.matList[1],skeletonIdx * 64,rawDatas);
 			mat.copyRawDataFrom(rawDatas);
 //			mat.append(this.worldViewInvert);
 		}
@@ -518,7 +530,7 @@
 			var skeletalIndex:uint;
 			var vertexIndex:uint;
 			var skeletalCount:uint = this.m_animationGroup.skeletalCount;
-			if (this.m_skeletalGlobalMatrices.length == 0)
+			if (!this.matList[0])
 			{
 				if (skeletalCount > 0)
 				{
@@ -547,7 +559,7 @@
 					skeletalIndex = MathUtl.max(0, (skeletalCount - 1));
 				}
 				skeletalIndex = skeletalIndex << 6;
-				vParamCacheList.writeBytes(this.m_skeletalGlobalMatrices,skeletalIndex,48);
+				vParamCacheList.writeBytes(this.matList[0],skeletalIndex,48);
 //				vertexIndex = 0;
 //				while (vertexIndex < 12) 
 //				{
@@ -590,24 +602,13 @@
 			this.m_curSkeletonFrame = null;
 			this.m_curSkeletonPose.length = 0;
 			this.m_curSkeletonPose = null;
-			if(this.m_skeletalGlobalMatrices)
+			if(this.matList)
 			{
-				ByteArrayPool.push(this.m_skeletalGlobalMatrices);
+				ByteArrayPool.push(this.matList[0]);
+				ByteArrayPool.push(this.matList[1]);
+				ByteArrayPool.push(this.matList[2]);
+				this.matList = null;
 			}
-			
-			if(this.m_skeletalRelativeToView)
-			{
-				ByteArrayPool.push(this.m_skeletalRelativeToView);
-			}
-			
-			if(this.m_sceneMat)
-			{
-				ByteArrayPool.push(this.m_sceneMat);
-			}
-//			this.m_skeletalGlobalMatrices.length = 0;
-//			this.m_skeletalGlobalMatrices = null;
-//			this.m_skeletalRelativeToView.length = 0;
-//			this.m_skeletalRelativeToView = null;
 			this.m_curRenderingMesh = null;
 			this.m_skeletonMask.destory();
 			this.m_skeletonMask = null;
