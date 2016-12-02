@@ -124,7 +124,7 @@
 		 */		
 		public function load(resUrl:String, callbackobj:Object, loadType:uint, isInFirst:Boolean, loaderparam:Object):void
 		{
-			trace("path=============",resUrl);
+//			trace("path=============",resUrl);
 			this.addObject(resUrl, true, callbackobj, loadType, isInFirst, loaderparam);
 			this.m_objectCountInHistory++;
 			this.startSerialLoad();

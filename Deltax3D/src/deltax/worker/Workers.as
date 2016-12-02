@@ -26,5 +26,12 @@ package deltax.worker
 			return new CaleThread_ByteClass();
 		}
 		
+		[Embed(source="../../../workers/ResourceThread.swf", mimeType="application/octet-stream")]
+		private static var ResourceThread_ByteClass:Class;
+		public static function get ResourceThreadSwf():ByteArray
+		{
+			return new ResourceThread_ByteClass();
+		}
+		
 	}
 }

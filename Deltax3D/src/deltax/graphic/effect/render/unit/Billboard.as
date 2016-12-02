@@ -386,10 +386,10 @@
 				
 				var minX:int = int(Math.floor((pos.x - this.m_halfWidth) * GRID_UNIT_SIZE_INV));
 				var maxX:int = int(Math.floor((pos.x + this.m_halfWidth) * GRID_UNIT_SIZE_INV)) + 1;
-				var minZ:int = int(Math.floor((pos.z + this.m_halfWidth) * GRID_UNIT_SIZE_INV)) + 1;
-				var maxZ:int = int(Math.floor((pos.z - this.m_halfWidth) * GRID_UNIT_SIZE_INV));
+				var maxZ:int = int(Math.floor((pos.z + this.m_halfWidth) * GRID_UNIT_SIZE_INV)) + 1;
+				var minZ:int = int(Math.floor((pos.z - this.m_halfWidth) * GRID_UNIT_SIZE_INV));
 				var offsetX:int = maxX - minX;
-				var offsetZ:int = minZ - maxZ;
+				var offsetZ:int = maxZ - minZ;
                 if (offsetX == 0 || offsetZ == 0)
 				{
                     return;
@@ -399,7 +399,7 @@
 				{
 					var offset:uint = (max - 20) >> 1;
 					minX += offset;
-					maxZ += offset;
+					minZ += offset;
 					max = 20;
                 }
 				
@@ -432,7 +432,7 @@
                 while (idx < length) 
 				{
 					gx = (indexPoses[idx] & 0xFF) + minX;
-					gz = (indexPoses[idx] >> 8) + maxZ;
+					gz = (indexPoses[idx] >> 8) + minZ;
 					r = fun(gx, gz);
 					vertexParams.writeFloat(r);
 					idx++;
@@ -440,7 +440,7 @@
                 activatePass(context, camera);
                 setDisturbState(context);
                 m_shaderProgram.setParamMatrix(DeltaXProgram3D.WORLD, m_matWorld, true);
-                m_shaderProgram.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, minX, maxZ, this.m_halfWidth, m_curAlpha);
+                m_shaderProgram.setParamValue(DeltaXProgram3D.DIFFUSEMATERIAL, minX, minZ, this.m_halfWidth, m_curAlpha);
                 m_shaderProgram.setParamValue(DeltaXProgram3D.EMISSIVEMATERIAL, attachNum, this.m_curAngle, this.m_percent, 0);
                 m_shaderProgram.setSampleTexture(0, m_textureProxy.getTextureForContext(context));
                 m_shaderProgram.setSampleTexture(1, colorTexture);

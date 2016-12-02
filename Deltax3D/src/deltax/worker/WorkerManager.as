@@ -1,5 +1,6 @@
 package deltax.worker
 {
+	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.system.MessageChannel;
 	import flash.system.Worker;
@@ -21,6 +22,8 @@ package deltax.worker
 		private var _threadMap:Vector.<Worker>;
 		private var _msgToMainMap:Vector.<MessageChannel>;
 		private var _msgToOtherMap:Vector.<MessageChannel>;
+		
+		public var mainThread:Sprite;
 		
 		public function WorkerManager()
 		{
@@ -57,6 +60,14 @@ package deltax.worker
 					thread.start();
 					break;
 				case WorkerName.RESOURCE_THREAD:
+					thread = WorkerDomain.current.createWorker(Workers.ResourceThreadSwf);
+					msgToChild = Worker.current.createMessageChannel(thread);
+					msgToMain = thread.createMessageChannel(Worker.current);
+					thread.setSharedProperty(MsgChannelKey.MAIN_TO_RESOURCE,msgToChild);
+					thread.setSharedProperty(MsgChannelKey.RESOURCE_TO_MAIN,msgToMain);
+					msgToMain.addEventListener(Event.CHANNEL_MESSAGE,onMsgResourceToMain);
+					thread.addEventListener(Event.WORKER_STATE,onWorkerState);
+					thread.start();
 					break;
 				case WorkerName.LOGIC_THREAD:
 					break;
@@ -65,15 +76,21 @@ package deltax.worker
 			_threadMap[key] = thread;
 			_msgToMainMap[key] = msgToMain;
 			_msgToOtherMap[key] = msgToChild;
-			useWorker = true;
+//			useWorker = true;
 		}
 		
 		private function onWorkerState(evt:Event):void
 		{
-			if(_threadMap[WorkerName.CALE_THREAD].state == WorkerState.RUNNING)
+			if(evt.target == _threadMap[WorkerName.CALE_THREAD] && Worker(evt.target).state == WorkerState.RUNNING)
 			{
 				sendMsgToCaleThread(CMDKeys.TEST,"cale thread,are you ready?");
 			}
+			
+			if(evt.target == _threadMap[WorkerName.RESOURCE_THREAD] && Worker(evt.target).state == WorkerState.RUNNING)
+			{
+				sendMsgToResourceThread(CMDKeys.TEST,"resource thread,are you ready?");
+			}
+			
 		}
 		
 		private function onMsgCaleToMain(evt:Event):void
@@ -90,6 +107,23 @@ package deltax.worker
 			}
 		}
 		
+		private function onMsgResourceToMain(evt:Event):void
+		{
+			var arr:Array = _msgToMainMap[WorkerName.RESOURCE_THREAD].receive();
+			if(arr)
+			{
+				switch(arr[0])
+				{
+					case CMDKeys.TEST:
+						trace(arr[1]);
+						break;
+					case "test":
+						mainThread["tex4"].text = "pppppppp";
+						break;
+				}
+			}
+		}
+		
 		/**
 		 * 发送信息到计算线程
 		 * @param cmd
@@ -99,6 +133,17 @@ package deltax.worker
 		{
 			var arr:Array = [cmd,value];
 			_msgToOtherMap[WorkerName.CALE_THREAD].send(arr);
+		}
+		
+		/**
+		 * 发送信息到资源线程
+		 * @param cmd
+		 * @param value
+		 */	
+		public function sendMsgToResourceThread(cmd:String,value:*):void
+		{
+			var arr:Array = [cmd,value];
+			_msgToOtherMap[WorkerName.RESOURCE_THREAD].send(arr);
 		}
 		
 		public function setShareProperty(key:uint,value:Array):void

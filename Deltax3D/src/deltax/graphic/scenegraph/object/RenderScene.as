@@ -331,7 +331,6 @@
 			var tts:TerrainTileSetUnit;
 			var models:Vector.<RegionModelInfo> = rgn.delta::m_modelInfos;
 			var modelCount:uint = models.length;
-			trace("model count===============",modelCount);
 			var idx:uint;
 			while (idx < modelCount) 
 			{
