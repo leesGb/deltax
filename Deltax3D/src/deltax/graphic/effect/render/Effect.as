@@ -721,15 +721,15 @@
 			
 			var eU:EffectUnit;
             var idx:uint;
-            while (idx < this.unitCount) 
-			{
-				eU = this.getEffectUnit(idx);
-                if (eU.linkedToParentUnit)
-				{
-					eU.onParentUpdate(time);
-                }
-				idx++;
-            }
+//            while (idx < this.unitCount) 
+//			{
+//				eU = this.getEffectUnit(idx);
+//                if (eU.linkedToParentUnit)
+//				{
+//					eU.onParentUpdate(time);
+//                }
+//				idx++;
+//            }
 			
             if (this.m_alphaController.fading)
 			{

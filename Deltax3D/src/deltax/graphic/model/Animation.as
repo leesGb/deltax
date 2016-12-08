@@ -1,5 +1,6 @@
 ﻿package deltax.graphic.model 
 {
+	import flash.geom.Matrix;
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
 	import flash.net.URLLoaderDataFormat;
@@ -9,6 +10,7 @@
 	
 	import deltax.delta;
 	import deltax.common.Util;
+	import deltax.common.control.EventHandler;
 	import deltax.common.error.Exception;
 	import deltax.common.math.MathUtl;
 	import deltax.common.math.Matrix3DUtils;
@@ -112,118 +114,208 @@
 		 */		
 		private function loadAni(data:ByteArray):void
 		{
-			data.uncompress(CompressionAlgorithm.LZMA);
-			var verstion:uint = data.readUnsignedInt();
-			var animationName:String = Util.readUcs2StringWithCount(data);
+			data.uncompress();
 			
-			if(WorkerManager.useWorker)
-			{
-				this.m_workerDataArr = [];
-				var byte:ByteArray = ByteArrayPool.pop();
-				this.m_workerDataArr[0] = byte;
-				var offset:uint = data.position;
-				var length:uint = data.bytesAvailable;
-				byte.writeBytes(data,offset,length);
-				
-				byte.position = 0;
-				this.m_maxFrame = byte.readUnsignedInt() - 1;
-				this.m_frameRate = byte.readUnsignedInt();
-				
-				WorkerManager.instance.setShareProperty(WorkerName.CALE_THREAD,[animationName,byte]);
-				return;
-			}
-			
+			var out:ByteArray = new ByteArray();
+			out.endian = Endian.LITTLE_ENDIAN;
+			var version:uint = data.readUnsignedInt();
+			out.writeUnsignedInt(version);
+			var aniName:String = Util.readUcs2StringWithCount(data);
+			aniName = this.m_aniGroup.pureName+"_"+RawAniName;
+			Util.writeStringWithCount(out,aniName);
 			var frameNum:uint = data.readUnsignedInt();
-			this.m_maxFrame = frameNum-1;
-			this.m_frameRate = data.readUnsignedInt();
+			out.writeUnsignedInt(frameNum);
+			var frameRate:uint = data.readUnsignedInt();
+			out.writeUnsignedInt(frameRate);
 			var jointsNum:uint = data.readUnsignedInt();
-			this.mm_frames = new Vector.<SkeletonPose>();
+			out.writeUnsignedInt(jointsNum);
+//			var verstion:uint = data.readUnsignedInt();
+//			var animationName:String = Util.readUcs2StringWithCount(data);
+			
+//			m_maxFrame = frameNum-1;
+//			m_frameRate = data.readUnsignedInt();
+			
+			mm_frames = new Vector.<SkeletonPose>();
 			var skeletonPose:SkeletonPose;
-			var qx:Number;
-			var qy:Number;
-			var qz:Number;
-			var qw:Number;
-			var tx:Number;
-			var ty:Number;
-			var tz:Number;
-			var tData:ByteArray;
-			var tData2:ByteArray;
-			for(var i:int = 0;i<frameNum;i++)
+			var jointPose:JointPose;		
+			var mat:Matrix3D;
+			var skeletal:Skeletal;
+			var pIdx:int;
+			var tempMat:Matrix3D;
+			for(var i:int = 0;i<frameNum;++i)
 			{
 				skeletonPose = new SkeletonPose();
-				tData = skeletonPose.frameMatNumberList;
-				tData2 = skeletonPose.frameAndLocalMatNumberList;
-				for(var j:uint = 0;j<jointsNum;j++)
+				for(var j:int = 0;j<jointsNum;++j)
 				{
-					qx = data.readFloat();
-					qy = data.readFloat();
-					qz = data.readFloat();
-					qw = data.readFloat();
-					tx = data.readFloat();
-					ty = data.readFloat();
-					tz = data.readFloat();
-					tData.writeFloat((1-(qy * qy+qz * qz) * 2));
-					tData.writeFloat(((qx * qy +qw * qz) * 2));
-					tData.writeFloat(((qx * qz - qw * qy)*2));
-					tData.writeFloat(0);
+					jointPose = new JointPose();
+					jointPose.translation = new Vector3D(data.readFloat(),data.readFloat(),data.readFloat());
+					jointPose.orientation = new Quaternion(data.readFloat(),data.readFloat(),data.readFloat(),data.readFloat());
+					skeletonPose.jointPoses.push(jointPose);
 					
-					tData.writeFloat(((qx*qy-qw*qz)*2));
-					tData.writeFloat((1-((qx*qx+qz*qz)*2)));
-					tData.writeFloat((qy*qz+qw*qx)*2);
-					tData.writeFloat(0);
+					mat = jointPose.orientation.toMatrix3D();
+					mat.appendTranslation(jointPose.translation.x,jointPose.translation.y,jointPose.translation.z);
 					
-					tData.writeFloat(((qx*qz+qw*qy)*2));
-					tData.writeFloat((qy*qz-qw*qx)*2);
-					tData.writeFloat((1-((qx*qx+qy*qy)*2)));
-					tData.writeFloat(0);
+					skeletal = this.m_aniGroup.getSkeletalByID(j);
+					if(skeletal)
+					{
+						pIdx = skeletal.m_parentID;
+						if(pIdx != -1)
+						{
+							var jointPose2:JointPose = skeletonPose.jointPoses[pIdx];
+							if(jointPose2)
+							{
+								mat.append(jointPose2.poseMat);
+								tempMat = mat.clone();
+								tempMat.prepend(this.m_aniGroup.m_gammaSkeletals[j].m_inverseBindPose);
+							}
+						}else
+						{
+							tempMat = mat.clone();
+						}
+					}
 					
-					tData.writeFloat(tx);
-					tData.writeFloat(ty);
-					tData.writeFloat(tz);
-					tData.writeFloat(1);
+					jointPose.poseMat = mat;
 					
-					qx = data.readFloat();
-					qy = data.readFloat();
-					qz = data.readFloat();
-					qw = data.readFloat();
-					tx = data.readFloat();
-					ty = data.readFloat();
-					tz = data.readFloat();
-					tData2.writeFloat((1-(qy * qy+qz * qz) * 2));
-					tData2.writeFloat(((qx * qy +qw * qz) * 2));
-					tData2.writeFloat(((qx * qz - qw * qy)*2));
-					tData2.writeFloat(0);
+					var q:Quaternion = new Quaternion();
+					q.fromMatrix(mat);
+					out.writeFloat(q.x);
+					out.writeFloat(q.y);
+					out.writeFloat(q.z);
+					out.writeFloat(q.w);
+					out.writeFloat(mat.position.x);
+					out.writeFloat(mat.position.y);
+					out.writeFloat(mat.position.z);
 					
-					tData2.writeFloat(((qx*qy-qw*qz)*2));
-					tData2.writeFloat((1-((qx*qx+qz*qz)*2)));
-					tData2.writeFloat((qy*qz+qw*qx)*2);
-					tData2.writeFloat(0);
-					
-					tData2.writeFloat(((qx*qz+qw*qy)*2));
-					tData2.writeFloat((qy*qz-qw*qx)*2);
-					tData2.writeFloat((1-((qx*qx+qy*qy)*2)));
-					tData2.writeFloat(0);
-					
-					tData2.writeFloat(tx);
-					tData2.writeFloat(ty);
-					tData2.writeFloat(tz);
-					tData2.writeFloat(1);
+					var q2:Quaternion = new Quaternion();
+					q2.fromMatrix(tempMat);
+					out.writeFloat(q2.x);
+					out.writeFloat(q2.y);
+					out.writeFloat(q2.z);
+					out.writeFloat(q2.w);
+					out.writeFloat(tempMat.position.x);
+					out.writeFloat(tempMat.position.y);
+					out.writeFloat(tempMat.position.z);
 				}
-				
-				this.mm_frames.push(skeletonPose);
+//				mm_frames.push(skeletonPose);
 			}
 			
-			if(m_aniGroup)
-			{
-				for(var k:int=0;k<m_aniGroup.m_aniSequenceHeaders.length;k++)
-				{
-					if(m_aniGroup.m_aniSequenceHeaders[k].rawAniName == this.m_rawName)
-					{
-						m_aniGroup.m_aniSequenceHeaders[k].maxFrame = this.m_maxFrame;
-						break;
-					}
-				}	
-			}
+			out.compress();
+			var path:String = this.m_aniGroup.name.split(".")[0]+"_"+RawAniName+".ani";
+			EventHandler.sendMsg("saveOneAni",[path,out]);
+			return;
+			
+//			data.uncompress(CompressionAlgorithm.LZMA);
+//			var verstion:uint = data.readUnsignedInt();
+//			var animationName:String = Util.readUcs2StringWithCount(data);
+//			
+//			if(WorkerManager.useWorker)
+//			{
+//				this.m_workerDataArr = [];
+//				var byte:ByteArray = ByteArrayPool.pop();
+//				this.m_workerDataArr[0] = byte;
+//				var offset:uint = data.position;
+//				var length:uint = data.bytesAvailable;
+//				byte.writeBytes(data,offset,length);
+//				
+//				byte.position = 0;
+//				this.m_maxFrame = byte.readUnsignedInt() - 1;
+//				this.m_frameRate = byte.readUnsignedInt();
+//				
+//				WorkerManager.instance.setShareProperty(WorkerName.CALE_THREAD,[animationName,byte]);
+//				return;
+//			}
+//			
+//			var frameNum:uint = data.readUnsignedInt();
+//			this.m_maxFrame = frameNum-1;
+//			this.m_frameRate = data.readUnsignedInt();
+//			var jointsNum:uint = data.readUnsignedInt();
+//			this.mm_frames = new Vector.<SkeletonPose>();
+//			var skeletonPose:SkeletonPose;
+//			var qx:Number;
+//			var qy:Number;
+//			var qz:Number;
+//			var qw:Number;
+//			var tx:Number;
+//			var ty:Number;
+//			var tz:Number;
+//			var tData:ByteArray;
+//			var tData2:ByteArray;
+//			for(var i:int = 0;i<frameNum;i++)
+//			{
+//				skeletonPose = new SkeletonPose();
+//				tData = skeletonPose.frameMatNumberList;
+//				tData2 = skeletonPose.frameAndLocalMatNumberList;
+//				for(var j:uint = 0;j<jointsNum;j++)
+//				{
+//					qx = data.readFloat();
+//					qy = data.readFloat();
+//					qz = data.readFloat();
+//					qw = data.readFloat();
+//					tx = data.readFloat();
+//					ty = data.readFloat();
+//					tz = data.readFloat();
+//					tData.writeFloat((1-(qy * qy+qz * qz) * 2));
+//					tData.writeFloat(((qx * qy +qw * qz) * 2));
+//					tData.writeFloat(((qx * qz - qw * qy)*2));
+//					tData.writeFloat(0);
+//					
+//					tData.writeFloat(((qx*qy-qw*qz)*2));
+//					tData.writeFloat((1-((qx*qx+qz*qz)*2)));
+//					tData.writeFloat((qy*qz+qw*qx)*2);
+//					tData.writeFloat(0);
+//					
+//					tData.writeFloat(((qx*qz+qw*qy)*2));
+//					tData.writeFloat((qy*qz-qw*qx)*2);
+//					tData.writeFloat((1-((qx*qx+qy*qy)*2)));
+//					tData.writeFloat(0);
+//					
+//					tData.writeFloat(tx);
+//					tData.writeFloat(ty);
+//					tData.writeFloat(tz);
+//					tData.writeFloat(1);
+//					
+//					qx = data.readFloat();
+//					qy = data.readFloat();
+//					qz = data.readFloat();
+//					qw = data.readFloat();
+//					tx = data.readFloat();
+//					ty = data.readFloat();
+//					tz = data.readFloat();
+//					tData2.writeFloat((1-(qy * qy+qz * qz) * 2));
+//					tData2.writeFloat(((qx * qy +qw * qz) * 2));
+//					tData2.writeFloat(((qx * qz - qw * qy)*2));
+//					tData2.writeFloat(0);
+//					
+//					tData2.writeFloat(((qx*qy-qw*qz)*2));
+//					tData2.writeFloat((1-((qx*qx+qz*qz)*2)));
+//					tData2.writeFloat((qy*qz+qw*qx)*2);
+//					tData2.writeFloat(0);
+//					
+//					tData2.writeFloat(((qx*qz+qw*qy)*2));
+//					tData2.writeFloat((qy*qz-qw*qx)*2);
+//					tData2.writeFloat((1-((qx*qx+qy*qy)*2)));
+//					tData2.writeFloat(0);
+//					
+//					tData2.writeFloat(tx);
+//					tData2.writeFloat(ty);
+//					tData2.writeFloat(tz);
+//					tData2.writeFloat(1);
+//				}
+//				
+//				this.mm_frames.push(skeletonPose);
+//			}
+//			
+//			if(m_aniGroup)
+//			{
+//				for(var k:int=0;k<m_aniGroup.m_aniSequenceHeaders.length;k++)
+//				{
+//					if(m_aniGroup.m_aniSequenceHeaders[k].rawAniName == this.m_rawName)
+//					{
+//						m_aniGroup.m_aniSequenceHeaders[k].maxFrame = this.m_maxFrame;
+//						break;
+//					}
+//				}	
+//			}
 		}
 		
 		/**

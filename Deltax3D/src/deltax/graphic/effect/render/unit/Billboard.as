@@ -9,6 +9,7 @@
     
     import deltax.common.math.MathConsts;
     import deltax.common.math.MathUtl;
+    import deltax.common.math.Matrix3DUtils;
     import deltax.common.math.Quaternion;
     import deltax.common.math.VectorUtil;
     import deltax.graphic.camera.Camera3D;
@@ -157,6 +158,7 @@
             }
 			
             this.m_percent = (curFrame - billBoardData.startFrame) / billBoardData.frameRange;
+//			trace("===============",curFrame);
 			
             var curTexture:DeltaXTexture = getTexture(this.m_percent);
             if (!curTexture)
@@ -194,7 +196,7 @@
 				length += t_axis.length;
                 m_matWorld.copyColumnTo(2, t_axis);
 				length += t_axis.length;
-                this.m_halfWidth *= (length / 3);
+                this.m_halfWidth *= (length * 0.333333);
             } else 
 			{
 				var pos:Vector3D = m_matWorld.position;

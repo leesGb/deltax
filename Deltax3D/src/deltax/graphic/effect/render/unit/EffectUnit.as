@@ -33,7 +33,9 @@
     public class EffectUnit 
 	{
 
-        private static const LIGHT_BLEND_FACTORS:Vector.<uint> = Vector.<uint>([4294901760, 4278190080, 4278190080, 4294901760, 3758096384, 3221225472, 2684354560, 2147483648, 1610612736, 1073741824, 536870912, 4294901760]);
+        private static const LIGHT_BLEND_FACTORS:Vector.<uint> = Vector.<uint>([4294901760, 4278190080, 4278190080, 4294901760, //ffff0000,ff000000,ff000000,ffff0000
+			3758096384, 3221225472, 2684354560, 2147483648, //e0000000,c0000000,a0000000,80000000
+			1610612736, 1073741824, 536870912, 4294901760]);//60000000,40000000,20000000,ffff0000
 
         protected static var m_diffuseMaterialData:Vector.<Number> = Vector.<Number>([1, 1, 1, 1]);
 
@@ -220,12 +222,10 @@
 				}
 			} else 
 			{
-				var en:SceneEnv = DeltaXRenderer.instance.curEnviroment;
-				var fogColor:uint = en.m_fogColor;
 				switch (model)
 				{
 					case BlendMode.ADD:
-						context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ONE);
+						context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ONE);//叠加（源 * f（1,1,1,1）+目标 * f（1,1,1,1））
 						break;
 					case BlendMode.MULTIPLY:
 						context.setBlendFactors(Context3DBlendFactor.ONE, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
@@ -240,6 +240,8 @@
 					case BlendMode.MULTIPLY_5:
 					case BlendMode.MULTIPLY_6:
 					case BlendMode.MULTIPLY_7:
+						var en:SceneEnv = DeltaXRenderer.instance.curEnviroment;
+						var fogColor:uint = en.m_fogColor;
 						if (fogColor > 0)
 						{
 							var cameraPos:Vector3D = camera.position;

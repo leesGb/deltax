@@ -3,8 +3,17 @@
 	import com.md5.BJSkeletonGroupParser;
 	import com.md5.SkeletonJoint;
 	
+	import flash.geom.Matrix3D;
+	import flash.geom.Vector3D;
+	import flash.net.URLLoaderDataFormat;
+	import flash.utils.ByteArray;
+	import flash.utils.Dictionary;
+	
+	import deltax.delta;
 	import deltax.common.Constants;
 	import deltax.common.Util;
+	import deltax.common.safeRelease;
+	import deltax.common.control.EventHandler;
 	import deltax.common.error.Exception;
 	import deltax.common.log.LogLevel;
 	import deltax.common.log.dtrace;
@@ -13,17 +22,9 @@
 	import deltax.common.math.VectorUtil;
 	import deltax.common.resource.CommonFileHeader;
 	import deltax.common.resource.DependentRes;
-	import deltax.common.safeRelease;
-	import deltax.delta;
 	import deltax.graphic.manager.IResource;
 	import deltax.graphic.manager.ResourceManager;
 	import deltax.graphic.manager.ResourceType;
-	
-	import flash.geom.Matrix3D;
-	import flash.geom.Vector3D;
-	import flash.net.URLLoaderDataFormat;
-	import flash.utils.ByteArray;
-	import flash.utils.Dictionary;
 	
 	/**
 	 * 动作组数据
@@ -195,6 +196,9 @@
 				ansName = this.m_fileName.substring(0, this.m_fileName.indexOf(".ans")) + "_";
 			}
 			
+			testNum = dependtRes.FileCount;
+			trace("aniCount>>>>>>>>>>>>>>>>",testNum);
+			
 			var aniSequenceHeaderInfo:AniSequenceHeaderInfo;
 			var resFileName:String;
 			var aniName:String;
@@ -210,15 +214,15 @@
 				aniName = resFileName;
 				aniSequenceHeaderInfo.rawAniName = aniName;
 				this.m_aniNameToIndexMap[aniName] = index;
-				if (aniName == "stand")
-				{
-					resFileName = ansName + resFileName + ".ani";
-					var animation:Animation = ResourceManager.instance.getDependencyOnResource(this, resFileName, ResourceType.ANIMATION_SEQ) as Animation;
-					animation.m_aniGroup = this;
-					animation.RawAniName = aniName;
-					animation.delta::setHeadInfo(aniSequenceHeaderInfo);
-					this.m_sequences[index] = animation;
-				}
+//				if (aniName == "stand")
+//				{
+//					resFileName = ansName + resFileName + ".ani";
+//					var animation:Animation = ResourceManager.instance.getDependencyOnResource(this, resFileName, ResourceType.ANIMATION_SEQ) as Animation;
+//					animation.m_aniGroup = this;
+//					animation.RawAniName = aniName;
+//					animation.delta::setHeadInfo(aniSequenceHeaderInfo);
+//					this.m_sequences[index] = animation;
+//				}
 				index++;
 			}
 			
@@ -442,6 +446,8 @@
 			this.m_sequences[aniIndex] = ani;
 		}
 		
+		private var testNum:uint;
+		
 		/**
 		 * 加载所有动作
 		 */		
@@ -456,10 +462,10 @@
 			var dependtRes:DependentRes;
 			for(name in m_aniNameToIndexMap)
 			{
-				if(name.indexOf("stand") != -1)
-				{//不加待机动作
-					continue;
-				}
+//				if(name.indexOf("stand") != -1)
+//				{//不加待机动作
+//					continue;
+//				}
 				
 				index = m_aniNameToIndexMap[name];
 				if (this.m_sequences[index])
@@ -478,7 +484,7 @@
 				aniFileName = aniFileName.slice(0, aniFileName.indexOf(".ani"));
 				aniName = aniFileName;
 				aniFileName = ansName + aniFileName + ".ani";
-				ani = ResourceManager.instance.getResource(aniFileName,ResourceType.ANIMATION_SEQ) as Animation;
+				ani = ResourceManager.instance.getDependencyOnResource(this, aniFileName, ResourceType.ANIMATION_SEQ) as Animation;
 				ani.m_aniGroup = this;
 				ani.RawAniName = aniName;
 				ani.delta::setHeadInfo(this.m_aniSequenceHeaders[index]);
@@ -971,6 +977,12 @@
 						this.m_aniLoadHandlers[index].onAniLoaded(name);
 						index++;
 					}
+				}
+				trace("anifileLoad>>>>>>>>>>>>>>>>>>>>>>>>>num:"+testNum,"name::"+res.name);
+				testNum --;
+				if(testNum == 0)
+				{
+					EventHandler.sendMsg("allAniLoaded");
 				}
 			}
 		}
