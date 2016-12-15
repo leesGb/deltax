@@ -400,7 +400,7 @@
 				return true;
 			}
 			
-			return (_parent is Entity) ? Entity(_parent).movable : m_movable;
+			return (parent is Entity) ? Entity(parent).movable : m_movable;
 		}
 		
 		//=========================================================================================================================
@@ -757,6 +757,10 @@
 			idx = 0;
             while (idx < this.m_effectUnits.length) 
 			{
+				if(idx == 2 && fileName.indexOf("equip/zs60.eft")>-1)
+				{
+					trace("=================");
+				}
 				eU = this.m_effectUnits[idx];
 				eUData = eU.effectUnitData;
 				canotCameraShake = (this.m_disableCameraShake && (eU is CameraShake));
@@ -791,13 +795,13 @@
 									{
 										calcMat.copyColumnTo(3, translatePos);
 										calcMat.identity();
-										if (uPos < EffectUnitUpdatePosType.FIXED_IGNORE_SCALE)
-										{
-											calcMat.copyColumnTo(0, right);
-											calcMat.copyColumnTo(1, up);
-											calcMat.copyColumnTo(2, dir);
-											calcMat.appendScale(right.length, up.length, dir.length);
-										}
+//										if (uPos < EffectUnitUpdatePosType.FIXED_IGNORE_SCALE)
+//										{
+//											calcMat.copyColumnTo(0, right);
+//											calcMat.copyColumnTo(1, up);
+//											calcMat.copyColumnTo(2, dir);
+//											calcMat.appendScale(right.length, up.length, dir.length);
+//										}
 										
 										if (tPos == EffectUnitUpdatePosType.SOCKET_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE 
 											|| tPos == EffectUnitUpdatePosType.SKELETAL_IGNORE_ROTATE_FOLLOW_ROOT_ROTATE)

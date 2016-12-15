@@ -65,8 +65,6 @@
         private static var m_skeletalMatrixTemp:Matrix3D = new Matrix3D();
         private static var m_socketMatrixTemp:Matrix3D = new Matrix3D();
         private static var ANI_REPLACE_MAP:Dictionary = new Dictionary();
-        private static var m_tempFigureIDsForUpdate:Vector.<uint> = new Vector.<uint>();
-        private static var m_tempFigureWeightsForUpdate:Vector.<Number> = new Vector.<Number>();
         public static var DEFAULT_HIGHLIGHT_EMMISIVE:Vector.<Number> = new Vector.<Number>(4, true);
 
 		protected var m_aniBindEffects:Dictionary;
@@ -83,7 +81,6 @@
         private var m_pendingLinkAddListByName:Dictionary;
         private var m_pendingEffectLoadParams:Dictionary;
         private var m_materialChangedListeners:Vector.<Function>;
-        private var m_curFigureState:FigureState;
         private var m_isValid:Boolean = true;
         private var m_isVisible:Boolean = false;
         private var m_isFirstLoaded:Boolean = false;
@@ -119,7 +116,6 @@
             this.m_addedPieceClasses = new Dictionary();
             this.m_addedNamedSubMeshes = new Dictionary();
             this.m_pendingEffectLoadParams = new Dictionary();
-            this.m_curFigureState = new FigureState();
             this.m_absentAniPlayParam = new AniPlayParam();
             this.m_alphaController = new DefaultAlphaController();
 			
@@ -468,7 +464,6 @@
 			this.animationController = null;
 			safeRelease(this.m_aniGroup);
 			this.m_aniGroup = null;
-			this.m_curFigureState.clear();
 		}
 		
 		private function setAllLinkObjProperty(propertyStr:String, ... _args):void
@@ -1750,195 +1745,6 @@
 			return desc;
 		}
 		
-        public function setFigure(figureIDs:Vector.<uint>, figureWeights:Vector.<Number>):void
-		{
-            var figureCount:uint = figureIDs.length;
-			if(figureCount==0)
-			{
-				return;
-			}
-			
-			var per_figure:Number = 1/figureCount;
-			
-			var hasDifference:Boolean = false;
-			var weight:Number = NaN;
-			var i:uint = 0;
-			var j:uint = 0;
-			
-            if (figureCount == this.m_curFigureState.m_figureWeights.length)
-			{
-                hasDifference = false;
-                i = 0;
-                while (i < figureCount) 
-				{
-                    weight = figureWeights ? figureWeights[i] : per_figure;
-                    hasDifference = (figureIDs[i] != this.m_curFigureState.m_figureWeights[i].m_figureID || weight != this.m_curFigureState.m_figureWeights[i].m_weight);
-                    i ++;
-                }
-				
-                if (!hasDifference)
-				{
-                    return;
-                }
-            }
-			
-            if (!this.m_aniGroup || figureCount == 0)
-			{
-                this.m_curFigureState.clear();
-                return;
-            }
-			
-            if (this.m_aniGroup && !this.m_aniGroup.loaded)
-			{
-                var delaySetFigure:Function = function ():void
-				{
-                    setFigure(figureIDs, figureWeights);
-                }
-                this.addAniGroupLoadHandler(delaySetFigure);
-                return;
-            }
-			
-			
-			var figureWeight:FigureWeight = null;
-			var skeletalCount:uint = 0;
-			var totalWeight:Number = NaN;
-			var maxFigureCount:uint = 0;
-            if (figureCount == 1)
-			{
-                this.m_curFigureState.clear();
-                figureWeight = this.m_curFigureState.m_figureWeights[0];
-                figureWeight.m_figureIndex = this.m_aniGroup.getFigureIndexByID(figureIDs[0]);
-                figureWeight.m_figureIndex = MathUtl.min((this.m_aniGroup.figureCount - 1), figureWeight.m_figureIndex);
-                figureWeight.m_figureID = this.m_aniGroup.getFigureIDByIndex(figureWeight.m_figureIndex);
-            } else 
-			{
-                skeletalCount = this.m_aniGroup.skeletalCount;
-                this.m_curFigureState.clear();
-                this.m_curFigureState.m_figureWeights.length = figureCount;
-                i = 0;
-                while (i < figureCount) 
-				{
-                    this.m_curFigureState.m_figureWeights[i] = new FigureWeight();
-                    i ++;
-                }
-				
-                this.m_curFigureState.m_figureUnits.length = skeletalCount;
-                i = 0;
-                while (i < skeletalCount) 
-				{
-                    this.m_curFigureState.m_figureUnits[i] = new FigureUnit();
-                    i ++;
-                }
-				
-                totalWeight = 0;
-                i = 0;
-                while (i < figureCount) 
-				{
-                    totalWeight += (figureWeights ? figureWeights[i] : per_figure);
-                    i ++;
-                }
-				
-                if (totalWeight <= 0)
-				{
-                    throw new Error("figure total weight must bigger than 0!");
-                }
-				
-                maxFigureCount = this.m_aniGroup.figureCount - 1;
-                i = 0;
-                while (i < figureCount) 
-				{
-                    figureWeight = this.m_curFigureState.m_figureWeights[i];
-                    figureWeight.m_figureIndex = this.m_aniGroup.getFigureIndexByID(figureIDs[i]);
-                    figureWeight.m_figureIndex = MathUtl.min(maxFigureCount, figureWeight.m_figureIndex);
-                    figureWeight.m_figureID = this.m_aniGroup.getFigureIDByIndex(figureWeight.m_figureIndex);
-                    figureWeight.m_weight = (figureWeights ? (figureWeights[i] / totalWeight) : per_figure);
-                    i ++;
-                }
-				
-				var figureUnit:FigureUnit = null;
-				var curFigureUnit:FigureUnit = null;
-				var finalWeight:Number = 0;
-				
-                i = 0;
-                while (i < skeletalCount) 
-				{
-                    curFigureUnit = this.m_curFigureState.m_figureUnits[i];
-                    curFigureUnit.m_scale = new Vector3D();
-                    curFigureUnit.m_offset = new Vector3D();
-                    j = 0;
-                    while (j < figureCount) 
-					{
-                        finalWeight = figureWeights[j] / totalWeight;
-                        if (this.m_curFigureState.m_figureWeights[j].m_figureIndex > 0)
-						{
-                            figureUnit = this.m_aniGroup.getFigureByIndex(this.m_curFigureState.m_figureWeights[j].m_figureIndex, i);
-                            MathUtl.TEMP_VECTOR3D.copyFrom(figureUnit.m_scale);
-                            MathUtl.TEMP_VECTOR3D.scaleBy(finalWeight);
-                            curFigureUnit.m_scale.incrementBy(MathUtl.TEMP_VECTOR3D);
-                            MathUtl.TEMP_VECTOR3D.copyFrom(figureUnit.m_offset);
-                            MathUtl.TEMP_VECTOR3D.scaleBy(finalWeight);
-                            curFigureUnit.m_offset.incrementBy(MathUtl.TEMP_VECTOR3D);
-                        } else 
-						{
-                            MathUtl.TEMP_VECTOR3D.x = finalWeight;
-                            MathUtl.TEMP_VECTOR3D.y = finalWeight;
-                            MathUtl.TEMP_VECTOR3D.z = finalWeight;
-                            curFigureUnit.m_scale.incrementBy(MathUtl.TEMP_VECTOR3D);
-                        }
-                        j ++;
-                    }
-                    i ++;
-                }
-            }
-        }
-		
-        public function getFigureCount():uint
-		{
-            if (this.m_curFigureState.m_figureWeights.length == 0)
-			{
-                return 1;
-            }
-			
-            return this.m_curFigureState.m_figureWeights.length;
-        }
-		
-        public function getFigure(figureIDs:Vector.<uint>, figureWeights:Vector.<Number>):uint
-		{
-            var figureCount:uint = Math.min(this.m_curFigureState.m_figureWeights.length, this.getFigureCount());
-			
-            if (this.m_curFigureState.m_figureWeights.length > 0)
-			{
-				var idx:uint = 0;
-                while (idx < figureCount) 
-				{
-					figureIDs[idx] = this.m_curFigureState.m_figureWeights[idx].m_figureID;
-					figureWeights[idx] = this.m_curFigureState.m_figureWeights[idx].m_weight;
-					idx++;
-                }
-            } else 
-			{
-				figureIDs[0] = 0;
-				figureWeights[0] = 1;
-            }
-			
-            return figureCount;
-        }
-		
-		public function getCurFigureUnit(idx:uint):FigureUnit 
-		{
-			return null;//by hmh用不上
-			if (this.m_curFigureState.m_figureWeights.length > 1)
-			{
-				return this.m_curFigureState.m_figureUnits[idx];
-			}
-			
-			if (this.m_aniGroup && this.m_aniGroup.loaded)
-			{
-				return this.m_aniGroup.getFigureByIndex(this.m_curFigureState.m_figureWeights[0].m_figureIndex, idx);
-			}
-			
-			return null;
-		}
 
         public function getAniMaxFrame(aniName:String):int
 		{
@@ -2307,7 +2113,6 @@
 			
 			var linkObject:RenderObjectLink;
 			var idx:uint = 0;
-			var count:uint = this.m_curFigureState.m_figureWeights.length;
             if (this.m_centerLinkObjects)
 			{
 				var linkName:String;
@@ -2356,21 +2161,6 @@
 				tMat.copyFrom(mat);
 				tMat.append(camera.inverseSceneTransform);
                 EnhanceSkeletonAnimationState(delta::_animationState).updatePose(tMat, this);
-            }
-			
-            if (count < this.m_curFigureState.m_figureWeights.length)
-			{
-                m_tempFigureIDsForUpdate.length = count;
-                m_tempFigureWeightsForUpdate.length = count;
-				idx = 0;
-                while (idx < count) 
-				{
-                    m_tempFigureIDsForUpdate[idx] = this.m_curFigureState.m_figureWeights[idx].m_figureID;
-                    m_tempFigureWeightsForUpdate[idx] = this.m_curFigureState.m_figureWeights[idx].m_weight;
-					idx++;
-                }
-				
-                this.setFigure(m_tempFigureIDsForUpdate, m_tempFigureWeightsForUpdate);
             }
 			
             if (this.m_centerLinkObjects)

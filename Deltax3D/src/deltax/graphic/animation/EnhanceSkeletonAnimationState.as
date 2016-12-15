@@ -510,7 +510,10 @@
 			if(!boo)
 			{
 				animationNode = this.m_animationOnSkeleton[skeletonIdx]?this.m_animationOnSkeleton[skeletonIdx]:this.m_animationOnSkeleton[0];
-				animationNode.m_animation.caleSkeletonFrameMatrix(uint(animationNode.m_frameOrWeight),skeletonIdx,this.matList[1]);
+				if(animationNode)
+				{
+					animationNode.m_animation.caleSkeletonFrameMatrix(uint(animationNode.m_frameOrWeight),skeletonIdx,this.matList[1]);	
+				}
 			}
 			
 			var rawDatas:Vector.<Number> = Matrix3DUtils.RAW_DATA_CONTAINER;

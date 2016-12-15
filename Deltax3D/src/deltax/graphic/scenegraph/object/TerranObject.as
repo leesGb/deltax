@@ -94,7 +94,6 @@
                         break;
                     case MetaScene.DEPEND_RES_TYPE_ANI:
                         setAniGroupByName(filePath);
-                        setFigure(Vector.<uint>([mInfo.m_figure]), Vector.<Number>([1]));
                         break;
                     case MetaScene.DEPEND_RES_TYPE_EFFECT:
                         addEffect(filePath, String(createItemInfo.m_param), idx.toString(), RenderObjLinkType.CENTER, false);

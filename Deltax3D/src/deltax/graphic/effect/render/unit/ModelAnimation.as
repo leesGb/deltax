@@ -14,9 +14,6 @@
 	
     public class ModelAnimation extends EffectUnit 
 	{
-        private static var m_figureIDsForUpdate:Vector.<uint> = new Vector.<uint>();
-        private static var m_figureWeightsForUpdate:Vector.<Number> = new Vector.<Number>();
-
 		/**父类模型对象*/
         private var m_parentModel:RenderObject;
 
@@ -44,20 +41,6 @@
                 return;
             }
 			
-            if (data.m_type == 0)
-			{
-				var curFrame:Number = calcCurFrame(time);
-				var percent:Number = (curFrame - data.startFrame) / data.frameRange;
-				var figureCount:uint = this.m_parentModel.aniGroup.figureCount;
-				var length:uint = figureCount + 1;
-                m_figureIDsForUpdate.length = length;
-                m_figureWeightsForUpdate.length = length;
-                this.m_parentModel.getFigure(m_figureIDsForUpdate, m_figureWeightsForUpdate);
-				var scale:Number = data.getScaleByPos(percent);
-                m_figureIDsForUpdate[figureCount] = data.m_figureWeightInfo.figureID;
-                m_figureWeightsForUpdate[figureCount] = scale / Math.max((1 - scale), 0.01);
-                this.m_parentModel.setFigure(m_figureIDsForUpdate, m_figureWeightsForUpdate);
-            }
         }
 
 		

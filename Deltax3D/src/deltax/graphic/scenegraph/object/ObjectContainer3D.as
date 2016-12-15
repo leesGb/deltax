@@ -27,25 +27,25 @@
 		private static var _quaternion:Quaternion = new Quaternion();
 		
 		protected var _transform:Matrix3D;
-		protected var _scaleX:Number = 1;
-		protected var _scaleY:Number = 1;
-		protected var _scaleZ:Number = 1;
+		protected var _transformDirty:Boolean = true;
 		protected var _x:Number = 0;
 		protected var _y:Number = 0;
 		protected var _z:Number = 0;
-		protected var _transformDirty:Boolean = true;
-		protected var _pivotPoint:Vector3D;
-		protected var _pivotZero:Boolean = true;
 		protected var _pos:Vector3D;
 		protected var _refCount:int = 1;
-		protected var _scene:Scene3D;
-		protected var _parent:ObjectContainer3D;
 		protected var _sceneTransform:Matrix3D;
 		protected var _sceneTransformDirty:Boolean = true;
-		protected var _explicitPartition:Partition3D;
-		protected var _implicitPartition:Partition3D;
 		
+		private var _explicitPartition:Partition3D;
+		private var _implicitPartition:Partition3D;
 		private var _name:String;
+		private var _scene:Scene3D;
+		private var _parent:ObjectContainer3D;
+		private var _pivotPoint:Vector3D;
+		private var _pivotZero:Boolean = true;
+		private var _scaleX:Number = 1;
+		private var _scaleY:Number = 1;
+		private var _scaleZ:Number = 1;
 		private var _rotationX:Number = 0;
 		private var _rotationY:Number = 0;
 		private var _rotationZ:Number = 0;

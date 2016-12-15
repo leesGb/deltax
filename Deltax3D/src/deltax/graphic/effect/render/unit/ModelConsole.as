@@ -25,9 +25,6 @@
 	
     public class ModelConsole extends EffectUnit 
 	{
-        private static var m_figureIDsForUpdate:Vector.<uint> = new Vector.<uint>(2, true);
-        private static var m_figureWeightsForUpdate:Vector.<Number> = new Vector.<Number>(2, true);
-		
 		/**当前角度*/
         private var m_curAngle:Number = 0;
 		/**父类骨骼ID*/
@@ -209,12 +206,6 @@
 				alpha = (getColorByPos(percent) >>> 24) / 0xFF;
             }
 			scale = modelConsoleData.m_minScale + (modelConsoleData.m_maxScale - modelConsoleData.m_minScale) * scale;
-			
-            m_figureIDsForUpdate[0] = alpha == 0 ? modelConsoleData.m_figure2 : modelConsoleData.m_figure1;
-            m_figureIDsForUpdate[1] = modelConsoleData.m_figure2;
-            m_figureWeightsForUpdate[0] = alpha == 0 ? 1 : alpha;
-            m_figureWeightsForUpdate[1] = 1 - alpha;
-            this.m_model.setFigure(m_figureIDsForUpdate, m_figureWeightsForUpdate);
 			
             var pos:Vector3D = MathUtl.TEMP_VECTOR3D;
 			modelConsoleData.getOffsetByPos(percent, pos);

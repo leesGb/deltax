@@ -130,9 +130,9 @@
 		
 		private function notifySceneBoundsInvalid():void
 		{
-			if (_scene)
+			if (scene)
 			{
-				_scene.delta::invalidateEntityBounds(this);
+				scene.delta::invalidateEntityBounds(this);
 			}
 			//
 			this.getEntityPartitionNode().invalidBounds();
@@ -225,37 +225,37 @@
 		
 		override public function set implicitPartition(partition:Partition3D):void
 		{
-			if (partition == _implicitPartition)
+			if (partition == implicitPartition)
 			{
 				return;
 			}
 			//
-			if (_implicitPartition)
+			if (implicitPartition)
 			{
-				if (_scene)
+				if (scene)
 				{
-					_scene.delta::unregisterPartition(this);
+					scene.delta::unregisterPartition(this);
 				}
 			}
 			//
 			super.implicitPartition = partition;
 			//
-			if (_scene)
+			if (scene)
 			{
-				_scene.delta::registerPartition(this);
+				scene.delta::registerPartition(this);
 			}
 		}
 		
 		override public function set scene(scene3d:Scene3D):void
 		{
-			if (scene3d == _scene)
+			if (scene3d == scene)
 			{
 				return;
 			}
 			//
-			if (_scene)
+			if (scene)
 			{
-				_scene.delta::unregisterEntity(this);
+				scene.delta::unregisterEntity(this);
 			}
 			//
 			if (scene3d)
