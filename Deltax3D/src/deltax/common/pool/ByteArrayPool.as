@@ -18,10 +18,10 @@ package deltax.common.pool
 			if(byte == null)
 			{
 				byte = new ByteArray();
-				byte.endian = Endian.LITTLE_ENDIAN;
 			}
 			byte.position = 0;
 			byte.shareable = isShare;
+			byte.endian = Endian.LITTLE_ENDIAN;
 			return byte;
 		}
 		
