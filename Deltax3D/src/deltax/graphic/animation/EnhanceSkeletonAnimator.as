@@ -30,16 +30,16 @@
 		 * 获取动画的渲染状态
 		 * @return 
 		 */	
-        public function get skeletonAnimationState():EnhanceSkeletonAnimationState
+        final public function get skeletonAnimationState():EnhanceSkeletonAnimationState
 		{
-            return EnhanceSkeletonAnimationState(_animationState);
+            return EnhanceSkeletonAnimationState(animationState);
         }
 		
 		/**
 		 * 获取该动画的动作组数据
 		 * @return 
 		 */	
-        public function get animationGroup():AnimationGroup
+		final public function get animationGroup():AnimationGroup
 		{
             return this.skeletonAnimationState.animationGroup;
         }
@@ -48,11 +48,11 @@
 		 * 每帧时间是否延长或缩小
 		 * @return 
 		 */	
-        public function get timeScale():Number
+		final public function get timeScale():Number
 		{
             return this.m_timeScale;
         }
-        public function set timeScale(va:Number):void
+		final public function set timeScale(va:Number):void
 		{
             this.m_timeScale = va;
         }
@@ -100,16 +100,16 @@
 		 */		
         public function play(aniName:String, aniPlayType:uint=0, initFrame:uint=0, startFrame:uint=1, endFrame:uint=1, skeletalId:uint=0, delayTime:uint=200, excludeSkeletalIDs:Array=null, sync:Boolean=true):void
 		{
-            var animationState:EnhanceSkeletonAnimationState = this.skeletonAnimationState;
-            var skeletonList:Array = animationState.animationOnSkeleton;
-            var animation:Animation = this.animationGroup.getAnimationData(aniName);
+            var aniState:EnhanceSkeletonAnimationState = this.skeletonAnimationState;
+            var skeletonList:Array = aniState.animationOnSkeleton;
 			skeletonList[skeletalId] = ((skeletonList[skeletalId]) || (new EnhanceSkeletonAnimationNode()));
             var skeletonAnimationNode:EnhanceSkeletonAnimationNode = EnhanceSkeletonAnimationNode(skeletonList[skeletalId]);
             if (delayTime > 0 && skeletonAnimationNode.m_animation)
 			{
-//				animationState.initBlendInfo(skeletalId, skeletonAnimationNode.m_animation, skeletonAnimationNode.curFrame);
+				aniState.initBlendInfo(skeletalId, skeletonAnimationNode.m_animation, skeletonAnimationNode.curFrame);
             }
 			
+			var animation:Animation = this.animationGroup.getAnimationData(aniName);
 			skeletonAnimationNode.setAnimationInfo(animation, aniPlayType, initFrame, startFrame, endFrame, delayTime);
             if (sync)
 			{
@@ -156,7 +156,7 @@
 		 * @param skeletalID
 		 * @return 
 		 */		
-		public function getCurAnimationName(skeletalID:uint):String
+		public function getCurAnimationName(skeletalID:uint=0):String
 		{
 			var node:EnhanceSkeletonAnimationNode = this.getCurAnimationNode(skeletalID);
 			if (node == null)
@@ -172,7 +172,7 @@
 		 * @param skeletalID
 		 * @return 
 		 */		
-		public function getCurAnimation(skeletalID:uint):Animation
+		public function getCurAnimation(skeletalID:uint=0):Animation
 		{
 			var node:EnhanceSkeletonAnimationNode = this.getCurAnimationNode(skeletalID);
 			if (node == null)
@@ -194,6 +194,7 @@
 			{
 				this.m_preTime = curTime - 1;
 			}
+			
 			var aState:EnhanceSkeletonAnimationState = this.skeletonAnimationState;
 			var animationOnSkeleton:Array = aState.animationOnSkeleton;
 			var node:EnhanceSkeletonAnimationNode;

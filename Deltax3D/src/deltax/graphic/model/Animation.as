@@ -226,75 +226,66 @@
 			var jointsNum:uint = data.readUnsignedInt();
 			this.mm_frames = new Vector.<SkeletonPose>();
 			var skeletonPose:SkeletonPose;
-			var qx:Number;
-			var qy:Number;
-			var qz:Number;
-			var qw:Number;
-			var tx:Number;
-			var ty:Number;
-			var tz:Number;
 			var tData:ByteArray;
 			var tData2:ByteArray;
+			var tData3:ByteArray;
+			var mat:Matrix3D;
+			var jointPose:JointPose;	
+			var skeletal:Skeletal;
+			var pIdx:int;
+			var tempMat:Matrix3D;
 			for(var i:int = 0;i<frameNum;i++)
 			{
 				skeletonPose = new SkeletonPose();
 				tData = skeletonPose.frameMatNumberList;
 				tData2 = skeletonPose.frameAndLocalMatNumberList;
+				tData3 = skeletonPose.frameNumberList;
 				for(var j:uint = 0;j<jointsNum;j++)
 				{
-					qx = data.readFloat();
-					qy = data.readFloat();
-					qz = data.readFloat();
-					qw = data.readFloat();
-					tx = data.readFloat();
-					ty = data.readFloat();
-					tz = data.readFloat();
-					tData.writeFloat((1-(qy * qy+qz * qz) * 2));
-					tData.writeFloat(((qx * qy +qw * qz) * 2));
-					tData.writeFloat(((qx * qz - qw * qy)*2));
-					tData.writeFloat(0);
+					jointPose = new JointPose();
+					jointPose.translation = new Vector3D(data.readFloat(),data.readFloat(),data.readFloat());
+					jointPose.orientation = new Quaternion(data.readFloat(),data.readFloat(),data.readFloat(),data.readFloat());
+					skeletonPose.jointPoses.push(jointPose);
 					
-					tData.writeFloat(((qx*qy-qw*qz)*2));
-					tData.writeFloat((1-((qx*qx+qz*qz)*2)));
-					tData.writeFloat((qy*qz+qw*qx)*2);
-					tData.writeFloat(0);
+					tData3.writeFloat(jointPose.translation.x);
+					tData3.writeFloat(jointPose.translation.y);
+					tData3.writeFloat(jointPose.translation.z);
+					tData3.writeFloat(jointPose.orientation.x);
+					tData3.writeFloat(jointPose.orientation.y);
+					tData3.writeFloat(jointPose.orientation.z);
+					tData3.writeFloat(jointPose.orientation.w);
+					tData3.writeFloat(1);
 					
-					tData.writeFloat(((qx*qz+qw*qy)*2));
-					tData.writeFloat((qy*qz-qw*qx)*2);
-					tData.writeFloat((1-((qx*qx+qy*qy)*2)));
-					tData.writeFloat(0);
+					mat = jointPose.orientation.toMatrix3D();
+					mat.appendTranslation(jointPose.translation.x,jointPose.translation.y,jointPose.translation.z);
 					
-					tData.writeFloat(tx);
-					tData.writeFloat(ty);
-					tData.writeFloat(tz);
-					tData.writeFloat(1);
+					skeletal = this.m_aniGroup.getSkeletalByID(j);
+					if(skeletal)
+					{
+						pIdx = skeletal.m_parentID;
+						if(pIdx != -1)
+						{
+							var jointPose2:JointPose = skeletonPose.jointPoses[pIdx];
+							if(jointPose2)
+							{
+								mat.append(jointPose2.poseMat);
+								tempMat = mat.clone();
+								tempMat.prepend(this.m_aniGroup.m_gammaSkeletals[j].m_inverseBindPose);
+							}
+						}else
+						{
+							tempMat = mat.clone();
+						}
+					}
 					
-					qx = data.readFloat();
-					qy = data.readFloat();
-					qz = data.readFloat();
-					qw = data.readFloat();
-					tx = data.readFloat();
-					ty = data.readFloat();
-					tz = data.readFloat();
-					tData2.writeFloat((1-(qy * qy+qz * qz) * 2));
-					tData2.writeFloat(((qx * qy +qw * qz) * 2));
-					tData2.writeFloat(((qx * qz - qw * qy)*2));
-					tData2.writeFloat(0);
+					jointPose.poseMat = mat;		
 					
-					tData2.writeFloat(((qx*qy-qw*qz)*2));
-					tData2.writeFloat((1-((qx*qx+qz*qz)*2)));
-					tData2.writeFloat((qy*qz+qw*qx)*2);
-					tData2.writeFloat(0);
+					for(var k:uint = 0;k<16;k++)
+					{
+						tData.writeFloat(mat.rawData[k]);
+						tData2.writeFloat(tempMat.rawData[k]);
+					}
 					
-					tData2.writeFloat(((qx*qz+qw*qy)*2));
-					tData2.writeFloat((qy*qz-qw*qx)*2);
-					tData2.writeFloat((1-((qx*qx+qy*qy)*2)));
-					tData2.writeFloat(0);
-					
-					tData2.writeFloat(tx);
-					tData2.writeFloat(ty);
-					tData2.writeFloat(tz);
-					tData2.writeFloat(1);
 				}
 				
 				this.mm_frames.push(skeletonPose);
@@ -332,23 +323,16 @@
 		 * @param qua
 		 * @return 
 		 */		
-		public function fillSkeletonPose(frame:uint, skeletalID:uint, translation:Vector3D, qua:Quaternion):Number 
+		public function fillSkeletonPose(frame:uint, skeletalID:uint,list:ByteArray):Number 
 		{
-			if(mm_frames == null || mm_frames[frame].jointPoses.length<=skeletalID)
+			if(mm_frames == null)
 			{
 				throw new Error("animation fillSkeletonPose error:"+"id::"+skeletalID,"name::"+this.name);
 				return 1;
 			}
 			
-			var jointPose:JointPose = mm_frames[frame].jointPoses[skeletalID];				
-			qua.x = jointPose.orientation.x;
-			qua.y = jointPose.orientation.y;
-			qua.z = jointPose.orientation.z;
-			qua.w = jointPose.orientation.w;
-			translation.x = jointPose.translation.x;
-			translation.y = jointPose.translation.y;
-			translation.z = jointPose.translation.z;
-			
+			list.position = skeletalID << 5;
+			list.writeBytes(mm_frames[frame].frameNumberList,skeletalID * 32,32);
 			return 1;
 		}
 		

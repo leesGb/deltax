@@ -17,6 +17,8 @@ package deltax.graphic.animation.skeleton
 		
 		public var frameAndLocalMatNumberList:ByteArray;
 		
+		public var frameNumberList:ByteArray;
+		
 		public function SkeletonPose()
 		{
 			jointPoses = new Vector.<JointPose>();
@@ -24,6 +26,8 @@ package deltax.graphic.animation.skeleton
 			frameMatNumberList.endian = Endian.LITTLE_ENDIAN;
 			frameAndLocalMatNumberList = new ByteArray();
 			frameAndLocalMatNumberList.endian = Endian.LITTLE_ENDIAN;
+			frameNumberList = new ByteArray();
+			frameNumberList.endian = Endian.LITTLE_ENDIAN;
 		}
 		
 		/**
